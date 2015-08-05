@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+import logging
+
+from gdc_client.version import __version__ as version
+from gdc_client.parser import parser
+from gdc_client import download
+from gdc_client.log import get_logger
+
+logging.root.setLevel(logging.INFO)
+log = get_logger('gdc-client')
+
+
+commands_callbacks = {
+    download.command: download.main,
+}
+
+
+def log_version_header():
+    log.info('gdc-client - {version}'.format(version=version))
+
+
+def run_command(args):
+    commands_callbacks[args.command]()
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    log_version_header()
+    run_command(args)
