@@ -2,13 +2,14 @@ import argparse
 import sys
 import logging
 
-from ..parser import subparsers
 from . import client
-from parcel import manifest, const
+from . import repl
 from .. import defaults
+from ..parser import subparsers
+from parcel import manifest, const
 
 command = 'download'
-subparser = subparsers.add_parser(command, help='download files')
+subparser = subparsers.add_parser(command)
 
 #############################################################
 #                     General options
@@ -116,7 +117,9 @@ def run_cli(args):
 
 
 def run_repl(args):
-    raise NotImplementedError()
+    r = repl.GDCDownloadREPL()
+    r.prompt = '\ngdc-client download > '
+    r.cmdloop()
 
 
 def main():
@@ -126,7 +129,13 @@ def main():
 
     # If there are arguments other than subcommand, run cli
     if sys.argv[2:]:
-        run_cli(args)
+        try:
+            run_cli(args)
+        except Exception as e:
+            if args.debug:
+                raise
+            else:
+                print('Process aborted: {}'.format(str(e)))
 
     # Else, run as a repl
     else:
