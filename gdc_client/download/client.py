@@ -1,4 +1,8 @@
+from StringIO import StringIO
+import os
 import requests
+import tarfile
+import urlparse
 
 from parcel import HTTPClient, UDTClient
 from parcel.download_stream import DownloadStream
@@ -10,6 +14,8 @@ log = get_logger('client')
 
 
 class GDCDownloadMixin(object):
+
+    annotation_name = 'annotations.txt'
 
     def download_related_files(self, index, file_id, directory):
         """Finds and downloads files related to the primary entity.
@@ -32,12 +38,21 @@ class GDCDownloadMixin(object):
         """
 
         annotations = index.get_annotations(file_id)
-        log.info('Annotations for {}: {}'.format(file_id, annotations))
+        annotation_list = ','.join(annotations)
 
         if annotations:
-            annotation_list = ','.join(annotations)
-            stream = DownloadStream(annotation_list, self.uri, directory)
-            self.serial_download(stream)
+            log.info('Annotations for {}: {}'.format(file_id, annotation_list))
+            r = requests.get(
+                urlparse.urljoin(self.uri, '/data/{}'.format(annotation_list)),
+                params={'compress': True},
+                verify=False)
+            tar = tarfile.open(mode="r:gz", fileobj=StringIO(r.content))
+            if self.annotation_name in tar.getnames():
+                member = tar.getmember(self.annotation_name)
+                ann = tar.extractfile(member).read()
+                path = os.path.join(directory, self.annotation_name)
+                with open(path, 'w') as f:
+                    f.write(ann)
 
     def parallel_download(self, stream, download_related_files=None,
                           download_annotations=None, *args, **kwargs):
