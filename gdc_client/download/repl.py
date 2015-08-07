@@ -17,23 +17,23 @@ class GDCDownloadREPL(Cmd):
     BASIC_HELP = """Basic help:
     This tool is for downloading data from the GDC.  A few simple usage examples:
 
-    1. To simply download an open access file (file_id_1):
+    - To simply download an open access file (file_id_1):
 
         > download file_id_1
 
-    2. To simply download a controlled access file (file_id_1) by
-       providing the path to a token downloaded from the GDC Portal
-       (type 'help token' for more information):
+    - To simply download a controlled access file (file_id_1) by
+      providing the path to a token downloaded from the GDC Portal
+      (type 'help token' for more information):
 
         > download file_id_1 -t path/token.txt
 
-    3. To download files from a manifest by providing the path to the
-       manifest:
+    - To download files from a manifest by providing the path to the
+      manifest:
 
         > download -t path/manifest.txt
 
-    4. To add files from two manifest and a selection of ids, list all
-       files added, and download:
+    - To add files from two manifest and a selection of ids, list all
+      files added, and download:
 
         > manifest path/manifest1.txt
         > manifest path/manifest2.txt
