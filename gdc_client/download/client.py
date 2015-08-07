@@ -41,7 +41,8 @@ class GDCDownloadMixin(object):
         annotation_list = ','.join(annotations)
 
         if annotations:
-            log.info('Annotations for {}: {}'.format(file_id, annotation_list))
+            log.info('Found {} annotations for {}.'.format(
+                len(annotations), file_id))
             r = requests.get(
                 urlparse.urljoin(self.uri, '/data/{}'.format(annotation_list)),
                 params={'compress': True},
@@ -53,6 +54,7 @@ class GDCDownloadMixin(object):
                 path = os.path.join(directory, self.annotation_name)
                 with open(path, 'w') as f:
                     f.write(ann)
+            log.info('Wrote annotations to {}.'.format(path))
 
     def parallel_download(self, stream, download_related_files=None,
                           download_annotations=None, *args, **kwargs):

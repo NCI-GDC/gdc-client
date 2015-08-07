@@ -5,7 +5,7 @@ import logging
 from . import client
 from . import repl
 from .. import defaults
-from ..parser import subparsers
+from ..argparser import subparsers
 from parcel import manifest, const
 
 command = 'download'

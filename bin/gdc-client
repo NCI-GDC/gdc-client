@@ -3,7 +3,7 @@ import logging
 import sys
 
 from gdc_client.version import __version__ as version
-from gdc_client.parser import parser
+from gdc_client.argparser import argparser
 from gdc_client import download
 from gdc_client.log import get_logger
 
@@ -30,7 +30,7 @@ def main():
         # If no subcommand was specified use default command
         return DEFAULT_COMMAND()
 
-    args = parser.parse_args()
+    args = argparser.parse_args()
     log_version_header()
     run_command(args)
 
