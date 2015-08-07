@@ -77,7 +77,22 @@ class GDCDownloadREPL(Cmd):
             processes=defaults.processes,
             save_interval=const.SAVE_INTERVAL,
             http_chunk_size=const.HTTP_CHUNK_SIZE,
+            download_related_files=True,
+            download_annotations=True,
         )
+
+    def get(self, setting, stype):
+        val = self.settings[setting]
+        if isinstance(val, str) and stype == bool:
+            return val.lower in ['true', 't']
+        else:
+            try:
+                val = stype(val)
+            except:
+                raise RuntimeError(
+                    "Unable to convert setting '{}'='{}' to type {}".format(
+                        setting, val, stype))
+        return val
 
     def format_docstring(self, doc):
         doc = doc.strip() or 'No help available.'
@@ -125,7 +140,7 @@ class GDCDownloadREPL(Cmd):
         """
         if not manifest_path:
             print('No manifest specified to load.')
-            self.help_manifest()
+            self.do_help('manifest')
             return
         with open(manifest_path, 'r') as fd:
             self._add_ids([f['id'] for f in manifest.parse(fd)])
@@ -184,7 +199,7 @@ class GDCDownloadREPL(Cmd):
         ids = shlex.split(arg)
         if not ids:
             print('No ids specified.')
-            self.help_add()
+            self.do_help('add')
             return
         self._add_ids(ids)
 
@@ -201,7 +216,7 @@ class GDCDownloadREPL(Cmd):
         ids = shlex.split(arg)
         if not ids:
             print('No ids specified.')
-            self.help_remove()
+            self.do_help('remove')
             return
         self._remove_ids(ids)
 
@@ -284,21 +299,30 @@ class GDCDownloadREPL(Cmd):
             return
 
         if self.settings['protocol'] == 'tcp':
-            client = GDCHTTPDownloadClient(
-                token=self.token,
-                n_procs=int(self.settings['processes']),
-                directory=os.path.abspath(os.getcwd()),
+            kwargs = dict(
                 uri=self.settings['server'],
-                http_chunk_size=int(self.settings['http_chunk_size']),
-                save_interval=int(self.settings['save_interval']),
+                token=self.token,
+                n_procs=self.get('processes', int),
+                directory=os.path.abspath(os.getcwd()),
+                http_chunk_size=self.get('http_chunk_size', int),
+                save_interval=self.get('save_interval', int),
+                download_related_files=self.get('download_related_files', bool),
+                download_annotations=self.get('download_annotations', bool),
             )
+            client = GDCHTTPDownloadClient(**kwargs)
 
-        else:
+        elif self.settings['protocol'].lower() == 'udt':
             raise RuntimeError(
-                ("{} protocol not supported in interactive mode.  "
-                 "Try 'parcel --help'").format(self.settings['protocol']))
+                ("UDT protocol not supported in interactive mode.  "
+                 "Try running  'gdc-client download -u'"))
+        else:
+            raise RuntimeError('Protocol ({}) not recognized'.format(
+                self.settings['protocol']))
 
-        downloaded, errors = client.download_files(self.file_ids)
+        try:
+            downloaded, errors = client.download_files(self.file_ids)
+        except Exception as e:
+            print('Download aborted: {}'.format(str(e)))
         self._remove_ids(downloaded)
 
     def do_help(self, arg):
@@ -324,13 +348,24 @@ class GDCDownloadREPL(Cmd):
         usage: set <SETTING> <NEW VALUE>
 
         """
-        attr, value = shlex.split(arg)
+        try:
+            attr, value = shlex.split(arg)
+        except:
+            print('invalid syntax.')
+            return self.do_help('set')
+
         if attr not in self.settings:
             raise ValueError(
                 "{} not a valid setting. Try 'settings'.".format(attr))
         print("Updating {} from '{}' to '{}'".format(
             attr, self.settings[attr], value))
         self.settings[attr] = value
+
+    def complete_set(self, text, line, start_index, end_index):
+        if text:
+            return [key+' ' for key in self.settings if key.startswith(text)]
+        else:
+            return self.settings.keys()
 
     def do_settings(self, arg):
         """Lists the current settings and their values.
@@ -341,8 +376,9 @@ class GDCDownloadREPL(Cmd):
 
         """
         print('-- Settings --')
+        pad = max([len(key) for key in self.settings])+1
         for key, val in self.settings.iteritems():
-            print('{}: {}'.format(key, val))
+            print('{}: {}'.format(key.ljust(pad), val))
 
     def do_show(self, arg):
         """Alias for 'settings' commands.

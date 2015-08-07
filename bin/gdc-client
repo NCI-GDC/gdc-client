@@ -28,7 +28,7 @@ def run_command(args):
 def main():
     if not sys.argv[1:]:
         # If no subcommand was specified use default command
-        DEFAULT_COMMAND()
+        return DEFAULT_COMMAND()
 
     args = parser.parse_args()
     log_version_header()

@@ -21,7 +21,6 @@ class GDCIndexClient(object):
         """
 
         r = self.get('files', file_id, fields=['related_files.file_id'])
-        print r['data'].get('related_files', [])
         return [rf['file_id'] for rf in r['data'].get('related_files', [])]
 
     def get_annotations(self, file_id):
@@ -33,7 +32,6 @@ class GDCIndexClient(object):
         """
 
         r = self.get('files', file_id, fields=['annotations.annotation_id'])
-        print r['data']
         return [a['annotation_id'] for a in r['data'].get('annotations', [])]
 
     def get(self, path, ID, fields=[]):
