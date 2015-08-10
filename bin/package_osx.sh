@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -x
 
 # Make sure the correct version of pyinstall is installed
 pip install 'PyInstaller==2.1'
@@ -19,13 +20,15 @@ pyinstaller --clean --noconfirm --onefile -c gdc-client
 # Bundle app
 APPNAME="gdc-client"
 
-BUNDLE="dist/${APPNAME}.app"
-SOURCE="dist/gdc-client"
-ICON="../resources/gdc_client.icns"
+BUNDLE="${APPNAME}.app"
+SOURCE="gdc-client"
+ICON="../../resources/gdc_client.icns"
 CONTENTS="${BUNDLE}/Contents"
 MacOS="${CONTENTS}/MacOS"
 RESOURCES="${CONTENTS}/Resources"
 WRAPPER="${MacOS}/${APPNAME}"
+
+cd "dist"
 
 if [ -a "${BUNDLE}" ]; then
     rm -rf "${BUNDLE}"
