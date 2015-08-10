@@ -10,7 +10,8 @@ from ..log import get_logger
 from ..query.index import GDCIndexClient
 
 # Logging
-log = get_logger('client')
+log = get_logger('download-client')
+log.propagate = False
 
 
 class GDCDownloadMixin(object):
