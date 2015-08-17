@@ -27,7 +27,8 @@ class GDCDownloadMixin(object):
         """
 
         for related_file in index.get_related_files(file_id):
-            stream = DownloadStream(related_file, self.uri, directory)
+            stream = DownloadStream(
+                related_file, self.uri, directory, self.token)
             self._download(self.n_procs, stream)
 
     def download_annotations(self, index, file_id, directory):
