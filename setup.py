@@ -10,7 +10,7 @@ setup(
         'parcel',
     ],
     dependency_links=[
-        'git+ssh://git@github.com/LabAdvComp/parcel.git@9f2e3bd6769366a1bd99d37fb0971d83e333553e#egg=parcel',
+        'git+ssh://git@github.com/LabAdvComp/parcel.git@c51523de7088208ac6a559283644035f3ea1ea7b#egg=parcel',
     ],
     scripts=[
         'bin/gdc-client',
