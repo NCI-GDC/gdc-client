@@ -95,8 +95,8 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
 
     def __init__(self, uri, download_related_files=True,
                  download_annotations=True, *args, **kwargs):
-        self.base_uri = uri
-        self.data_uri = uri + 'data'
+        self.base_uri = self.fix_uri(uri)
+        self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
         self.related_files = download_related_files
         self.annotations = download_annotations
         super(GDCDownloadMixin, self).__init__(self.data_uri, *args, **kwargs)
@@ -109,7 +109,7 @@ class GDCUDTDownloadClient(GDCDownloadMixin, UDTClient):
 
         remote_uri = self.fix_uri(remote_uri)
         self.base_uri = remote_uri
-        self.data_uri = remote_uri + 'data'
+        self.data_uri = urlparse.urljoin(remote_uri, 'data/')
         self.related_files = download_related_files
         self.annotations = download_annotations
 
