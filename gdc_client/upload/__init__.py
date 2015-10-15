@@ -1,8 +1,9 @@
+from .. import defaults
 import sys
 import argparse
 import logging
 import requests
-
+from client import GDCUploadClient, GDCMultipartUploadClient
 from ..argparser import subparsers
 
 command = 'upload'
@@ -17,7 +18,6 @@ subparser.add_argument('--identifier', '-i', type=str,
                        help='The id or alias')
 subparser.add_argument('--file', '-f', metavar='file',
                        required=True,
-                       type=argparse.FileType('r'),
                        help='file to upload')
 subparser.add_argument('--token', '-t', metavar='file',
                        required=True,
@@ -28,8 +28,20 @@ subparser.add_argument('--verbose', '-v',
                        help='Print stack traces')
 subparser.add_argument('--server', '-s',
                        default='http://localhost:8080/v0/submission/',
-                       action='store_true',
-                       help='Print stack traces')
+                       help='GDC API server address')
+subparser.add_argument('--part-size', '-ps',
+                       default='5000000',
+                       type=int,
+                       help='Part size for multipart upload')
+subparser.add_argument('-n', '--n-processes', type=int,
+                       default=defaults.processes,
+                       help='Number of client connections.')
+subparser.add_argument('--multipart-upload', '-m',
+                       action="store_true",
+                       help='Use multipart upload')
+subparser.add_argument('--abort', '-a',
+                       action="store_true",
+                       help='Abort previous multipart upload')
 
 
 def main():
@@ -37,7 +49,7 @@ def main():
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
     print("Uploading file {} to project {} from path {}"
-          .format(args.project_id, args.identifier, args.file))
+          .format(args.identifier, args.project_id, args.file))
 
     try:
         tokens = args.project_id.split('-')
@@ -46,11 +58,14 @@ def main():
     except Exception as e:
         raise RuntimeError('Unable to parse project id {}: {}'
                            .format(args.project_id), e)
-
     url = args.server + '{}/{}/files/{}'.format(
         program, project, args.identifier)
-    print("Attempting to upload to {}".format(url))
+    client = GDCUploadClient(
+      url, args.token.read(), args.file, args.n_processes,
+      multipart=args.multipart_upload,
+      part_size=args.part_size)
+    if args.abort:
+      client.abort()
 
-    headers = {'x-auth-token': args.token.read()}
-    r = requests.post(url, data=args.file, headers=headers)
-    print r.text
+    client.upload()
+    
