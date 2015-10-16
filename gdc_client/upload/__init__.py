@@ -3,7 +3,7 @@ import sys
 import argparse
 import logging
 import requests
-from client import GDCUploadClient, GDCMultipartUploadClient
+from client import GDCUploadClient
 from ..argparser import subparsers
 
 command = 'upload'
@@ -36,12 +36,17 @@ subparser.add_argument('--part-size', '-ps',
 subparser.add_argument('-n', '--n-processes', type=int,
                        default=defaults.processes,
                        help='Number of client connections.')
-subparser.add_argument('--multipart-upload', '-m',
-                       action="store_true",
-                       help='Use multipart upload')
+subparser.add_argument('-upload-id', '-u',
+                       help='Multipart upload id')
+subparser.add_argument('--disable-multipart', '-d',
+                       action="store_false",
+                       help='Disable multipart upload')
 subparser.add_argument('--abort', '-a',
                        action="store_true",
                        help='Abort previous multipart upload')
+subparser.add_argument('--resume', '-r',
+                       action="store_true",
+                       help='Resume previous multipart upload')
 
 
 def main():
@@ -60,12 +65,15 @@ def main():
                            .format(args.project_id), e)
     url = args.server + '{}/{}/files/{}'.format(
         program, project, args.identifier)
+
     client = GDCUploadClient(
       url, args.token.read(), args.file, args.n_processes,
-      multipart=args.multipart_upload,
+      multipart=args.disable_multipart,
       part_size=args.part_size)
     if args.abort:
-      client.abort()
-
-    client.upload()
+      client.abort(args.upload_id)
+    elif args.resume:
+      client.resume(args.upload_id)
+    else:
+      client.upload()
     

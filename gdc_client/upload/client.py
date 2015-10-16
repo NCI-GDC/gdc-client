@@ -6,7 +6,7 @@ import time
 from filechunkio import FileChunkIO
 import os
 from mmap import mmap, PROT_READ, PAGESIZE
-
+import contextlib
 
 def upload_multipart_wrapper(args):
     return upload_multipart(*args)
@@ -31,7 +31,6 @@ def upload_multipart(filename, offset, bytes, url,upload_id, part_number, header
         res=requests.put(
             url+"?uploadId={}&partNumber={}".format(upload_id, part_number),
             headers=headers, data=chunk_file)
-        print res.text, res.status_code, part_number
         if res.status_code == 200:
             break
         else:
@@ -64,17 +63,20 @@ class GDCUploadClient(object):
                 self.multipart_upload()
 
     def multipart_upload(self):
-        try:
+        with self.handle_multipart():
             self.initiate()
             # wait for S3 server to create this multipart upload
-            time.sleep(1)
             self.check_multipart()
             self.upload_parts()
             self.complete()
-        except:
-            self.abort()
-            if self.debug:
-                raise
+
+
+    def resume(self, upload_id):
+        with self.handle_multipart():
+            self.upload_id=upload_id
+            self.check_multipart()
+            self.upload_parts()
+            self.complete()
 
     def check_multipart(self):
         tries = 10
@@ -91,6 +93,18 @@ class GDCUploadClient(object):
         xml = XMLResponse(r.text)
         self.upload_id = xml.get_key('UploadId')
         print "Start multipart upload: {}".format(self.upload_id)
+
+    @contextlib.contextmanager
+    def handle_multipart(self):
+        try:
+            yield
+        except:
+            if self.upload_id:
+                print "Saving unfinished upload id to file"
+                with open("{}_{}".format(self.url.split("/")[-1], self.upload_id),'w') as f:
+                    f.write(upload_id)
+            if self.debug:
+                raise
 
     def upload_parts(self):
         pool = Pool(processes=self.processes)
@@ -120,7 +134,6 @@ class GDCUploadClient(object):
                 args_list.append(
                     [self.filename, offset, self.part_size,
                      self.url, self.upload_id, i+1, self.headers])
-        print len(args_list)
         pool.map_async(upload_multipart_wrapper, args_list).get(99999999)
         pool.close()
         pool.join()
@@ -128,7 +141,6 @@ class GDCUploadClient(object):
     def list_parts(self):
         r = requests.get(self.url+"?uploadId={}".format(self.upload_id),
                          headers=self.headers)
-        print r.text
         if r.status_code == 200:
             res = XMLResponse(r.text)
             self.all_parts = etree.Element("CompleteMultipartUpload")
@@ -146,23 +158,23 @@ class GDCUploadClient(object):
 
     def complete(self):
         self.check_multipart()
-        print 'multipart all \n'
         body = str(etree.tostring(self.all_parts))
         url = self.url+"?uploadId={}".format(self.upload_id)
-        print body
         r = requests.post(url,
                 data=body, headers=self.headers)
-        print r.text
-        print r.status_code
         if r.status_code != 200:
-            self.abort()
+            self.handle_failure()
 
+        else:
+            print "Multipart upload finished"
 
-    def abort(self):
-        if self.upload_id is not None and not self.aborted:
-            print "Abort multipart upload {}".format(self.upload_id)
+    def abort(self, upload_id=None):
+        if upload_id is None:
+            upload_id = self.upload_id
+        if upload_id is not None and not self.aborted:
+            print "Abort multipart upload {}".format(upload_id)
             r = requests.delete(
-                self.url+"?uploadId={}".format(self.upload_id),
+                self.url+"?uploadId={}".format(upload_id),
                 headers=self.headers)
             if r.status_code not in [204, 404]:
                 raise Exception("Fail to abort multipart upload: \n{}".format(r.text))
@@ -175,7 +187,6 @@ class GDCUploadClient(object):
 
 class XMLResponse(object):
     def __init__(self, xml_string):
-        print xml_string
         self.root = etree.fromstring(str(xml_string))
         self.namespace = self.root.nsmap[None]
 
@@ -192,12 +203,3 @@ class XMLResponse(object):
         for element in elements:
             keys.append({ele.tag.split('}')[-1]: ele.text for ele in element})
         return keys
-
-
-class GDCMultipartUploadClient(object):
-    def __init__(self, url, token, fp):
-        self.url = url
-        self.token = token
-        self.file = fp
-    def download(self):
-        print 'multipart'
