@@ -9,7 +9,7 @@ setup(
     install_requires=[
         'parcel',
         'lxml',
-        'filechunkio',
+        'pyyaml',
     ],
     dependency_links=[
         'git+ssh://git@github.com/LabAdvComp/parcel.git@c51523de7088208ac6a559283644035f3ea1ea7b#egg=parcel',

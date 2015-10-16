@@ -1,6 +1,7 @@
 from .. import defaults
 import sys
 import argparse
+import yaml
 import logging
 import requests
 from client import GDCUploadClient
@@ -11,13 +12,10 @@ subparser = subparsers.add_parser(command)
 
 
 subparser.add_argument('--project-id', '-p', type=str,
-                       required=True,
                        help='The project ID that owns the file')
 subparser.add_argument('--identifier', '-i', type=str,
-                       required=True,
                        help='The id or alias')
 subparser.add_argument('--file', '-f', metavar='file',
-                       required=True,
                        help='file to upload')
 subparser.add_argument('--token', '-t', metavar='file',
                        required=True,
@@ -30,7 +28,7 @@ subparser.add_argument('--server', '-s',
                        default='http://localhost:8080/v0/submission/',
                        help='GDC API server address')
 subparser.add_argument('--part-size', '-ps',
-                       default='5000000',
+                       default='5242880',
                        type=int,
                        help='Part size for multipart upload')
 subparser.add_argument('-n', '--n-processes', type=int,
@@ -38,7 +36,7 @@ subparser.add_argument('-n', '--n-processes', type=int,
                        help='Number of client connections.')
 subparser.add_argument('-upload-id', '-u',
                        help='Multipart upload id')
-subparser.add_argument('--disable-multipart', '-d',
+subparser.add_argument('--disable-multipart',
                        action="store_false",
                        help='Disable multipart upload')
 subparser.add_argument('--abort', '-a',
@@ -47,33 +45,44 @@ subparser.add_argument('--abort', '-a',
 subparser.add_argument('--resume', '-r',
                        action="store_true",
                        help='Resume previous multipart upload')
+subparser.add_argument('--delete', '-d',
+                       action="store_true",
+                       help='Delete an uploaded file')
+subparser.add_argument('--manifest', '-m',
+                       type=argparse.FileType('r'),
+                       help='Manifest which describes files to be uploaded')
 
 
 def main():
     args = subparser.parse_args(sys.argv[2:])
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
-    print("Uploading file {} to project {} from path {}"
-          .format(args.identifier, args.project_id, args.file))
 
-    try:
-        tokens = args.project_id.split('-')
-        program = (tokens[0]).upper()
-        project = ('-'.join(tokens[1:])).upper()
-    except Exception as e:
-        raise RuntimeError('Unable to parse project id {}: {}'
-                           .format(args.project_id), e)
-    url = args.server + '{}/{}/files/{}'.format(
-        program, project, args.identifier)
 
-    client = GDCUploadClient(
-      url, args.token.read(), args.file, args.n_processes,
-      multipart=args.disable_multipart,
-      part_size=args.part_size)
-    if args.abort:
-      client.abort(args.upload_id)
-    elif args.resume:
-      client.resume(args.upload_id)
-    else:
-      client.upload()
     
+
+    files = read_manifest(yaml.load(args.manifest)) if args.manifest else\
+      [{"id": args.identifier, "project_id": args.project_id,
+        "path": args.file}]
+    print files
+    client = GDCUploadClient(
+      token=args.token.read(), processes=args.n_processes,
+      multipart=args.disable_multipart,
+      part_size=args.part_size, server=args.server,
+      files=files)
+    if args.abort:
+        client.abort(args.upload_id)
+    elif args.resume:
+        client.resume(args.upload_id)
+    elif args.delete:
+        client.delete()
+    else:
+        client.upload()
+
+def read_manifest(manifest):
+    if type(manifest) == list:
+        return sum([read_manifest(item) for item in manifest], [])
+    if "files" in manifest:
+        return manifest['files']
+    else:
+        return sum([read_manifest(item) for item in manifest.values()], [])
