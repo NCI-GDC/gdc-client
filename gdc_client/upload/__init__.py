@@ -58,26 +58,21 @@ def main():
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
 
-
-    
-
     files = read_manifest(yaml.load(args.manifest)) if args.manifest else\
-      [{"id": args.identifier, "project_id": args.project_id,
-        "path": args.file}]
-    print files
+        [{"id": args.identifier, "project_id": args.project_id,
+          "path": args.file, "upload_id": args.upload_id}]
     client = GDCUploadClient(
-      token=args.token.read(), processes=args.n_processes,
-      multipart=args.disable_multipart,
-      part_size=args.part_size, server=args.server,
-      files=files)
+        token=args.token.read(), processes=args.n_processes,
+        multipart=args.disable_multipart,
+        part_size=args.part_size, server=args.server,
+        files=files)
     if args.abort:
-        client.abort(args.upload_id)
-    elif args.resume:
-        client.resume(args.upload_id)
+        client.abort()
     elif args.delete:
         client.delete()
     else:
         client.upload()
+
 
 def read_manifest(manifest):
     if type(manifest) == list:
