@@ -15,7 +15,7 @@ subparser.add_argument('--project-id', '-p', type=str,
                        help='The project ID that owns the file')
 subparser.add_argument('--identifier', '-i', type=str,
                        help='The id or alias')
-subparser.add_argument('--file', '-f', metavar='file',
+subparser.add_argument('--file-path', '-f', metavar='file',
                        help='file to upload')
 subparser.add_argument('--token', '-t', metavar='file',
                        required=True,
@@ -60,7 +60,7 @@ def main():
 
     files = read_manifest(yaml.load(args.manifest)) if args.manifest else\
         [{"id": args.identifier, "project_id": args.project_id,
-          "path": args.file, "upload_id": args.upload_id}]
+          "path": args.file_path, "upload_id": args.upload_id}]
     client = GDCUploadClient(
         token=args.token.read(), processes=args.n_processes,
         multipart=args.disable_multipart,
