@@ -21,6 +21,9 @@ subparser.add_argument('--token', '-t', metavar='file',
                        required=True,
                        type=argparse.FileType('r'),
                        help='auth token')
+subparser.add_argument('--ignore', '-ig',
+                       action='store_false',
+                       help='Print stack traces')
 subparser.add_argument('--verbose', '-v',
                        action='store_true',
                        help='Print stack traces')
@@ -34,7 +37,7 @@ subparser.add_argument('--part-size', '-ps',
 subparser.add_argument('-n', '--n-processes', type=int,
                        default=defaults.processes,
                        help='Number of client connections.')
-subparser.add_argument('-upload-id', '-u',
+subparser.add_argument('--upload-id', '-u',
                        help='Multipart upload id')
 subparser.add_argument('--disable-multipart',
                        action="store_false",
@@ -65,7 +68,7 @@ def main():
         token=args.token.read(), processes=args.n_processes,
         multipart=args.disable_multipart,
         part_size=args.part_size, server=args.server,
-        files=files)
+        files=files, verify=args.ignore)
     if args.abort:
         client.abort()
     elif args.delete:

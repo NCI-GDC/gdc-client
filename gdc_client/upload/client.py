@@ -34,7 +34,7 @@ class Stream(object):
 
 
 def upload_multipart(filename, offset, bytes, url,
-                     upload_id, part_number, headers):
+                     upload_id, part_number, headers, verify=True):
     tries = 10
 
     while tries > 0:
@@ -48,7 +48,7 @@ def upload_multipart(filename, offset, bytes, url,
         f.close()
         res = requests.put(
             url+"?uploadId={}&partNumber={}".format(upload_id, part_number),
-            headers=headers, data=chunk_file)
+            headers=headers, data=chunk_file, verify=verify)
         if res.status_code == 200:
             return True
         else:
@@ -60,8 +60,9 @@ class GDCUploadClient(object):
 
     def __init__(self, token, processes, server,
                  multipart=True, debug=True, part_size=5242880,
-                 files={}):
+                 files={}, verify=True):
         self.headers = {'X-Auth-Token': token}
+        self.verify = verify
         self.files = files
         self.incompleted = deque(copy.deepcopy(self.files))
         self.server = server
@@ -123,7 +124,7 @@ class GDCUploadClient(object):
             self.get_file(f)
             r = requests.delete(
                 self.url+"?uploadId={}".format(upload_id),
-                headers=self.headers)
+                headers=self.headers, verify=self.verify)
             if r.status_code not in [204, 404]:
                 raise Exception(
                     "Fail to abort multipart upload: \n{}".format(r.text))
@@ -134,7 +135,7 @@ class GDCUploadClient(object):
         '''Delete file from object storage'''
         for f in self.files:
             self.get_file(f)
-            r = requests.delete(self.url, headers=self.headers)
+            r = requests.delete(self.url, headers=self.headers, verify=self.verify)
             if r.status_code == 204:
                 print "Delete file {}".format(self.node_id)
             else:
@@ -145,7 +146,7 @@ class GDCUploadClient(object):
         self.pbar = ProgressBar(widgets=[Percentage(), Bar()], maxval=self.file_size).start()
         with open(self.filename, 'rb') as f:
             stream = Stream(f, self.pbar, self.file_size)
-            r = requests.put(self.url, data=stream, headers=self.headers)
+            r = requests.put(self.url, data=stream, headers=self.headers, verify=self.verify)
             self.pbar.finish()
             print "Upload finished for file {}".format(self.node_id)
 
@@ -191,7 +192,7 @@ class GDCUploadClient(object):
 
     def initiate(self):
         if not self.upload_id:
-            r = requests.post(self.url+"?uploads", headers=self.headers)
+            r = requests.post(self.url+"?uploads", headers=self.headers, verify=self.verify)
             if r.status_code == 200:
                 xml = XMLResponse(r.text)
                 self.upload_id = xml.get_key('UploadId')
@@ -203,7 +204,7 @@ class GDCUploadClient(object):
     def upload_parts(self):
         pool = Pool(processes=self.processes)
         args_list = []
-        
+
         part_amount = int(math.ceil(self.file_size / float(self.part_size)))
         self.pbar = ProgressBar(widgets=[Percentage(), Bar()], maxval=part_amount).start()
         try:
@@ -214,7 +215,7 @@ class GDCUploadClient(object):
                 if not self.multiparts.uploaded(i+1):
                     pool.apply_async(upload_multipart_wrapper, 
                         ([self.filename, offset, bytes,
-                         self.url, self.upload_id, i+1, self.headers],), callback=self.called)
+                         self.url, self.upload_id, i+1, self.headers, self.verify],), callback=self.called)
             time.sleep(1)
             pool.close()
             pool.join()
@@ -226,7 +227,7 @@ class GDCUploadClient(object):
 
     def list_parts(self):
         r = requests.get(self.url+"?uploadId={}".format(self.upload_id),
-                         headers=self.headers)
+                         headers=self.headers, verify=self.verify)
         if r.status_code == 200:
             self.multiparts = Multiparts(r.text)
             return self.multiparts
@@ -242,7 +243,8 @@ class GDCUploadClient(object):
         while tries > 0:
             r = requests.post(url,
                               data=self.multiparts.to_xml(),
-                              headers=self.headers)
+                              headers=self.headers,
+                              verify=self.verify)
             if r.status_code != 200:
                 tries -= 1
                 time.sleep(2)
