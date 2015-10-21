@@ -21,14 +21,14 @@ subparser.add_argument('--token', '-t', metavar='file',
                        required=True,
                        type=argparse.FileType('r'),
                        help='auth token')
-subparser.add_argument('--ignore', '-ig',
+subparser.add_argument('--insecure', '-k',
                        action='store_false',
-                       help='Print stack traces')
+                       help='Allow connections to server without certs')
 subparser.add_argument('--verbose', '-v',
                        action='store_true',
                        help='Print stack traces')
 subparser.add_argument('--server', '-s',
-                       default='http://localhost:8080/v0/submission/',
+                       default=defaults.tcp_url,
                        help='GDC API server address')
 subparser.add_argument('--part-size', '-ps',
                        default='5242880',
@@ -42,13 +42,13 @@ subparser.add_argument('--upload-id', '-u',
 subparser.add_argument('--disable-multipart',
                        action="store_false",
                        help='Disable multipart upload')
-subparser.add_argument('--abort', '-a',
+subparser.add_argument('--abort',
                        action="store_true",
                        help='Abort previous multipart upload')
 subparser.add_argument('--resume', '-r',
                        action="store_true",
                        help='Resume previous multipart upload')
-subparser.add_argument('--delete', '-d',
+subparser.add_argument('--delete',
                        action="store_true",
                        help='Delete an uploaded file')
 subparser.add_argument('--manifest', '-m',
@@ -68,7 +68,7 @@ def main():
         token=args.token.read(), processes=args.n_processes,
         multipart=args.disable_multipart,
         part_size=args.part_size, server=args.server,
-        files=files, verify=args.ignore)
+        files=files, verify=args.insecure, debug=args.verbose)
     if args.abort:
         client.abort()
     elif args.delete:
