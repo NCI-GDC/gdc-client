@@ -30,3 +30,5 @@ proxy_host = 'localhost'
 # This is the port where the UDT proxy (parcel) will attempt to bind a
 # proxy (on `proxy_host`) to traffic on the GDC api host
 proxy_port = 9000
+
+part_size = 5242880

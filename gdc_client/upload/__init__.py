@@ -31,7 +31,7 @@ subparser.add_argument('--server', '-s',
                        default=defaults.tcp_url,
                        help='GDC API server address')
 subparser.add_argument('--part-size', '-ps',
-                       default='5242880',
+                       default=defaults.part_size,
                        type=int,
                        help='Part size for multipart upload')
 subparser.add_argument('-n', '--n-processes', type=int,
@@ -61,7 +61,7 @@ def main():
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
 
-    files = read_manifest(yaml.load(args.manifest)) if args.manifest else\
+    files = read_manifest(args.manifest) if args.manifest else\
         [{"id": args.identifier, "project_id": args.project_id,
           "path": args.file_path, "upload_id": args.upload_id}]
     client = GDCUploadClient(
@@ -78,9 +78,12 @@ def main():
 
 
 def read_manifest(manifest):
-    if type(manifest) == list:
-        return sum([read_manifest(item) for item in manifest], [])
-    if "files" in manifest:
-        return manifest['files']
-    else:
-        return sum([read_manifest(item) for item in manifest.values()], [])
+    manifest = yaml.load(manifest)
+    def _read_manifest(manifest):
+      if type(manifest) == list:
+          return sum([_read_manifest(item) for item in manifest], [])
+      if "files" in manifest:
+          return manifest['files']
+      else:
+          return sum([_read_manifest(item) for item in manifest.values()], [])
+    return _read_manifest(manifest)

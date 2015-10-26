@@ -2,12 +2,14 @@ from urlparse import urljoin
 from multiprocessing import Pool, Manager
 import requests
 from exceptions import KeyError
+import platform
 from lxml import etree
 import math
 import os
+import json
 import sys
 import yaml
-from mmap import mmap, PROT_READ, PAGESIZE
+from mmap import mmap, PAGESIZE
 import contextlib
 from progressbar import ProgressBar, Percentage, Bar
 from collections import deque
@@ -15,6 +17,10 @@ import time
 import copy
 from ..log import get_logger
 
+OS_WINDOWS = platform.system() == 'Windows'
+
+if not OS_WINDOWS:
+    from mmap import PROT_READ
 
 log = get_logger('download-client')
 log.propagate = False
@@ -46,12 +52,19 @@ def upload_multipart(filename, offset, bytes, url, upload_id, part_number,
     while tries > 0:
         try:
             f = open(filename, 'rb')
-            chunk_file = mmap(
-                fileno=f.fileno(),
-                length=bytes,
-                offset=offset,
-                prot=PROT_READ
-            )
+            if OS_WINDOWS:
+                chunk_file = mmap(
+                    fileno=f.fileno(),
+                    length=bytes,
+                    offset=offset
+                )
+            else:
+                chunk_file = mmap(
+                    fileno=f.fileno(),
+                    length=bytes,
+                    offset=offset,
+                    prot=PROT_READ
+                )
             log.debug("Start upload part {}".format(part_number))
             res = requests.put(
                 url +
@@ -80,7 +93,7 @@ def upload_multipart(filename, offset, bytes, url, upload_id, part_number,
 class GDCUploadClient(object):
 
     def __init__(self, token, processes, server,
-                 multipart=True, debug=True, part_size=5242880,
+                 multipart=True, debug=False, part_size=5242880,
                  files={}, verify=True):
         self.headers = {'X-Auth-Token': token}
         self.verify = verify
@@ -93,18 +106,43 @@ class GDCUploadClient(object):
         self.processes = processes
         self.part_size = (part_size/PAGESIZE+1)*PAGESIZE
         self.retries = 10
+        self._metadata = None
 
-    def get_file(self, f):
+    @property
+    def metadata(self):
+        return self._metadata or self.get_metadata(self.node_id)
+
+    def get_metadata(self, id):
+        '''
+        Get file's project_id and filename from graphql
+        '''
+        try:
+            self._metadata = None
+            query = {'query':
+                      """query Files { node (id: "%s") { project_id, file_name }}""" %id}
+            r = requests.post(
+                    urljoin(self.server, "v0/submission/graphql"), 
+                    headers=self.headers,
+                    data=json.dumps(query),
+                    verify=self.verify)
+            if r.status_code == 404:
+                raise Exception("File with id {} not found".format(id))
+            elif r.status_code == 200:
+                for node in r.json()['data']['node']:
+                    self._metadata = node
+                    return self._metadata
+                raise Exception("File with id {} not found".format(id))
+            else:
+                raise Exception("Fail to get filename: {}".format(r.text))
+        except Exception as e:
+            log.exception('test')
+            raise Exception("Can't connect to gdcapi: {}".format(e.message))
+
+    def get_file(self, f, action='download'):
         '''Parse file information from manifest'''
         try:
-            self.filename = f['path']
-            if not self.filename:
-                raise KeyError("Please provide a file path")
-            self.file = open(self.filename, 'rb')
             self.node_id = f['id']
-            self.file_size = os.fstat(self.file.fileno()).st_size
-            project_id = f['project_id']
-            self.upload_id = f.get('upload_id')
+            project_id = f.get('project_id') or self.manifest['project_id']
             tokens = project_id.split('-')
             program = (tokens[0]).upper()
             project = ('-'.join(tokens[1:])).upper()
@@ -114,6 +152,18 @@ class GDCUploadClient(object):
             self.url = urljoin(
                 self.server, 'v0/submission/{}/{}/files/{}'
                 .format(program, project, f['id']))
+
+            if action == 'delete':
+                return
+
+            self.path = f.get('path') or '.'
+            self.filename = f.get('file_name') or self.manifest['file_name']
+            self.file_path = os.path.join(self.path, self.filename)                
+            self.file = open(self.file_path, 'rb')
+
+            self.file_size = os.fstat(self.file.fileno()).st_size
+            self.upload_id = f.get('upload_id')
+            
         except KeyError as e:
             raise KeyError(
                 "Please provide {} from manifest or as an argument"
@@ -155,7 +205,7 @@ class GDCUploadClient(object):
     def delete(self):
         '''Delete file from object storage'''
         for f in self.files:
-            self.get_file(f)
+            self.get_file(f, 'delete')
             r = requests.delete(
                 self.url, headers=self.headers, verify=self.verify)
             if r.status_code == 204:
@@ -167,7 +217,7 @@ class GDCUploadClient(object):
         '''Simple S3 PUT'''
         self.pbar = ProgressBar(
             widgets=[Percentage(), Bar()], maxval=self.file_size).start()
-        with open(self.filename, 'rb') as f:
+        with open(self.file_path, 'rb') as f:
             try:
                 stream = Stream(f, self.pbar, self.file_size)
                 r = requests.put(
@@ -250,7 +300,7 @@ class GDCUploadClient(object):
                 remaining_bytes = self.file_size - offset
                 bytes = min(remaining_bytes, self.part_size)
                 if not self.multiparts.uploaded(i+1):
-                    args_list.append([self.filename, offset, bytes,
+                    args_list.append([self.file_path, offset, bytes,
                                       self.url, self.upload_id, i+1,
                                       self.headers, self.verify,
                                       self.pbar, ns])
