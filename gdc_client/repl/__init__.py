@@ -34,22 +34,16 @@ class GDCREPL(Cmd):
 
         > download -t path/manifest.txt
 
-    - To add files from two manifest and a selection of ids, list all
-      files added, and download:
-
-        > manifest path/manifest1.txt
-        > manifest path/manifest2.txt
-        > add file_id_1 file_id_2 file_id_2
-        > list
-        > download
-
-    - To add manifests for upload
-        > upload_manifest path/manifest1.txt
-        > upload_list
-        > upload
 
     - To upload files from manifest:
-    	> upload -t path/manifest.txt
+    	> upload  path/manifest.txt
+        > upload path/resume_manifest.txt
+
+    - To delete files from manifest:
+        > delete path/manifest.txt
+
+    - To abort a previous partial upload
+        > abort path/resume_manifest.txt
     """
 
     TIPS = """TIPS:
@@ -70,14 +64,15 @@ class GDCREPL(Cmd):
     - pwd        		(print the current working directory)
     - set        		(set advanced configuration setting)
     - settings   		(list advanced configuration settings)
-    - upload_list 		(lists files for upload in registry)
-    - upload_manifest 	(add upload manifest to registry)
-    - upload      		(upload files in registry)
+    - upload      		(upload files to object storage)
+    - delete            (delete files from object storage)
+    - abort             (abort a previous partial upload)
     """
 
     def __init__(self, *args, **kwargs):
         self.file_ids = set()
         self.token = None
+        self.resume = None
         Cmd.__init__(self, *args, **kwargs)
         print(self.HEADER)
         print(self.BASIC_COMMANDS)
@@ -95,7 +90,6 @@ class GDCREPL(Cmd):
             multipart=True,
             verify=True,
         )
-        self.upload_list = []
 
     def get(self, setting, stype):
         val = self.settings[setting]
@@ -341,18 +335,37 @@ class GDCREPL(Cmd):
             print('Download aborted: {}'.format(str(e)))
         self._remove_ids(downloaded)
 
+    def _get_upload_client(self, manifest):
+        with open(manifest, 'r') as fd:
+            files = read_manifest(fd)
+            client = GDCUploadClient(
+                token=self.token, processes=self.get('processes', int),
+                multipart=self.get('multipart', bool),
+                part_size=self.get('part_size', int),
+                server=self.settings['server'],
+                files=files, verify=self.get('verify', bool))
+            return client
+
 
     def do_upload(self, manifest):
     	'''upload files given a manifest path'''
-    	with open(manifest, 'r') as fd:
-    		files = read_manifest(fd)
-    		client = GDCUploadClient(
-    			token=self.token, processes=self.get('processes', int),
-		        multipart=self.get('multipart', bool),
-		        part_size=self.get('part_size', bool),
-		        server=self.settings['server'],
-		        files=files, verify=self.get('verify', bool))
-    		client.upload()
+    	if self.resume:
+    		print "Resume previous upload"
+    		client = self._get_upload_client(self.resume)
+    	else:
+	        client = self._get_upload_client(manifest)
+        client.upload()
+        self.resume = client.resume_path
+
+    def do_abort(self, manifest):
+        '''abort a partially uploaded file'''
+        client = self._get_upload_client(manifest)
+        client.abort()
+
+    def do_delete(self, manifest):
+        '''delete files given a manifest path'''
+        client = self._get_upload_client(manifest)
+        client.delete()
 
 
     def do_help(self, arg):

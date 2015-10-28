@@ -14,9 +14,9 @@ subparser = subparsers.add_parser(command)
 subparser.add_argument('--project-id', '-p', type=str,
                        help='The project ID that owns the file')
 subparser.add_argument('--identifier', '-i', type=str,
-                       help='The id or alias')
-subparser.add_argument('--file-path', '-f', metavar='file',
-                       help='file to upload')
+                       help='The file id')
+subparser.add_argument('--path', '-f', metavar='path',
+                       help='directory path to find file')
 subparser.add_argument('--token', '-t', metavar='file',
                        required=True,
                        type=argparse.FileType('r'),
@@ -63,12 +63,15 @@ def main():
 
     files = read_manifest(args.manifest) if args.manifest else\
         [{"id": args.identifier, "project_id": args.project_id,
-          "path": args.file_path, "upload_id": args.upload_id}]
+          "path": args.path, "upload_id": args.upload_id}]
+
+    manifest_name = args.manifest.name if args.manifest else None
+
     client = GDCUploadClient(
         token=args.token.read(), processes=args.n_processes,
         multipart=args.disable_multipart,
         part_size=args.part_size, server=args.server,
-        files=files, verify=args.insecure, debug=args.verbose)
+        files=files, verify=args.insecure, debug=args.verbose, manifest_name=manifest_name)
     if args.abort:
         client.abort()
     elif args.delete:
