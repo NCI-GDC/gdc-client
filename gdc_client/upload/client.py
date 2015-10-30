@@ -93,7 +93,7 @@ def upload_multipart(filename, offset, bytes, url, upload_id, part_number,
             f.close()
             if res.status_code == 200:
                 if pbar:
-                    pbar.fd = sys.stdout
+                    pbar.fd = sys.stderr
                     ns.completed += 1
                     pbar.update(ns.completed)
                 log.debug("Finish upload part {}".format(part_number))
@@ -116,7 +116,13 @@ class GDCUploadClient(object):
                  files={}, verify=True, manifest_name=None):
         self.headers = {'X-Auth-Token': token}
         self.manifest_name = manifest_name
-        self.verify = False if OS_WINDOWS else verify
+        self.verify = verify
+        if OS_WINDOWS:
+            try:
+                # this only works in executable built by pyinstaller
+                self.verify = os.path.join(sys._MEIPASS, 'cacert.pem') if verify else verify
+            except:
+                print 'Using system default CA'
         self.files = files
         self.incompleted = deque(copy.deepcopy(self.files))
         self.server = server
