@@ -4,7 +4,7 @@ import argparse
 import yaml
 import logging
 import requests
-from client import GDCUploadClient
+from client import GDCUploadClient, read_manifest
 from ..argparser import subparsers
 
 command = 'upload'
@@ -65,7 +65,7 @@ def main():
         [{"id": args.identifier, "project_id": args.project_id,
           "path": args.path, "upload_id": args.upload_id}]
 
-    manifest_name = args.manifest.name if args.manifest else None
+    manifest_name = args.manifest.name if args.manifest else args.identifier
 
     client = GDCUploadClient(
         token=args.token.read(), processes=args.n_processes,
@@ -80,13 +80,4 @@ def main():
         client.upload()
 
 
-def read_manifest(manifest):
-    manifest = yaml.load(manifest)
-    def _read_manifest(manifest):
-      if type(manifest) == list:
-          return sum([_read_manifest(item) for item in manifest], [])
-      if "files" in manifest:
-          return manifest['files']
-      else:
-          return sum([_read_manifest(item) for item in manifest.values()], [])
-    return _read_manifest(manifest)
+

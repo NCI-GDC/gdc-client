@@ -1,4 +1,5 @@
 from urlparse import urljoin
+import random
 from multiprocessing import Pool, Manager
 import requests
 from exceptions import KeyError
@@ -20,6 +21,7 @@ from ..log import get_logger
 
 MAX_RETRIES = 10
 MAX_TIMEOUT = 60
+MIN_PARTSIZE = 5242880
 
 OS_WINDOWS = platform.system() == 'Windows'
 
@@ -49,6 +51,17 @@ log.propagate = False
 def upload_multipart_wrapper(args):
     return upload_multipart(*args)
 
+
+def read_manifest(manifest):
+    manifest = yaml.load(manifest)
+    def _read_manifest(manifest):
+      if type(manifest) == list:
+          return sum([_read_manifest(item) for item in manifest], [])
+      if "files" in manifest:
+          return manifest['files']
+      else:
+          return sum([_read_manifest(item) for item in manifest.values()], [])
+    return _read_manifest(manifest)
 
 class Stream(object):
 
@@ -139,9 +152,9 @@ class GDCUploadClient(object):
         self.upload_id = None
         self.debug = debug
         self.processes = processes
-        self.part_size = (part_size/PAGESIZE+1)*PAGESIZE
+        self.part_size = (max(part_size, MIN_PARTSIZE)/PAGESIZE+1)*PAGESIZE
         self._metadata = None
-        self.resume_path = None
+        self.resume_path = "resume_{}".format(self.manifest_name)
 
     @property
     def metadata(self):
@@ -210,6 +223,12 @@ class GDCUploadClient(object):
 
     def upload(self):
         '''Upload files to object storage'''
+        if os.path.isfile(self.resume_path):
+            use_resume = raw_input("Found an {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(self.resume_path))
+            if use_resume.lower() not in ['n','no']:
+                with open(self.resume_path,'r') as f:
+                    self.files = read_manifest(f)
+
         for f in self.files:
             self.get_file(f)
             print("Attempting to upload to {}".format(self.url))
@@ -290,17 +309,18 @@ class GDCUploadClient(object):
         try:
             yield
             self.upload_id = None
+            if os.path.isfile(self.resume_path):
+                os.remove(self.resume_path)
         except Exception as e:
             print "Saving unfinished upload file"
             if self.upload_id:
                 self.incompleted[0]['upload_id'] = self.upload_id
-            path = "resume_{}".format(self.manifest_name or self.node_id)
+            path = self.resume_path
             with open(path, 'w') as f:
                 f.write(
                     yaml.dump({"files": list(self.incompleted)},
                               default_flow_style=False))
             print 'Saved to', path
-            self.resume_path = path
             if self.debug:
                 raise
             else:

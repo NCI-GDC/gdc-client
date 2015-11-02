@@ -72,7 +72,6 @@ class GDCREPL(Cmd):
     def __init__(self, *args, **kwargs):
         self.file_ids = set()
         self.token = None
-        self.resume = None
         Cmd.__init__(self, *args, **kwargs)
         print(self.HEADER)
         print(self.BASIC_COMMANDS)
@@ -349,13 +348,7 @@ class GDCREPL(Cmd):
 
     def do_upload(self, manifest):
     	'''upload files given a manifest path'''
-    	if self.resume:
-    		print "Resume previous upload"
-    		client = self._get_upload_client(self.resume)
-    	else:
-	        client = self._get_upload_client(manifest)
-        client.upload()
-        self.resume = client.resume_path
+        client = self._get_upload_client(manifest)
 
     def do_abort(self, manifest):
         '''abort a partially uploaded file'''
