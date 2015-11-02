@@ -8,4 +8,4 @@ set -x
 /c/Python27/Scripts/pip.exe install PyInstaller==2.1
 
 # Create binary
-/c/Python27/Scripts/pyinstaller -F --clean --noconfirm --onefile -c gdc-client -i ../resources/gdc_client.ico
+/c/Python27/Scripts/pyinstaller -F --clean --additional-hooks-dir=. --noconfirm --onefile -c gdc-client -i ../resources/gdc_client.ico

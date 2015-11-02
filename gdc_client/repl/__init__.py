@@ -342,13 +342,14 @@ class GDCREPL(Cmd):
                 multipart=self.get('multipart', bool),
                 part_size=self.get('part_size', int),
                 server=self.settings['server'],
-                files=files, verify=self.get('verify', bool))
+                files=files, verify=self.get('verify', bool), manifest_name=manifest)
             return client
 
 
     def do_upload(self, manifest):
     	'''upload files given a manifest path'''
         client = self._get_upload_client(manifest)
+        client.upload()
 
     def do_abort(self, manifest):
         '''abort a partially uploaded file'''

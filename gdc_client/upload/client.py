@@ -138,13 +138,13 @@ class GDCUploadClient(object):
         self.headers = {'X-Auth-Token': token}
         self.manifest_name = manifest_name
         self.verify = verify
-        if OS_WINDOWS:
-            try:
-                # this only works in executable built by pyinstaller
-                self.verify = os.path.join(
-                    sys._MEIPASS, 'cacert.pem') if verify else verify
-            except:
-                print 'Using system default CA'
+        try:
+            # this only works in executable built by pyinstaller
+            self.verify = os.path.join(
+                sys._MEIPASS, 'requests', 'cacert.pem') if verify else verify
+        except:
+            print 'Using system default CA'
+
         self.files = files
         self.incompleted = deque(copy.deepcopy(self.files))
         self.server = server
@@ -272,10 +272,10 @@ class GDCUploadClient(object):
 
         with open(self.file_path, 'rb') as f:
             try:
-                # r = requests.put(self.url+"/_dry_run", headers=self.headers, verify=self.verify)
-                # if r.status_code != 200:
-                    # print "Can't upload:{}".format(r.text)
-                    # return
+                r = requests.put(self.url+"/_dry_run", headers=self.headers, verify=self.verify)
+                if r.status_code != 200:
+                    print "Can't upload:{}".format(r.text)
+                    return
                 self.pbar = ProgressBar(
                     widgets=[Percentage(), Bar()], maxval=self.file_size).start()
                 stream = Stream(f, self.pbar, self.file_size)

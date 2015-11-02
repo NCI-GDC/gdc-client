@@ -13,7 +13,7 @@ print gdc_client.version.__version__
 """)
 
 # Create binary
-pyinstaller --clean --noconfirm --onefile -c gdc-client
+pyinstaller --clean --additional-hooks-dir=. --noconfirm --onefile -c gdc-client
 
 # Zip dist
 SOURCE_DIR='dist'
