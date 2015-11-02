@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
+export PYTHONPATH=.:$PYTHONPATH
 set -e
 
 # Make sure the correct version of pyinstall is installed
-pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip
+pip install "https://github.com/pyinstaller/pyinstaller/archive/1e38dcb5916f3fc22089e169ff1ea61c05d66ad0.zip" 
 
 
 # Get version
