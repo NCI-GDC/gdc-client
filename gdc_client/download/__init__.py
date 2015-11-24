@@ -3,7 +3,7 @@ import sys
 import logging
 
 from . import client
-from . import repl
+from ..repl import run_repl
 from .. import defaults
 from ..argparser import subparsers
 from parcel import manifest, const
@@ -114,12 +114,6 @@ def run_cli(args):
     # and add ids from manifest
     file_ids = set([f['id'] for f in args.manifest] + args.file_ids[1:])
     client.download_files(file_ids)
-
-
-def run_repl(args):
-    r = repl.GDCDownloadREPL()
-    r.prompt = '\ngdc-client download > '
-    r.cmdloop()
 
 
 def main():

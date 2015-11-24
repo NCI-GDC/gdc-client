@@ -4,7 +4,7 @@ import sys
 
 from gdc_client.version import __version__ as version
 from gdc_client.argparser import argparser
-from gdc_client import download
+from gdc_client import download, upload
 from gdc_client.log import get_logger
 
 logging.root.setLevel(logging.INFO)
@@ -14,6 +14,7 @@ log = get_logger('gdc-client')
 DEFAULT_COMMAND = download.main
 commands_callbacks = {
     download.command: download.main,
+    upload.command: upload.main,
 }
 
 

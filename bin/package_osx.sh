@@ -15,7 +15,7 @@ print gdc_client.version.__version__
 echo "Creating package for version ${VERSION}"
 
 # Create binary
-pyinstaller --clean --noconfirm --onefile -c gdc-client
+pyinstaller --clean --additional-hooks-dir=. --noconfirm --onefile -c gdc-client
 
 # Bundle app
 APPNAME="gdc-client"
