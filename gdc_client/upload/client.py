@@ -164,27 +164,43 @@ class GDCUploadClient(object):
         '''
         Get file's project_id and filename from graphql
         '''
-        try:
-            self._metadata = None
-            query = {'query':
-                     """query Files { node (id: "%s") 
-                      { project_id, file_name }}""" % id}
-            r = requests.post(
-                urljoin(self.server, "v0/submission/graphql"),
-                headers=self.headers,
-                data=json.dumps(query),
-                verify=self.verify)
-            if r.status_code == 404:
+        self._metadata = None
+        query = {'query':
+                 """query Files { node (id: "%s") { type }}""" % id}
+        r = requests.post(
+            urljoin(self.server, "v0/submission/graphql"),
+            headers=self.headers,
+            data=json.dumps(query),
+            verify=self.verify)
+        if r.status_code == 200:
+            result = r.json()
+            if 'errors' in result:
+                raise Exception("Fail to query file type: {}".format(', '.join(result['errors'])))
+            nodes = result['data']['node']
+            if len(nodes) == 0:
                 raise Exception("File with id {} not found".format(id))
-            elif r.status_code == 200:
-                for node in r.json()['data']['node']:
-                    self._metadata = node
-                    return self._metadata
-                raise Exception("File with id {} not found".format(id))
-            else:
-                raise Exception("Fail to get filename: {}".format(r.text))
-        except Exception as e:
-            raise Exception("Can't connect to gdcapi: {}".format(e.message))
+            file_type = nodes[0]['type']
+        else:
+            raise Exception(r.text)
+
+        query = {'query':
+                 """query Files { %s (id: "%s") { project_id, file_name }}""" % (file_type, id)}
+        r = requests.post(
+            urljoin(self.server, "v0/submission/graphql"),
+            headers=self.headers,
+            data=json.dumps(query),
+            verify=self.verify)
+        if r.status_code == 200:
+            result = r.json()
+            if 'errors' in result:
+                raise Exception("Fail to query project_id and file_name: {}"
+                    .format(', '.join(result['errors'])))
+            for node in result['data'][file_type]:
+                self._metadata = node
+                return self._metadata
+            raise Exception("File with id {} not found".format(id))
+        else:
+            raise Exception("Fail to get filename: {}".format(r.text))
 
     def get_file(self, f, action='download'):
         '''Parse file information from manifest'''
@@ -211,11 +227,17 @@ class GDCUploadClient(object):
 
             self.file_size = os.fstat(self.file.fileno()).st_size
             self.upload_id = f.get('upload_id')
+            return True
 
         except KeyError as e:
-            raise KeyError(
+            print (
                 "Please provide {} from manifest or as an argument"
                 .format(e.message))
+            return False
+        except Exception as e:
+            print e
+            return False
+
 
     def called(self, arg):
         if arg:
@@ -230,7 +252,8 @@ class GDCUploadClient(object):
                     self.files = read_manifest(f)
 
         for f in self.files:
-            self.get_file(f)
+            if not self.get_file(f):
+                return
             print("Attempting to upload to {}".format(self.url))
             if not self.multipart:
                 self._upload()
@@ -246,7 +269,8 @@ class GDCUploadClient(object):
     def abort(self):
         ''' Abort multipart upload'''
         for f in self.files:
-            self.get_file(f)
+            if not self.get_file(f):
+                return
             r = requests.delete(
                 self.url+"?uploadId={}".format(self.upload_id),
                 headers=self.headers, verify=self.verify)
@@ -259,7 +283,8 @@ class GDCUploadClient(object):
     def delete(self):
         '''Delete file from object storage'''
         for f in self.files:
-            self.get_file(f, 'delete')
+            if not self.get_file(f, 'delete'):
+                return
             r = requests.delete(
                 self.url, headers=self.headers, verify=self.verify)
             if r.status_code == 204:
