@@ -18,7 +18,7 @@ subparser.add_argument('--identifier', '-i', type=str,
 subparser.add_argument('--path', '-f', metavar='path',
                        help='directory path to find file')
 subparser.add_argument('--token', '-t', metavar='file',
-                       required=True,
+                       #required=True,
                        type=argparse.FileType('r'),
                        help='auth token')
 subparser.add_argument('--insecure', '-k',
@@ -55,29 +55,38 @@ subparser.add_argument('--manifest', '-m',
                        type=argparse.FileType('r'),
                        help='Manifest which describes files to be uploaded')
 
+def print_help():
+    subparser.print_help()
 
 def main():
-    args = subparser.parse_args(sys.argv[2:])
-    if args.verbose:
-        logging.root.setLevel(logging.DEBUG)
+    if len(sys.argv[2:]):
+        args = subparser.parse_args(sys.argv[2:])
+        if args.verbose:
+            logging.root.setLevel(logging.DEBUG)
 
-    files = read_manifest(args.manifest) if args.manifest else\
-        [{"id": args.identifier, "project_id": args.project_id,
-          "path": args.path, "upload_id": args.upload_id}]
+        if not args.token:
+            print "\n*** ERROR: Token required to upload files, please provide with --token argument\n"
+            print_help()
+            return
 
-    manifest_name = args.manifest.name if args.manifest else args.identifier
+        files = read_manifest(args.manifest) if args.manifest else\
+            [{"id": args.identifier, "project_id": args.project_id,
+              "path": args.path, "upload_id": args.upload_id}]
 
-    client = GDCUploadClient(
-        token=args.token.read(), processes=args.n_processes,
-        multipart=args.disable_multipart,
-        part_size=args.part_size, server=args.server,
-        files=files, verify=args.insecure, debug=args.verbose, manifest_name=manifest_name)
-    if args.abort:
-        client.abort()
-    elif args.delete:
-        client.delete()
+        manifest_name = args.manifest.name if args.manifest else args.identifier
+
+        client = GDCUploadClient(
+            token=args.token.read(), processes=args.n_processes,
+            multipart=args.disable_multipart,
+            part_size=args.part_size, server=args.server,
+            files=files, verify=args.insecure, debug=args.verbose, manifest_name=manifest_name)
+        if args.abort:
+            client.abort()
+        elif args.delete:
+            client.delete()
+        else:
+            client.upload()
     else:
-        client.upload()
-
+        print_help()
 
 

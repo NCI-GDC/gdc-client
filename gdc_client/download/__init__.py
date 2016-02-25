@@ -51,6 +51,9 @@ subparser.add_argument('--no-related-files', action='store_false',
 subparser.add_argument('--no-annotations', action='store_false',
                        dest='download_annotations',
                        help='Do not download annotations.')
+subparser.add_argument('--interactive', action='store_true',
+                       dest='interactive',
+                       help='Enter into interactive mode')
 
 token_args = subparser.add_mutually_exclusive_group(required=False)
 token_args.add_argument('-t', '--token-file',
@@ -113,16 +116,23 @@ def run_cli(args):
     # Exclude the first argument which will be `download.command`
     # and add ids from manifest
     file_ids = set([f['id'] for f in args.manifest] + args.file_ids[1:])
-    client.download_files(file_ids)
+    if len(file_ids):
+        client.download_files(file_ids)
+    else:
+        subparser.print_help()
 
+def print_help():
+    subparser.print_help()
 
 def main():
+    print "Enter download parse"
     args = subparser.parse_args()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
 
-    # If there are arguments other than subcommand, run cli
-    if sys.argv[2:]:
+    if args.interactive:
+        run_repl(new_args)
+    else:
         try:
             run_cli(args)
         except Exception as e:
@@ -131,6 +141,16 @@ def main():
             else:
                 print('Process aborted: {}'.format(str(e)))
 
+    # If there are arguments other than subcommand, run cli
+    #if sys.argv[2:]:
+    #    try:
+    #        run_cli(args)
+    #    except Exception as e:
+    #        if args.debug:
+    #            raise
+    #        else:
+    #            print('Process aborted: {}'.format(str(e)))
+
     # Else, run as a repl
-    else:
-        run_repl(args)
+    #else:
+    #    run_repl(args)

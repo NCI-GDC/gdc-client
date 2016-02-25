@@ -26,10 +26,18 @@ def run_command(args):
     commands_callbacks[args.command]()
 
 
+def print_help():
+    print "usage: gdc-client [upload/download] [arguments]"
+    print "       using just 'upload' or 'download' without args will give help for each"
+    #download.print_help()
+    #upload.print_help()
+
 def main():
     if not sys.argv[1:]:
         # If no subcommand was specified use default command
-        return DEFAULT_COMMAND()
+        print_help()
+        return
+        #return DEFAULT_COMMAND()
 
     args = argparser.parse_args()
     log_version_header()
