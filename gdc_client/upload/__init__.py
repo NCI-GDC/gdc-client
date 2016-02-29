@@ -17,10 +17,10 @@ subparser.add_argument('--identifier', '-i', type=str,
                        help='The file id')
 subparser.add_argument('--path', '-f', metavar='path',
                        help='directory path to find file')
-subparser.add_argument('--token', '-t', metavar='file',
-                       #required=True,
-                       type=argparse.FileType('r'),
-                       help='auth token')
+#subparser.add_argument('--token', '-t', metavar='file',
+#                       #required=True,
+#                       type=argparse.FileType('r'),
+#                       help='auth token')
 subparser.add_argument('--insecure', '-k',
                        action='store_false',
                        help='Allow connections to server without certs')
@@ -36,7 +36,7 @@ subparser.add_argument('--part-size', '-ps',
                        help='Part size for multipart upload')
 subparser.add_argument('-n', '--n-processes', type=int,
                        default=defaults.processes,
-                       help='Number of client connections.')
+                       help='Number of client connections')
 subparser.add_argument('--upload-id', '-u',
                        help='Multipart upload id')
 subparser.add_argument('--disable-multipart',
@@ -54,6 +54,13 @@ subparser.add_argument('--delete',
 subparser.add_argument('--manifest', '-m',
                        type=argparse.FileType('r'),
                        help='Manifest which describes files to be uploaded')
+token_args = subparser.add_mutually_exclusive_group(required=False)
+token_args.add_argument('-t', '--token-file',
+                        type=lambda x: argparse.FileType('r')(x).read(),
+                        dest='token',
+                        help='authentication token file')
+token_args.add_argument('-T', '--token', default='', type=str,
+                        dest='token', help='authentication token')
 
 def print_help():
     subparser.print_help()
@@ -66,7 +73,7 @@ def main(interactive):
             logging.root.setLevel(logging.DEBUG)
 
         if not args.token:
-            print "\n*** ERROR: Token required to upload files, please provide with --token argument\n"
+            print "\n*** ERROR: Token required to upload files, please provide with --token (-T) or --token-file (-t) argument\n"
             print_help()
             return
 
