@@ -23,14 +23,14 @@ def log_version_header():
 
 
 def run_command(args):
-    commands_callbacks[args.command]()
+    commands_callbacks[args.command](False)
 
 
 def print_help():
-    print "usage: gdc-client [upload/download] [arguments]"
-    print "       using just 'upload' or 'download' without args will give help for each"
-    #download.print_help()
-    #upload.print_help()
+    print "usage: gdc-client [upload/download/interactive] [arguments]"
+    print "       upload - mode to upload files (without args to get help)"
+    print "       download - mode to download files (without args to get help)"
+    print "       interactive - runs in interactive mode for both download or upload (arguments ignored)"
 
 def main():
     if not sys.argv[1:]:
@@ -38,10 +38,13 @@ def main():
         print_help()
         return
         #return DEFAULT_COMMAND()
-
-    args = argparser.parse_args()
-    log_version_header()
-    run_command(args)
+    if sys.argv[1] == "interactive":
+        sys.argv.remove("interactive")
+        commands_callbacks[download.command](True)
+    else:
+        args = argparser.parse_args()
+        log_version_header()
+        run_command(args)
 
 
 if __name__ == '__main__':

@@ -51,9 +51,6 @@ subparser.add_argument('--no-related-files', action='store_false',
 subparser.add_argument('--no-annotations', action='store_false',
                        dest='download_annotations',
                        help='Do not download annotations.')
-subparser.add_argument('--interactive', action='store_true',
-                       dest='interactive',
-                       help='Enter into interactive mode')
 
 token_args = subparser.add_mutually_exclusive_group(required=False)
 token_args.add_argument('-t', '--token-file',
@@ -124,15 +121,14 @@ def run_cli(args):
 def print_help():
     subparser.print_help()
 
-def main():
-    print "Enter download parse"
-    args = subparser.parse_args()
-    if args.verbose:
-        logging.root.setLevel(logging.DEBUG)
-
-    if args.interactive:
-        run_repl(new_args)
+def main(interactive):
+    if interactive:
+        run_repl()
     else:
+        args = subparser.parse_args()
+        if args.verbose:
+            logging.root.setLevel(logging.DEBUG)
+
         try:
             run_cli(args)
         except Exception as e:

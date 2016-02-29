@@ -58,7 +58,8 @@ subparser.add_argument('--manifest', '-m',
 def print_help():
     subparser.print_help()
 
-def main():
+# NOTE: interactive comes through download, but arg is here for consistency
+def main(interactive):
     if len(sys.argv[2:]):
         args = subparser.parse_args(sys.argv[2:])
         if args.verbose:
