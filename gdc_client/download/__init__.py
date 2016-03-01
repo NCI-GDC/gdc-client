@@ -3,7 +3,6 @@ import sys
 import logging
 
 from . import client
-from ..repl import run_repl
 from .. import defaults
 from ..argparser import subparsers
 from parcel import manifest, const
@@ -122,20 +121,17 @@ def print_help():
     subparser.print_help()
 
 def main(interactive):
-    if interactive:
-        run_repl()
-    else:
-        args = subparser.parse_args()
-        if args.verbose:
-            logging.root.setLevel(logging.DEBUG)
+    args = subparser.parse_args()
+    if args.verbose:
+        logging.root.setLevel(logging.DEBUG)
 
-        try:
-            run_cli(args)
-        except Exception as e:
-            if args.debug:
-                raise
-            else:
-                print('Process aborted: {}'.format(str(e)))
+    try:
+        run_cli(args)
+    except Exception as e:
+        if args.debug:
+            raise
+        else:
+            print('Process aborted: {}'.format(str(e)))
 
     # If there are arguments other than subcommand, run cli
     #if sys.argv[2:]:

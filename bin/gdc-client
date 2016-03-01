@@ -3,8 +3,8 @@ import logging
 import sys
 
 from gdc_client.version import __version__ as version
-from gdc_client.argparser import argparser
-from gdc_client import download, upload
+from gdc_client.argparser import argparser, subparsers
+from gdc_client import download, upload, interactive
 from gdc_client.log import get_logger
 
 logging.root.setLevel(logging.INFO)
@@ -23,32 +23,30 @@ def log_version_header():
 
 
 def run_command(args):
+
+    # NOTE this if clause only here because of download / upload
+    if args.func is not None:
+        return args.func(args)
+
     commands_callbacks[args.command](False)
 
 
-def print_help():
-    print "usage: gdc-client [upload/download/interactive] [arguments]"
-    print "       upload - mode to upload files (without args to get help)"
-    print "       download - mode to download files (without args to get help)"
-    print "       interactive - runs in interactive mode for both download or upload (arguments ignored)"
-
-def main():
-    if not sys.argv[1:]:
-        # If no subcommand was specified use default command
-        print_help()
-        return
-        #return DEFAULT_COMMAND()
-    if sys.argv[1] == "interactive":
-        sys.argv.remove("interactive")
-        commands_callbacks[download.command](True)
-    else:
-        args = argparser.parse_args()
-        log_version_header()
-        run_command(args)
-
-
 if __name__ == '__main__':
+
+    argparser.set_defaults(func=None)
+
+    interactive_subparser = subparsers.add_parser('interactive',
+        help='run in interactive mode',
+    )
+    interactive.parser.config(interactive_subparser)
+
+    # TODO add download subparser
+    # TODO add upload subparser
+
+    args = argparser.parse_args()
+    log_version_header()
+
     try:
-        main()
+        run_command(args)
     except KeyboardInterrupt:
         print('\nProcess canceled by user.')
