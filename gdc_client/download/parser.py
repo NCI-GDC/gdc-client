@@ -1,10 +1,12 @@
 import argparse
 
+from parcel import const
+from parcel import manifest
 
-from . import client
 from .. import defaults
-from ..argparser import subparsers
-from parcel import manifest, const
+
+from .client import GDCUDTDownloadClient
+from .client import GDCHTTPDownloadClient
 
 
 def get_client(args, token, **_kwargs):
@@ -22,7 +24,7 @@ def get_client(args, token, **_kwargs):
 
     if args.udt:
         server = args.server or defaults.udt_url
-        return client.GDCUDTDownloadClient(
+        return GDCUDTDownloadClient(
             remote_uri=server,
             proxy_host=args.proxy_host,
             proxy_port=args.proxy_port,
@@ -31,7 +33,7 @@ def get_client(args, token, **_kwargs):
         )
     else:
         server = args.server or defaults.tcp_url
-        return client.GDCHTTPDownloadClient(
+        return GDCHTTPDownloadClient(
             uri=server,
             **kwargs
         )
