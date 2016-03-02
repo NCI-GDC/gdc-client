@@ -11,24 +11,8 @@ logging.root.setLevel(logging.INFO)
 log = get_logger('gdc-client')
 
 
-DEFAULT_COMMAND = download.main
-commands_callbacks = {
-    download.command: download.main,
-    upload.command: upload.main,
-}
-
-
 def log_version_header():
     log.info('gdc-client - {version}'.format(version=version))
-
-
-def run_command(args):
-
-    # NOTE this if clause only here because of download / upload
-    if args.func is not None:
-        return args.func(args)
-
-    commands_callbacks[args.command](False)
 
 
 if __name__ == '__main__':
@@ -40,13 +24,20 @@ if __name__ == '__main__':
     )
     interactive.parser.config(interactive_subparser)
 
-    # TODO add download subparser
-    # TODO add upload subparser
+    download_subparser = subparsers.add_parser('download',
+        help='download data from the GDC',
+    )
+    download.parser.config(download_subparser)
+
+    upload_subparser = subparsers.add_parser('upload',
+        help='upload data to the GDC',
+    )
+    upload.parser.config(upload_subparser)
 
     args = argparser.parse_args()
     log_version_header()
 
     try:
-        run_command(args)
+        args.func(args)
     except KeyboardInterrupt:
         print('\nProcess canceled by user.')
