@@ -51,15 +51,6 @@ echo "Bundling to ${BUNDLE}"
 # Create bundle
 mkdir -p "${MacOS}"
 
-# Create wrapper script
-#echo '#!/bin/bash
-#BIN="$(cd "$(dirname "$0")"; pwd)/.gdc-client"
-#chmod +x "${BIN}"
-#open -a Terminal "${BIN}"
-#/usr/bin/env bash
-#' > "${WRAPPER}"
-#chmod +x "${WRAPPER}"
-
 # Move binary into bundle
 cp "${SOURCE}" "${MacOS}/.${APPNAME}"
 
