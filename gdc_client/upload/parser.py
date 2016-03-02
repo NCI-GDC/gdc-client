@@ -1,14 +1,9 @@
 import argparse
 
-
 from .. import defaults
-import sys
-import argparse
-import yaml
-import logging
-import requests
-from client import GDCUploadClient, read_manifest
-from ..argparser import subparsers
+
+from .client import read_manifest
+from .client import GDCUploadClient
 
 
 def upload(args):
