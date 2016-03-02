@@ -3,41 +3,41 @@ import logging
 import sys
 
 from gdc_client.version import __version__ as version
-from gdc_client.argparser import argparser
-from gdc_client import download, upload
+from gdc_client.argparser import argparser, subparsers
+from gdc_client import download, upload, interactive
 from gdc_client.log import get_logger
 
 logging.root.setLevel(logging.INFO)
 log = get_logger('gdc-client')
 
 
-DEFAULT_COMMAND = download.main
-commands_callbacks = {
-    download.command: download.main,
-    upload.command: upload.main,
-}
-
-
 def log_version_header():
     log.info('gdc-client - {version}'.format(version=version))
 
 
-def run_command(args):
-    commands_callbacks[args.command]()
+if __name__ == '__main__':
 
+    argparser.set_defaults(func=None)
 
-def main():
-    if not sys.argv[1:]:
-        # If no subcommand was specified use default command
-        return DEFAULT_COMMAND()
+    interactive_subparser = subparsers.add_parser('interactive',
+        help='run in interactive mode',
+    )
+    interactive.parser.config(interactive_subparser)
+
+    download_subparser = subparsers.add_parser('download',
+        help='download data from the GDC',
+    )
+    download.parser.config(download_subparser)
+
+    upload_subparser = subparsers.add_parser('upload',
+        help='upload data to the GDC',
+    )
+    upload.parser.config(upload_subparser)
 
     args = argparser.parse_args()
     log_version_header()
-    run_command(args)
 
-
-if __name__ == '__main__':
     try:
-        main()
+        args.func(args)
     except KeyboardInterrupt:
         print('\nProcess canceled by user.')
