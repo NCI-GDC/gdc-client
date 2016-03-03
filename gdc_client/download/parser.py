@@ -8,7 +8,6 @@ from .. import defaults
 from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
 
-
 def get_client(args, token, **_kwargs):
     kwargs = {
         'token': token,
@@ -46,8 +45,12 @@ def download(args):
     file_ids = set(args.file_ids)
     for f in args.manifest:
         file_ids.add(f['id'])
-
-    client.download_files(file_ids)
+   
+    if not len(file_ids):
+        print "***ERROR: Download requires either a list of file ids or a manifest file."
+        print "          Please use '-h' for further help."
+    else:
+        client.download_files(file_ids)
 
 def config(parser):
     """ Configure a parser for download.
