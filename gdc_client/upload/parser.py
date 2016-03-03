@@ -16,7 +16,7 @@ def upload(args):
     manifest_name = args.manifest.name if args.manifest else args.identifier
 
     client = GDCUploadClient(
-        token=args.token.read(), processes=args.n_processes,
+        token=args.token, processes=args.n_processes,
         multipart=args.disable_multipart,
         part_size=args.part_size, server=args.server,
         files=files, verify=args.insecure, debug=args.verbose, manifest_name=manifest_name)
@@ -39,10 +39,6 @@ def config(parser):
                         help='The file id')
     parser.add_argument('--path', '-f', metavar='path',
                         help='directory path to find file')
-    #parser.add_argument('--token', '-t', metavar='file',
-    #                    #required=True,
-    #                    type=argparse.FileType('r'),
-    #                    help='auth token')
     parser.add_argument('--insecure', '-k',
                         action='store_false',
                         help='Allow connections to server without certs')
@@ -77,7 +73,7 @@ def config(parser):
                         type=argparse.FileType('r'),
                         help='Manifest which describes files to be uploaded')
 
-    token_args = parser.add_mutually_exclusive_group(required=False)
+    token_args = parser.add_mutually_exclusive_group(required=True)
     token_args.add_argument('-t', '--token-file',
                             type=lambda x: argparse.FileType('r')(x).read(),
                             dest='token',
