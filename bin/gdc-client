@@ -17,8 +17,6 @@ def log_version_header():
 
 if __name__ == '__main__':
 
-    argparser.set_defaults(func=None)
-
     interactive_subparser = subparsers.add_parser('interactive',
         help='run in interactive mode',
     )
