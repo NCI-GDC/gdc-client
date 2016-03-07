@@ -4,6 +4,7 @@ from parcel import const
 from parcel import manifest
 
 from .. import defaults
+from .. import log as logger
 
 from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
@@ -65,8 +66,8 @@ def config(parser):
                         type=manifest.argparse_type,
                         default=list(),
                         help='GDC Download manifest file.')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='verbose logging')
+#    parser.add_argument('-v', '--verbose', action='store_true',
+#                        help='verbose logging')
     parser.add_argument('-d', '--dir',
                         default=None,
                         help='Directory to download files to. '
@@ -79,9 +80,9 @@ def config(parser):
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
                         help='Calculate inbound segment md5sums and/or verify md5sums on restart')
-    parser.add_argument('--debug', dest='debug',
-                        action='store_true',
-                        help='Print stack traces')
+#    parser.add_argument('--debug', dest='debug',
+#                        action='store_true',
+#                        help='Print stack traces')
     parser.add_argument('-n', '--n-processes', type=int,
                         default=defaults.processes,
                         help='Number of client connections.')
@@ -98,13 +99,13 @@ def config(parser):
                         dest='download_annotations',
                         help='Do not download annotations.')
 
-    token_args = parser.add_mutually_exclusive_group(required=False)
-    token_args.add_argument('-t', '--token-file',
-                            type=lambda x: argparse.FileType('r')(x).read(),
-                            dest='token',
-                            help='authentication token file')
-    token_args.add_argument('-T', '--token', default='', type=str,
-                            dest='token', help='authentication token')
+#    token_args = parser.add_mutually_exclusive_group(required=False)
+#    token_args.add_argument('-t', '--token-file',
+#                            type=lambda x: argparse.FileType('r')(x).read(),
+#                            dest='token',
+#                            help='authentication token file')
+#    token_args.add_argument('-T', '--token', default='', type=str,
+#                            dest='token', help='authentication token')
 
     #############################################################
     #                       UDT options
@@ -112,10 +113,10 @@ def config(parser):
 
     parser.add_argument('-u', '--udt', action='store_true',
                         help='Use the UDT protocol.  Better for WAN connections')
-    parser.add_argument('-H', '--proxy-host', default=defaults.proxy_host,
+    parser.add_argument('--proxy-host', default=defaults.proxy_host,
                         type=str, dest='proxy_host',
                         help='The port to bind the local proxy to')
-    parser.add_argument('-P', '--proxy-port', default=defaults.proxy_port,
+    parser.add_argument('--proxy-port', default=defaults.proxy_port,
                         type=str, dest='proxy_port',
                         help='The port to bind the local proxy to')
     parser.add_argument('-e', '--external-proxy', action='store_true',

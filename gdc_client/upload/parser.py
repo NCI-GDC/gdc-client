@@ -42,9 +42,10 @@ def config(parser):
     parser.add_argument('--insecure', '-k',
                         action='store_false',
                         help='Allow connections to server without certs')
-    parser.add_argument('--verbose', '-v',
-                        action='store_true',
-                        help='Print stack traces')
+#    parser.add_argument('--verbose', '-v',
+#                        action='store_true',
+#                        help='Print stack traces')
+    # TODO remove this and replace w/ top level host and port
     parser.add_argument('--server', '-s',
                         default=defaults.tcp_url,
                         help='GDC API server address')
@@ -73,10 +74,10 @@ def config(parser):
                         type=argparse.FileType('r'),
                         help='Manifest which describes files to be uploaded')
 
-    token_args = parser.add_mutually_exclusive_group(required=True)
-    token_args.add_argument('-t', '--token-file',
-                            type=lambda x: argparse.FileType('r')(x).read(),
-                            dest='token',
-                            help='authentication token file')
-    token_args.add_argument('-T', '--token', default='', type=str,
-                            dest='token', help='authentication token')
+#    token_args = parser.add_mutually_exclusive_group(required=True)
+#    token_args.add_argument('-t', '--token-file',
+#                            type=lambda x: argparse.FileType('r')(x).read(),
+#                            dest='token',
+#                            help='authentication token file')
+#    token_args.add_argument('-T', '--token', default='', type=str,
+#                            dest='token', help='authentication token')
