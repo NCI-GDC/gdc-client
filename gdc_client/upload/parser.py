@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 from .. import defaults
 
@@ -15,11 +16,14 @@ def upload(args):
 
     manifest_name = args.manifest.name if args.manifest else args.identifier
 
+    # TODO remove debug - handled by logger
+    debug = logging.DEBUG in args.log_levels
+
     client = GDCUploadClient(
         token=args.token, processes=args.n_processes,
         multipart=args.disable_multipart,
         part_size=args.part_size, server=args.server,
-        files=files, verify=args.insecure, debug=args.verbose, manifest_name=manifest_name)
+        files=files, verify=args.insecure, debug=debug, manifest_name=manifest_name)
 
     if args.abort:
         client.abort()
@@ -42,9 +46,6 @@ def config(parser):
     parser.add_argument('--insecure', '-k',
                         action='store_false',
                         help='Allow connections to server without certs')
-#    parser.add_argument('--verbose', '-v',
-#                        action='store_true',
-#                        help='Print stack traces')
     # TODO remove this and replace w/ top level host and port
     parser.add_argument('--server', '-s',
                         default=defaults.tcp_url,
@@ -73,11 +74,3 @@ def config(parser):
     parser.add_argument('--manifest', '-m',
                         type=argparse.FileType('r'),
                         help='Manifest which describes files to be uploaded')
-
-#    token_args = parser.add_mutually_exclusive_group(required=True)
-#    token_args.add_argument('-t', '--token-file',
-#                            type=lambda x: argparse.FileType('r')(x).read(),
-#                            dest='token',
-#                            help='authentication token file')
-#    token_args.add_argument('-T', '--token', default='', type=str,
-#                            dest='token', help='authentication token')
