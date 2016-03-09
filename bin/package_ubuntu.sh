@@ -6,6 +6,18 @@ set -e
 # Make sure the correct version of pyinstall is installed
 pip install "https://github.com/pyinstaller/pyinstaller/archive/1e38dcb5916f3fc22089e169ff1ea61c05d66ad0.zip" 
 
+# Make sure the correct version of setuptools is present
+value=$(pip list | grep setuptools)
+echo $value
+version="19.2"
+if [[ $value != *$version* ]]
+then
+    echo "Incorrect version:"
+    echo $value
+    echo "please install $version"
+    exit 1
+fi
+
 
 # Get version
 VERSION=$(python -c """

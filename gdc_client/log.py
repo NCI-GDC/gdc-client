@@ -15,12 +15,12 @@ def get_logger(name='gdc-client'):
         return loggers[name]
     log = logging.getLogger(name)
     log.propagate = False
-    if sys.stdout.isatty():
+    if sys.stderr.isatty():
         formatter = logging.Formatter(
             colored('%(asctime)s: %(levelname)s: ', 'blue')+'%(message)s')
     else:
         formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
-    handler = logging.StreamHandler(sys.stdout)
+    handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(formatter)
     log.addHandler(handler)
     loggers[name] = log

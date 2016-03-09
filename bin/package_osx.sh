@@ -6,6 +6,18 @@ set -x
 # Make sure the correct version of pyinstall is installed
 pip install 'PyInstaller==2.1'
 
+# Make sure the correct version of setuptools is present
+value=$(pip list | grep setuptools)
+echo $value
+version="19.2"
+if [[ $value != *$version* ]]
+then
+    echo "Incorrect version:"
+    echo $value
+    echo "please install $version"
+    exit 1
+fi
+
 # Get version
 VERSION=$(python -c """
 import gdc_client.version
@@ -38,14 +50,6 @@ echo "Bundling to ${BUNDLE}"
 
 # Create bundle
 mkdir -p "${MacOS}"
-
-# Create wrapper script
-echo '#!/bin/bash
-BIN="$(cd "$(dirname "$0")"; pwd)/.gdc-client"
-chmod +x "${BIN}"
-open -a Terminal "${BIN}"
-' > "${WRAPPER}"
-chmod +x "${WRAPPER}"
 
 # Move binary into bundle
 cp "${SOURCE}" "${MacOS}/.${APPNAME}"

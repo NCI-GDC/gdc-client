@@ -428,29 +428,3 @@ class GDCREPL(Cmd):
 
         """
         self.do_help(arg)
-
-def run_repl(args):
-    r = GDCREPL()
-    r.prompt = '\ngdc-client repl > '
-    r.cmdloop()
-
-
-
-def main():
-    args = subparsers.parse_args()
-    if args.verbose:
-        logging.root.setLevel(logging.DEBUG)
-
-    # If there are arguments other than subcommand, run cli
-    if sys.argv[2:]:
-        try:
-            run_cli(args)
-        except Exception as e:
-            if args.debug:
-                raise
-            else:
-                print('Process aborted: {}'.format(str(e)))
-
-    # Else, run as a repl
-    else:
-        run_repl(args)
