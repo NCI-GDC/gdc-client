@@ -1,13 +1,26 @@
 import os
 import stat
+import logging
 import argparse
 
 from contextlib import closing
 
 
+PERMISSIONS_MSG = '''
+Your token file {token_file} is not properly secured. Please secure your
+token file by ensuring that it is not readable or writeable by anyone
+other than the owner of the file.
+
+On OS X: <os_x_instructions>
+On Linux: <linux_instructions>
+On Windows: <windows_instructions>
+'''
+
 def read_token_file(path):
     """ Safely open, read and close a token file.
     """
+    log = logging.getLogger('gdc-client')
+
     # TODO review best way to check file security on various platforms
 
     abspath = os.path.abspath(path)
@@ -22,7 +35,12 @@ def read_token_file(path):
     ])
 
     if invalid_permissions:
-        raise argparse.ArgumentTypeError('token file is not secured')
+        permissions_msg = PERMISSIONS_MSG.format(
+            token_file=abspath,
+        )
+        log.warn(permissions_msg)
+        # FIXME convert to error after investigation on windows
+        #raise argparse.ArgumentTypeError(permissions_msg)
 
     try:
         ifs = open(abspath, 'r')
