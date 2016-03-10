@@ -54,13 +54,14 @@ def upload_multipart_wrapper(args):
 
 def read_manifest(manifest):
     manifest = yaml.load(manifest)
+
     def _read_manifest(manifest):
-      if type(manifest) == list:
-          return sum([_read_manifest(item) for item in manifest], [])
-      if "files" in manifest:
-          return manifest['files']
-      else:
-          return sum([_read_manifest(item) for item in manifest.values()], [])
+        if type(manifest) == list:
+            return sum([_read_manifest(item) for item in manifest], [])
+        if "files" in manifest:
+            return manifest['files']
+        else:
+            return sum([_read_manifest(item) for item in manifest.values()], [])
     return _read_manifest(manifest)
 
 class Stream(object):
@@ -202,33 +203,37 @@ class GDCUploadClient(object):
         else:
             raise Exception("Fail to get filename: {}".format(r.text))
 
-    def get_file(self, f, action='download'):
+    def get_files(self, action='download'):
         '''Parse file information from manifest'''
         try:
-            self.node_id = f['id']
-            project_id = f.get('project_id') or self.metadata['project_id']
-            tokens = project_id.split('-')
-            program = (tokens[0]).upper()
-            project = ('-'.join(tokens[1:])).upper()
-            if not program or not project:
-                raise RuntimeError('Unable to parse project id {}'
-                                   .format(project_id))
-            self.url = urljoin(
-                self.server, 'v0/submission/{}/{}/files/{}'
-                .format(program, project, f['id']))
+            self.file_entities = []
+            for f in self.files:
+                file_entity = FileEntity()
+                file_entity.node_id = f['id']
+                # cache node_id to use metadata property
+                self.node_id = file_entity.node_id
+                project_id = f.get('project_id') or self.metadata['project_id']
+                tokens = project_id.split('-')
+                program = (tokens[0]).upper()
+                project = ('-'.join(tokens[1:])).upper()
+                if not program or not project:
+                    raise RuntimeError('Unable to parse project id {}'
+                                       .format(project_id))
+                file_entity.url = urljoin(
+                    self.server, 'v0/submission/{}/{}/files/{}'
+                    .format(program, project, f['id']))
 
-            if action == 'delete':
-                return True
+                if action == 'delete':
+                    self.file_entities.append(file_entity)
+                    continue
 
-            self.path = f.get('path') or '.'
-            self.filename = f.get('file_name') or self.metadata['file_name']
-            self.file_path = os.path.join(self.path, self.filename)
-            self.file = open(self.file_path, 'rb')
-
-            self.file_size = os.fstat(self.file.fileno()).st_size
-            self.upload_id = f.get('upload_id')
-            return True
-
+                path = f.get('path') or '.'
+                filename = f.get('file_name') or self.metadata['file_name']
+                file_entity.file_path = os.path.join(path, filename)
+                with open(file_entity.file_path, 'rb') as fp:
+                    file_entity.file_size = os.fstat(fp.fileno()).st_size
+                file_entity.upload_id = f.get('upload_id')
+                self.file_entities.append(file_entity)
         except KeyError as e:
             print (
                 "Please provide {} from manifest or as an argument"
@@ -238,6 +243,9 @@ class GDCUploadClient(object):
             print e
             return False
 
+    def load_file(self, file_entity):
+        # Load attributes from a UploadFile to self for easy access
+        self.__dict__.update(file_entity.__dict__)
 
     def called(self, arg):
         if arg:
@@ -251,9 +259,10 @@ class GDCUploadClient(object):
                 with open(self.resume_path,'r') as f:
                     self.files = read_manifest(f)
 
-        for f in self.files:
-            if not self.get_file(f):
-                return
+        self.get_files()
+        for f in self.file_entities:
+            self.load_file(f)
+            
             print("Attempting to upload to {}".format(self.url))
             if not self.multipart:
                 self._upload()
@@ -268,9 +277,9 @@ class GDCUploadClient(object):
 
     def abort(self):
         ''' Abort multipart upload'''
-        for f in self.files:
-            if not self.get_file(f):
-                return
+        self.get_files()
+        for f in self.file_entities:
+            self.load_file(f)
             r = requests.delete(
                 self.url+"?uploadId={}".format(self.upload_id),
                 headers=self.headers, verify=self.verify)
@@ -282,9 +291,9 @@ class GDCUploadClient(object):
 
     def delete(self):
         '''Delete file from object storage'''
-        for f in self.files:
-            if not self.get_file(f, 'delete'):
-                return
+        self.get_files()
+        for f in self.file_entities:
+            self.load_file(f)
             r = requests.delete(
                 self.url, headers=self.headers, verify=self.verify)
             if r.status_code == 204:
@@ -452,6 +461,12 @@ class GDCUploadClient(object):
                 print "Multipart upload finished for file {}".format(self.node_id)
                 return
         raise Exception("Multipart upload complete failed: {}".format(r.text))
+
+
+
+class FileEntity(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
 
 class Multiparts(object):
