@@ -218,7 +218,7 @@ class GDCUploadClient(object):
                 .format(program, project, f['id']))
 
             if action == 'delete':
-                return
+                return True
 
             self.path = f.get('path') or '.'
             self.filename = f.get('file_name') or self.metadata['file_name']
