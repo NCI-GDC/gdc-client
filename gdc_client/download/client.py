@@ -49,6 +49,7 @@ class GDCDownloadMixin(object):
                 urlparse.urljoin(self.uri, '/data/{}'.format(annotation_list)),
                 params={'compress': True},
                 verify=False)
+            r.raise_for_status()
             tar = tarfile.open(mode="r:gz", fileobj=StringIO(r.content))
             if self.annotation_name in tar.getnames():
                 member = tar.getmember(self.annotation_name)
