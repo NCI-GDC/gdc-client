@@ -11,7 +11,9 @@ from gdc_client.exceptions import ClientError
 logging.root.setLevel(logging.INFO)
 log = get_logger('gdc-client')
 
-SUPPORT_EMAIL = 'support@gdc.nci.nih.gov'
+
+# TODO FIXME replace w/ updated email @ go live
+SUPPORT_EMAIL = 'support@nci-gdc.datacommons.io'
 
 ERROR_MSG = ' '.join([
     'An unexpected error has occurred during normal operation of the client.',
