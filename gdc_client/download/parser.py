@@ -1,7 +1,6 @@
 import argparse
 
 from parcel import const
-from parcel import manifest
 
 from .. import defaults
 
@@ -37,6 +36,16 @@ def get_client(args, token, **_kwargs):
             **kwargs
         )
 
+def parse_manifest(fs):
+    """ Parse a GDC manifest from a file-like object.
+
+    :param fs:
+        File-like object containing a GDC manifest.
+    """
+    manifest = yaml.load(fs)
+
+    return (entity for entity in manifest)
+
 def download(args):
     """ Downloads data from the GDC.
     """
@@ -62,7 +71,7 @@ def config(parser):
     #############################################################
 
     parser.add_argument('-m', '--manifest',
-                        type=manifest.argparse_type,
+                        type=lambda x: parse_manifest(argparse.FileType('r')(x)),
                         default=list(),
                         help='GDC Download manifest file.')
     parser.add_argument('-v', '--verbose', action='store_true',
