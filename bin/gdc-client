@@ -62,12 +62,6 @@ if __name__ == '__main__':
         help='for more information, specify -h after a command',
     )
 
-    interactive_subparser = subparsers.add_parser('interactive',
-        parents=[template],
-        help='run in interactive mode',
-    )
-    interactive.parser.config(interactive_subparser)
-
     download_subparser = subparsers.add_parser('download',
         parents=[template],
         help='download data from the GDC',
@@ -79,6 +73,12 @@ if __name__ == '__main__':
         help='upload data to the GDC',
     )
     upload.parser.config(upload_subparser)
+
+    interactive_subparser = subparsers.add_parser('interactive',
+        parents=[template],
+        help='run in interactive mode',
+    )
+    interactive.parser.config(interactive_subparser)
 
     # Parse and run.
     args = parser.parse_args()
