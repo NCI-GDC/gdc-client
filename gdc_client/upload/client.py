@@ -136,7 +136,7 @@ class GDCUploadClient(object):
     def __init__(self, token, processes, server, part_size,
                  multipart=True, debug=False,
                  files={}, verify=True, manifest_name=None):
-        self.headers = {'X-Auth-Token': token.strip()}
+        self.headers = {'X-Auth-Token': token}
         self.manifest_name = manifest_name
         self.verify = verify
         try:
