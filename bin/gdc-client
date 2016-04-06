@@ -4,7 +4,7 @@ import argparse
 import logging
 import sys
 
-from gdc_client import download, upload, interactive
+from gdc_client import token, download, upload, interactive
 from gdc_client.log import get_logger
 from gdc_client.exceptions import ClientError
 
@@ -61,6 +61,12 @@ if __name__ == '__main__':
         dest='command',
         help='for more information, specify -h after a command',
     )
+
+    token_subparser = subparsers.add_parser('token',
+        parents=[template],
+        help='log in and generate an auth token',
+    )
+    token.parser.config(token_subparser)
 
     download_subparser = subparsers.add_parser('download',
         parents=[template],
