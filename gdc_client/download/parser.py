@@ -1,6 +1,8 @@
 import argparse
 import logging
 
+from functools import partial
+
 from parcel import const
 from parcel import manifest
 
@@ -10,6 +12,13 @@ from .. import log as logger
 from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
 
+
+def validate_args(parser, args):
+    """ Validate argparse namespace.
+    """
+    if not args.file_ids and not args.manifest:
+        msg = 'must specify either --manifest or file_id'
+        parser.error(msg)
 
 def get_client(args, token, **_kwargs):
     kwargs = {
@@ -41,34 +50,28 @@ def get_client(args, token, **_kwargs):
             **kwargs
         )
 
-def download(args):
+def download(parser, args):
     """ Downloads data from the GDC.
     """
-    client = get_client(args, args.token)
+    validate_args(parser, args)
 
-    file_ids = set(args.file_ids)
-    for f in args.manifest:
-        file_ids.add(f['id'])
-   
-    if not len(file_ids):
-        print "***ERROR: Download requires either a list of file ids or a manifest file."
-        print "          Please use '-h' for further help."
-    else:
-        client.download_files(file_ids)
+    ids = set(args.file_ids)
+    for i in args.manifest:
+        ids.add(i['id'])
+
+    client = get_client(args, args.token)
+    client.download_files(ids)
 
 def config(parser):
     """ Configure a parser for download.
     """
-    parser.set_defaults(func=download)
+    func = partial(download, parser)
+    parser.set_defaults(func=func)
 
     #############################################################
     #                     General options
     #############################################################
 
-    parser.add_argument('-m', '--manifest',
-                        type=manifest.argparse_type,
-                        default=list(),
-                        help='GDC Download manifest file.')
     parser.add_argument('-d', '--dir',
                         default=None,
                         help='Directory to download files to. '
@@ -76,8 +79,6 @@ def config(parser):
     parser.add_argument('-s', '--server', metavar='server', type=str,
                         default=None,
                         help='The UDT server address server[:port]')
-    parser.add_argument('file_ids', metavar='file_id', type=str,
-                        nargs='*', help='uuids to download')
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
                         help='Calculate inbound segment md5sums and/or verify md5sums on restart')
@@ -112,3 +113,14 @@ def config(parser):
     parser.add_argument('-e', '--external-proxy', action='store_true',
                         dest='external_proxy',
                         help='Do not create a local proxy but bind to an external one')
+
+    parser.add_argument('-m', '--manifest',
+        type=manifest.argparse_type,
+        default=[],
+        help='GDC download manifest file',
+    )
+    parser.add_argument('file_ids',
+        metavar='file_id',
+        nargs='*',
+        help='GDC files to download',
+    )
