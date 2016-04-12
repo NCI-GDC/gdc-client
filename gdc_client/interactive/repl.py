@@ -1,13 +1,16 @@
-from parcel import const, manifest
-from ..download.client import GDCHTTPDownloadClient
-from ..upload import read_manifest, GDCUploadClient
-from .. import defaults
-from ..version import __version__
-from ..argparser import subparsers
-from cmd2 import Cmd, options, make_option
 import types
 import os
 import shlex
+
+from cmd2 import Cmd, options, make_option
+from parcel import const, manifest
+
+from ..download.client import GDCHTTPDownloadClient
+from ..upload import GDCUploadClient
+from ..upload import manifest as upload_manifest
+from .. import defaults
+from ..version import __version__
+from ..argparser import subparsers
 
 
 class GDCREPL(Cmd):
@@ -336,7 +339,7 @@ class GDCREPL(Cmd):
 
     def _get_upload_client(self, manifest):
         with open(manifest, 'r') as fd:
-            files = read_manifest(fd)
+            files = upload_manifest.load(fd)['files']
             client = GDCUploadClient(
                 token=self.token, processes=self.get('processes', int),
                 multipart=self.get('multipart', bool),
