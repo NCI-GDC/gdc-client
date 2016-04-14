@@ -1,6 +1,8 @@
 import argparse
 import logging
 
+from functools import partial
+
 from .. import defaults
 
 from . import manifest
@@ -9,10 +11,34 @@ from . import exceptions
 from .client import GDCUploadClient
 
 
-def upload(args):
+def validate_args(parser, args):
+    """ Validate argparse namespace.
+    """
+    if args.manifest:
+        return
+
+    if all([
+        args.project_id,
+        args.identifier,
+        args.path,
+    ]): return
+
+    these = ', '.join([
+        '--project-id',
+        '--identifier',
+        '--path',
+    ])
+
+    msg = 'must specify either --manifest or {these}'.format(these=these)
+    parser.error(msg)
+
+
+def upload(parser, args):
     """ Upload data to the GDC.
     """
-    files = manifest.load(args.manifest)['files'] if args.manifest else []
+    validate_args(parser, args)
+
+    files = read_manifest(args.manifest) if args.manifest else []
 
     if not args.manifest:
         files.append({
@@ -43,7 +69,8 @@ def upload(args):
 def config(parser):
     """ Configure a parser for upload.
     """
-    parser.set_defaults(func=upload)
+    func = partial(upload, parser)
+    parser.set_defaults(func=func)
 
     parser.add_argument('--project-id', '-p', type=str,
                         help='The project ID that owns the file')
@@ -51,6 +78,9 @@ def config(parser):
                         help='The file id')
     parser.add_argument('--path', '-f', metavar='path',
                         help='directory path to find file')
+    parser.add_argument('--upload-id', '-u',
+                        help='Multipart upload id')
+
     parser.add_argument('--insecure', '-k',
                         action='store_false',
                         help='Allow connections to server without certs')
@@ -65,8 +95,6 @@ def config(parser):
     parser.add_argument('-n', '--n-processes', type=int,
                         default=defaults.processes,
                         help='Number of client connections')
-    parser.add_argument('--upload-id', '-u',
-                        help='Multipart upload id')
     parser.add_argument('--disable-multipart',
                         action="store_false",
                         help='Disable multipart upload')
@@ -79,6 +107,7 @@ def config(parser):
     parser.add_argument('--delete',
                         action="store_true",
                         help='Delete an uploaded file')
+
     parser.add_argument('--manifest', '-m',
                         type=argparse.FileType('r'),
                         help='Manifest which describes files to be uploaded')
