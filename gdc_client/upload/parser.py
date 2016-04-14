@@ -13,12 +13,14 @@ def upload(args):
     """ Upload data to the GDC.
     """
     files = manifest.load(args.manifest)['files'] if args.manifest else []
-    files.append({
-        'id': args.identifier,
-        'project_id': args.project_id,
-        'path': args.path,
-        'upload_id': args.upload_id,
-    })
+
+    if not args.manifest:
+        files.append({
+            'id': args.identifier,
+            'project_id': args.project_id,
+            'path': args.path,
+            'upload_id': args.upload_id,
+        })
 
     # TODO remove debug - handled by logger
     debug = logging.DEBUG in args.log_levels
