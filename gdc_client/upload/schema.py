@@ -26,19 +26,24 @@ UPLOAD_MANIFEST_SCHEMA = {
                     },
                     "type": {
                         "type": "string"
+                    },
+                    "project_id": {
+                        "type": "string"
                     }
                 },
                 "anyOf": [
                     {
                         "required": [
                             "id",
-                            "file_name"
+                            "file_name",
+                            "project_id"
                         ]
                     },
                     {
                         "required": [
                             "id",
-                            "local_file_path"
+                            "local_file_path",
+                            "project_id"
                         ]
                     }
                 ]
