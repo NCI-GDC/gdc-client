@@ -3,21 +3,29 @@ import logging
 
 from .. import defaults
 
-from .client import read_manifest
+from . import manifest
+from . import exceptions
+
 from .client import GDCUploadClient
 
 
 def upload(args):
     """ Upload data to the GDC.
     """
-    files = read_manifest(args.manifest) if args.manifest else\
-        [{"id": args.identifier, "project_id": args.project_id,
-          "path": args.path, "upload_id": args.upload_id}]
+    files = manifest.load(args.manifest)['files'] if args.manifest else []
 
-    manifest_name = args.manifest.name if args.manifest else args.identifier
+    if not args.manifest:
+        files.append({
+            'id': args.identifier,
+            'project_id': args.project_id,
+            'path': args.path,
+            'upload_id': args.upload_id,
+        })
 
     # TODO remove debug - handled by logger
     debug = logging.DEBUG in args.log_levels
+
+    manifest_name = args.manifest.name if args.manifest else args.identifier
 
     client = GDCUploadClient(
         token=args.token, processes=args.n_processes,
