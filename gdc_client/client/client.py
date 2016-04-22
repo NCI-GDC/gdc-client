@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import requests
 
 from .. import auth
+from .. import version
 
 
 GDC_API_HOST = 'gdc-api.nci.nih.gov'
@@ -20,7 +21,7 @@ class GDCClient(object):
         self.session = requests.Session()
 
         agent = ' '.join([
-            'GDC-Client',
+            'GDC-Client/{version}'.format(version=version.__version__),
             self.session.headers.get('User-Agent', 'Unknown'),
         ])
 
