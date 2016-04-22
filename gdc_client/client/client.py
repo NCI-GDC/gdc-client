@@ -19,6 +19,15 @@ class GDCClient(object):
 
         self.session = requests.Session()
 
+        agent = ' '.join([
+            'GDC-Client',
+            self.session.headers.get('User-Agent', 'Unknown'),
+        ])
+
+        self.session.headers = {
+            'User-Agent': agent,
+        }
+
     @contextmanager
     def request(self, verb, path, **kwargs):
         """ Make a request to the GDC API.
