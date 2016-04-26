@@ -1,3 +1,4 @@
+import cgi
 import logging
 
 import requests
@@ -28,9 +29,20 @@ class DownloadClient(GDCClient):
         with context as res:
             res.raise_for_status()
 
-            info = {
-                'size': res.headers.get('Content-Length', None),
-            }
+            length = res.headers.get('Content-Length', None)
+            length = None if length is None else int(length)
+
+            disposition = res.headers.get('Content-Disposition', '')
+            val, params = cgi.parse_header(disposition)
+            if val != 'attachment':
+                log.warning('received non-attachment response')
+
+            filename = params.get('filename', None)
+
+        info = {
+            'size': length,
+            'name': filename,
+        }
 
         return info
 
@@ -41,10 +53,14 @@ class DownloadClient(GDCClient):
 
         Returns a generator of bytes.
         """
-        logging.debug('downloading {uuid}'.format(uuid=uuid))
-
         RESOURCE = '/data/{uuid}'
         resource = RESOURCE.format(uuid=uuid)
+
+        info = self.info(uuid)
+
+        logging.info('Starting download: {uuid}'.format(uuid=uuid))
+        logging.info('Reported filename: {name}'.format(name=info['name']))
+        logging.info('Reported filesize: {size}'.format(size=info['size']))
 
         context = super(DownloadClient, self).get(resource, **kwargs)
 
@@ -59,7 +75,8 @@ class DownloadClient(GDCClient):
 
         Excess keyword arguments are passed to the request.
         """
-        logging.debug('downloading {uuid} to {ofs}'.format(uuid=uuid, ofs=ofs))
+        logging.info('Downloading to: {name}'.format(name=ofs.name))
+
         for chunk in self.download(uuid):
             ofs.write(chunk)
 
