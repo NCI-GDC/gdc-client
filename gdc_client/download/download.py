@@ -3,6 +3,7 @@ import logging
 
 import requests
 
+from gdc_client.utils import sizefmt
 from gdc_client.client import GDCClient
 
 
@@ -58,9 +59,12 @@ class DownloadClient(GDCClient):
 
         info = self.info(uuid)
 
+        name = info['name']
+        size = info['size']
+
         logging.info('Starting download: {uuid}'.format(uuid=uuid))
-        logging.info('Reported filename: {name}'.format(name=info['name']))
-        logging.info('Reported filesize: {size}'.format(size=info['size']))
+        logging.info('Reported filename: {name}'.format(name=name))
+        logging.info('Reported filesize: {size}'.format(size=sizefmt(size)))
 
         context = super(DownloadClient, self).get(resource, **kwargs)
 
