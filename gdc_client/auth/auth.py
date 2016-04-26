@@ -8,5 +8,6 @@ class GDCTokenAuth(requests.auth.AuthBase):
         self.token = token
 
     def __call__(self, r):
-        r.headers['X-Auth-Token'] = self.token
+        if self.token is not None:
+            r.headers['X-Auth-Token'] = self.token
         return r
