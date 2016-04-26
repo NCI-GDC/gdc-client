@@ -71,13 +71,23 @@ class DownloadClient(GDCClient):
 
         context = super(DownloadClient, self).get(resource, **kwargs)
 
+        written = 0
+
         with context as res:
             try: res.raise_for_status()
             except requests.HTTPError as err:
                 raise ClientError(err)
 
             for chunk in res.iter_content(1024):
+                written += len(chunk)
                 yield chunk
+
+        if size is not None and written != size:
+            err = 'received {received} of {reported} bytes'.format(
+                received=written,
+                written=size,
+            )
+            raise ClientError(err)
 
     def download_to_file(self, uuid, ofs, **kwargs):
         """ Download a file by uuid from the GDC to a file.
