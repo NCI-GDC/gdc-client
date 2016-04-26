@@ -71,7 +71,7 @@ class DownloadClient(GDCClient):
 
         context = super(DownloadClient, self).get(resource, **kwargs)
 
-        written = 0
+        received = 0
 
         with context as res:
             try: res.raise_for_status()
@@ -79,13 +79,13 @@ class DownloadClient(GDCClient):
                 raise ClientError(err)
 
             for chunk in res.iter_content(1024):
-                written += len(chunk)
+                received += len(chunk)
                 yield chunk
 
-        if size is not None and written != size:
+        if size is not None and received != size:
             err = 'received {received} of {reported} bytes'.format(
-                received=written,
-                written=size,
+                received=received,
+                reported=size,
             )
             raise ClientError(err)
 
