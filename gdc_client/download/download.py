@@ -26,9 +26,7 @@ class DownloadClient(GDCClient):
         RESOURCE = '/data/{uuid}'
         resource = RESOURCE.format(uuid=uuid)
 
-        context = super(DownloadClient, self).head(resource, **kwargs)
-
-        with context as res:
+        with self.head(resource, **kwargs) as res:
             try: res.raise_for_status()
             except requests.HTTPError as err:
                 raise ClientError(err)
@@ -69,11 +67,9 @@ class DownloadClient(GDCClient):
         logging.info('Reported filename: {name}'.format(name=name))
         logging.info('Reported filesize: {size}'.format(size=sizefmt(size)))
 
-        context = super(DownloadClient, self).get(resource, **kwargs)
-
         received = 0
 
-        with context as res:
+        with self.get(resource, **kwargs) as res:
             try: res.raise_for_status()
             except requests.HTTPError as err:
                 raise ClientError(err)
