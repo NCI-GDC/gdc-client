@@ -13,8 +13,6 @@ from gdc_client import client
 from gdc_client import version
 
 
-logger = log.get_logger()
-
 DESCRIPTION = '''
 The Genomic Data Commons Command Line Client
 '''
@@ -30,7 +28,7 @@ ERROR_MSG = ' '.join([
 
 
 def log_version_header():
-    logger.info('gdc-client - {version}'.format(version=version.__version__))
+    logging.info('GDC-Client/{version}'.format(version=version.__version__))
 
 
 if __name__ == '__main__':
@@ -89,14 +87,14 @@ if __name__ == '__main__':
     try:
         args.func(args)
     except ClientError as err:
-        logger.error(err)
+        logging.error(err)
         sys.exit(1)
     except KeyboardInterrupt:
-        logger.warning('Process cancelled by user.')
+        logging.warning('Process cancelled by user.')
         sys.exit(130)
     except Exception as err:
-        logger.error(ERROR_MSG)
-        logger.exception(err)
+        logging.error(ERROR_MSG)
+        logging.exception(err)
         sys.exit(1)
     else:
-        logger.info('Completed successfully.')
+        logging.info('Completed successfully.')
