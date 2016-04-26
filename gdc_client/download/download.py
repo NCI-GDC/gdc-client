@@ -5,6 +5,7 @@ import requests
 
 from gdc_client.utils import sizefmt
 from gdc_client.client import GDCClient
+from gdc_client.exceptions import ClientError
 
 
 class DownloadClient(GDCClient):
@@ -28,7 +29,9 @@ class DownloadClient(GDCClient):
         context = super(DownloadClient, self).head(resource, **kwargs)
 
         with context as res:
-            res.raise_for_status()
+            try: res.raise_for_status()
+            except requests.HTTPError as err:
+                raise ClientError(err)
 
             length = res.headers.get('Content-Length', None)
             length = None if length is None else int(length)
@@ -69,8 +72,10 @@ class DownloadClient(GDCClient):
         context = super(DownloadClient, self).get(resource, **kwargs)
 
         with context as res:
-            # TODO replace w/ ClientError
-            res.raise_for_status()
+            try: res.raise_for_status()
+            except requests.HTTPError as err:
+                raise ClientError(err)
+
             for chunk in res.iter_content(1024):
                 yield chunk
 
