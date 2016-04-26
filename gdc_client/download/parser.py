@@ -7,10 +7,8 @@ from parcel import const
 from parcel import manifest
 
 from .. import defaults
-from .. import log as logger
 
-from .client import GDCUDTDownloadClient
-from .client import GDCHTTPDownloadClient
+from .download import DownloadClient
 
 
 def validate_args(parser, args):
@@ -19,36 +17,6 @@ def validate_args(parser, args):
     if not args.file_ids and not args.manifest:
         msg = 'must specify either --manifest or file_id'
         parser.error(msg)
-
-def get_client(args, token, **_kwargs):
-    kwargs = {
-        'token': token,
-        'n_procs': args.n_processes,
-        'directory': args.dir,
-        'segment_md5sums': args.segment_md5sums,
-        # TODO remove debug argument - handled by logger
-        'debug': logging.DEBUG in args.log_levels,
-        'http_chunk_size': args.http_chunk_size,
-        'save_interval': args.save_interval,
-        'download_related_files': args.download_related_files,
-        'download_annotations': args.download_annotations,
-    }
-
-    if args.udt:
-        server = args.server or defaults.udt_url
-        return GDCUDTDownloadClient(
-            remote_uri=server,
-            proxy_host=args.proxy_host,
-            proxy_port=args.proxy_port,
-            external_proxy=args.external_proxy,
-            **kwargs
-        )
-    else:
-        server = args.server or defaults.tcp_url
-        return GDCHTTPDownloadClient(
-            uri=server,
-            **kwargs
-        )
 
 def download(parser, args):
     """ Downloads data from the GDC.
@@ -59,8 +27,15 @@ def download(parser, args):
     for i in args.manifest:
         ids.add(i['id'])
 
-    client = get_client(args, args.token)
-    client.download_files(ids)
+    client = DownloadClient(
+        host=args.host,
+        port=args.port,
+        token=args.token,
+    )
+
+    for i in ids:
+        with open(i, 'w') as ofs:
+            client.download_to_file(i, ofs)
 
 def config(parser):
     """ Configure a parser for download.
