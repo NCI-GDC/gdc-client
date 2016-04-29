@@ -125,7 +125,7 @@ class GDCUploadClient(object):
     def __init__(self, token, processes, server, part_size,
                  multipart=True, debug=False,
                  files={}, verify=True, manifest_name=None):
-        self.headers = {'X-Auth-Token': token}
+        self.headers = {'X-Auth-Token': token.strip()}
         self.manifest_name = manifest_name
         self.verify = verify
         try:
@@ -311,6 +311,7 @@ class GDCUploadClient(object):
                     print "Upload failed {}".format(r.text)
                     return
                 self.pbar.finish()
+                self.cleanup()
                 print "Upload finished for file {}".format(self.node_id)
             except Exception as e:
                 print "Upload failed {}".format(e.message)
@@ -452,6 +453,9 @@ class GDCUploadClient(object):
                 return
         raise Exception("Multipart upload complete failed: {}".format(r.text))
 
+    def cleanup(self):
+        if os.path.isfile(self.resume_path):
+            os.remove(self.resume_path)
 
 
 class FileEntity(object):
