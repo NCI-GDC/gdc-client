@@ -10,7 +10,8 @@ setup(
         'parcel',
         'lxml==3.5.0b1',
         'PyYAML==3.11',
-        'setuptools==19.2'
+        'setuptools==19.2',
+        'jsonschema==2.5.1',
     ],
     dependency_links=[
         'git+https://github.com/LabAdvComp/parcel.git@f4bf13929ed5ba43f7d26034cd02bb8d9329b50a#egg=parcel',
