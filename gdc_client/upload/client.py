@@ -2,7 +2,6 @@ from urlparse import urljoin
 import random
 from multiprocessing import Pool, Manager
 import requests
-from exceptions import KeyError
 import platform
 from lxml import etree
 import math
@@ -18,6 +17,8 @@ from collections import deque
 import time
 import copy
 from ..log import get_logger
+
+from . import manifest
 
 MAX_RETRIES = 10
 MAX_TIMEOUT = 60
@@ -51,18 +52,6 @@ log.propagate = False
 def upload_multipart_wrapper(args):
     return upload_multipart(*args)
 
-
-def read_manifest(manifest):
-    manifest = yaml.load(manifest)
-
-    def _read_manifest(manifest):
-        if type(manifest) == list:
-            return sum([_read_manifest(item) for item in manifest], [])
-        if "files" in manifest:
-            return manifest['files']
-        else:
-            return sum([_read_manifest(item) for item in manifest.values()], [])
-    return _read_manifest(manifest)
 
 class Stream(object):
 
@@ -252,12 +241,13 @@ class GDCUploadClient(object):
             self.pbar.update(self.pbar.currval+1)
 
     def upload(self):
-        '''Upload files to object storage'''
+        """ Upload files to the GDC.
+        """
         if os.path.isfile(self.resume_path):
             use_resume = raw_input("Found an {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(self.resume_path))
             if use_resume.lower() not in ['n','no']:
                 with open(self.resume_path,'r') as f:
-                    self.files = read_manifest(f)
+                    self.files = manifest.load(f)['files']
 
         self.get_files()
         for f in self.file_entities:
@@ -321,6 +311,7 @@ class GDCUploadClient(object):
                     print "Upload failed {}".format(r.text)
                     return
                 self.pbar.finish()
+                self.cleanup()
                 print "Upload finished for file {}".format(self.node_id)
             except Exception as e:
                 print "Upload failed {}".format(e.message)
@@ -462,6 +453,9 @@ class GDCUploadClient(object):
                 return
         raise Exception("Multipart upload complete failed: {}".format(r.text))
 
+    def cleanup(self):
+        if os.path.isfile(self.resume_path):
+            os.remove(self.resume_path)
 
 
 class FileEntity(object):

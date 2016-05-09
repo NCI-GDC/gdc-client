@@ -1,17 +1,29 @@
 import argparse
+import logging
 
 from .. import defaults
 
-from .client import read_manifest
+from . import manifest
+from . import exceptions
+
 from .client import GDCUploadClient
 
 
 def upload(args):
     """ Upload data to the GDC.
     """
-    files = read_manifest(args.manifest) if args.manifest else\
-        [{"id": args.identifier, "project_id": args.project_id,
-          "path": args.path, "upload_id": args.upload_id}]
+    files = manifest.load(args.manifest)['files'] if args.manifest else []
+
+    if not args.manifest:
+        files.append({
+            'id': args.identifier,
+            'project_id': args.project_id,
+            'path': args.path,
+            'upload_id': args.upload_id,
+        })
+
+    # TODO remove debug - handled by logger
+    debug = logging.DEBUG in args.log_levels
 
     manifest_name = args.manifest.name if args.manifest else args.identifier
 
@@ -19,7 +31,7 @@ def upload(args):
         token=args.token, processes=args.n_processes,
         multipart=args.disable_multipart,
         part_size=args.part_size, server=args.server,
-        files=files, verify=args.insecure, debug=args.verbose, manifest_name=manifest_name)
+        files=files, verify=args.insecure, debug=debug, manifest_name=manifest_name)
 
     if args.abort:
         client.abort()
@@ -42,9 +54,7 @@ def config(parser):
     parser.add_argument('--insecure', '-k',
                         action='store_false',
                         help='Allow connections to server without certs')
-    parser.add_argument('--verbose', '-v',
-                        action='store_true',
-                        help='Print stack traces')
+    # TODO remove this and replace w/ top level host and port
     parser.add_argument('--server', '-s',
                         default=defaults.tcp_url,
                         help='GDC API server address')
@@ -72,11 +82,3 @@ def config(parser):
     parser.add_argument('--manifest', '-m',
                         type=argparse.FileType('r'),
                         help='Manifest which describes files to be uploaded')
-
-    token_args = parser.add_mutually_exclusive_group(required=True)
-    token_args.add_argument('-t', '--token-file',
-                            type=lambda x: argparse.FileType('r')(x).read(),
-                            dest='token',
-                            help='authentication token file')
-    token_args.add_argument('-T', '--token', default='', type=str,
-                            dest='token', help='authentication token')

@@ -1,15 +1,23 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
+
+import argparse
 import logging
 import sys
 
-from gdc_client.version import __version__ as version
-from gdc_client.argparser import argparser, subparsers
 from gdc_client import download, upload, interactive
-from gdc_client.log import get_logger
 from gdc_client.exceptions import ClientError
 
-logging.root.setLevel(logging.INFO)
-log = get_logger('gdc-client')
+from gdc_client import log
+from gdc_client import auth
+from gdc_client import client
+from gdc_client import version
+
+
+logger = log.get_logger()
+
+DESCRIPTION = '''
+The Genomic Data Commons Command Line Client
+'''
 
 
 # TODO FIXME replace w/ updated email @ go live
@@ -22,40 +30,73 @@ ERROR_MSG = ' '.join([
 
 
 def log_version_header():
-    log.info('gdc-client - {version}'.format(version=version))
+    logger.info('gdc-client - {version}'.format(version=version.__version__))
 
 
 if __name__ == '__main__':
 
-    interactive_subparser = subparsers.add_parser('interactive',
-        help='run in interactive mode',
+    parser = argparse.ArgumentParser(
+        description=DESCRIPTION,
     )
-    interactive.parser.config(interactive_subparser)
+
+    parser.add_argument('--version',
+        action='version',
+        version=version.__version__,
+    )
+
+    # Generate template parser for use by all sub-commands. This will
+    # contain any shared, top-level arguments and flags that will be
+    # needed by most, if not all, subcommands.
+    template = argparse.ArgumentParser(
+        add_help=False,
+    )
+
+    log.parser.config(template)
+    auth.parser.config(template)
+    client.parser.config(template)
+
+    # Create and configure sub-command parsers.
+    subparsers = parser.add_subparsers(
+        title='commands',
+        dest='command',
+        help='for more information, specify -h after a command',
+    )
 
     download_subparser = subparsers.add_parser('download',
+        parents=[template],
         help='download data from the GDC',
     )
     download.parser.config(download_subparser)
 
     upload_subparser = subparsers.add_parser('upload',
+        parents=[template],
         help='upload data to the GDC',
     )
     upload.parser.config(upload_subparser)
 
-    args = argparser.parse_args()
+    interactive_subparser = subparsers.add_parser('interactive',
+        parents=[template],
+        help='run in interactive mode',
+    )
+    interactive.parser.config(interactive_subparser)
+
+    # Parse and run.
+    args = parser.parse_args()
+
+    log.setup_logging(args)
     log_version_header()
 
     try:
         args.func(args)
     except ClientError as err:
-        log.error(err)
+        logger.error(err)
         sys.exit(1)
     except KeyboardInterrupt:
-        log.warning('Process cancelled by user.')
+        logger.warning('Process cancelled by user.')
         sys.exit(130)
     except Exception as err:
-        log.error(ERROR_MSG)
-        log.exception(err)
+        logger.error(ERROR_MSG)
+        logger.exception(err)
         sys.exit(1)
     else:
-        log.info('Completed successfully.')
+        logger.info('Completed successfully.')
