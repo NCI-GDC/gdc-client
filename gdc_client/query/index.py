@@ -35,8 +35,11 @@ class GDCIndexClient(object):
         return [a['annotation_id'] for a in r['data'].get('annotations', [])]
 
     def get(self, path, ID, fields=[]):
-        url = urljoin(self.uri, '{}/{}'.format(path, ID))
+        url = urljoin(self.uri, 'v0/{}/{}'.format(path, ID))
         params = {'fields': ','.join(fields)} if fields else {}
         r = requests.get(url, verify=False, params=params)
-        r.raise_for_status()
+        if r.status_code != requests.codes.ok:
+            url = urljoin(self.uri, 'v0/legacy/{}/{}'.format(path, ID))
+            r = requests.get(url, verify=False, params=params)
+            r.raise_for_status()
         return r.json()
