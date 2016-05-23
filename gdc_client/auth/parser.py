@@ -8,8 +8,8 @@ from contextlib import closing
 
 
 PLATFORM_HELP = {
-    'Darwin': 'On OS X: chmod 500 {token_file}',
-    'Linux': 'On Linux: chmod 500 {token_file}',
+    'Darwin': 'On OS X: chmod 600 {token_file}',
+    'Linux': 'On Linux: chmod 600 {token_file}',
 }
 
 PLATFORM_HELP_DEFAULT = 'Contact your system administrator for assistance.'
