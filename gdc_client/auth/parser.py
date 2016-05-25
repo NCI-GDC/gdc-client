@@ -2,19 +2,24 @@ import os
 import stat
 import logging
 import argparse
+import platform
 
 from contextlib import closing
 
 
-PERMISSIONS_MSG = '''
-Your token file {token_file} is not properly secured. Please secure your
-token file by ensuring that it is not readable or writeable by anyone
-other than the owner of the file.
+PLATFORM_HELP = {
+    'Darwin': 'On OS X: chmod 600 {token_file}',
+    'Linux': 'On Linux: chmod 600 {token_file}',
+}
 
-On OS X: <os_x_instructions>
-On Linux: <linux_instructions>
-On Windows: <windows_instructions>
-'''
+PLATFORM_HELP_DEFAULT = 'Contact your system administrator for assistance.'
+
+PERMISSIONS_MSG = ' '.join([
+    'Your token file \'{token_file}\' is not properly secured.',
+    'Please secure your token file by ensuring that it is not readable',
+    'or writeable by anyone other than the owner of the file.',
+    PLATFORM_HELP.get(platform.system(), PLATFORM_HELP_DEFAULT),
+])
 
 def read_token_file(path):
     """ Safely open, read and close a token file.
