@@ -76,11 +76,9 @@ def config(parser):
                         default=None,
                         help='Directory to download files to. '
                         'Defaults to current dir')
-    '''
     parser.add_argument('-s', '--server', metavar='server', type=str,
                         default=None,
                         help='The UDT server address server[:port]')
-    '''
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
                         help='Calculate inbound segment md5sums and/or verify md5sums on restart')
@@ -104,10 +102,8 @@ def config(parser):
     #                       UDT options
     #############################################################
 
-    '''
     parser.add_argument('-u', '--udt', action='store_true',
                         help='Use the UDT protocol.  Better for WAN connections')
-    '''
     parser.add_argument('--proxy-host', default=defaults.proxy_host,
                         type=str, dest='proxy_host',
                         help='The port to bind the local proxy to')
