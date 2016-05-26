@@ -14,22 +14,10 @@ from .client import GDCUploadClient
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
-    if args.manifest:
+    if args.manifest or args.identifier:
         return
 
-    if all([
-        args.project_id,
-        args.identifier,
-        args.path,
-    ]): return
-
-    these = ', '.join([
-        '--project-id',
-        '--identifier',
-        '--path',
-    ])
-
-    msg = 'must specify either --manifest or {these}'.format(these=these)
+    msg = 'must specify either --manifest or --identifier'
     parser.error(msg)
 
 
