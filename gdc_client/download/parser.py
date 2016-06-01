@@ -26,6 +26,7 @@ def get_client(args, token, **_kwargs):
         'n_procs': args.n_processes,
         'directory': args.dir,
         'segment_md5sums': args.segment_md5sums,
+        'file_md5sum': args.file_md5sum,
         # TODO remove debug argument - handled by logger
         'debug': logging.DEBUG in args.log_levels,
         'http_chunk_size': args.http_chunk_size,
@@ -86,6 +87,9 @@ def config(parser):
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
                         help='Calculate inbound segment md5sums and/or verify md5sums on restart')
+    parser.add_argument('--no-file-md5sum', dest='file_md5sum',
+                        action='store_false',
+                        help="Don't verify file md5sum after download")
     parser.add_argument('-n', '--n-processes', type=int,
                         default=defaults.processes,
                         help='Number of client connections.')
