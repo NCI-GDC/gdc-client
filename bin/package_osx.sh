@@ -29,45 +29,5 @@ echo "Creating package for version ${VERSION}"
 # Create binary
 pyinstaller --clean --additional-hooks-dir=. --noconfirm --onefile -c gdc-client
 
-# Bundle app
-APPNAME="gdc-client"
-
-BUNDLE="${APPNAME}.app"
-SOURCE="gdc-client"
-ICON="../../resources/gdc_client.icns"
-CONTENTS="${BUNDLE}/Contents"
-MacOS="${CONTENTS}/MacOS"
-RESOURCES="${CONTENTS}/Resources"
-WRAPPER="${MacOS}/${APPNAME}"
-
-cd "dist"
-
-if [ -a "${BUNDLE}" ]; then
-    rm -rf "${BUNDLE}"
-fi
-
-echo "Bundling to ${BUNDLE}"
-
-# Create bundle
-mkdir -p "${MacOS}"
-
-# Move binary into bundle
-cp "${SOURCE}" "${MacOS}/.${APPNAME}"
-
-# Add icon
-mkdir "${RESOURCES}"
-cp "${ICON}" "${RESOURCES}/"
-echo '
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist SYSTEM
-"file://localhost/System/Library/DTDs/PropertyList.dtd">
-<plist version="0.9">
-<dict>
-   <key>CFBundleIconFile</key>
-   <string>gdc_client.icns</string>
-</dict>
-</plist>
-' > "${CONTENTS}/Info.plist"
-
 # Zip dist
-zip "gdc-client_${VERSION}_OSX_x64.zip" "${BUNDLE}" "${SOURCE}"
+zip "gdc-client_${VERSION}_OSX_x64.zip" gdc-client

@@ -13,12 +13,21 @@ from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
 
 
+UDT_SUPPORT = ' '.join([
+    'UDT is supported through the use of the Parcel UDT proxy.',
+    'To set up a Parcel UDT proxy for use with the GDC client,',
+    'please contact your system administrator or GDC support.',
+])
+
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
     if not args.file_ids and not args.manifest:
         msg = 'must specify either --manifest or file_id'
         parser.error(msg)
+
+    if args.udt:
+        parser.error(UDT_SUPPORT)
 
 def get_client(args, token, **_kwargs):
     kwargs = {
@@ -33,7 +42,10 @@ def get_client(args, token, **_kwargs):
         'download_related_files': args.download_related_files,
         'download_annotations': args.download_annotations,
     }
-
+    # The option to use UDT should be hidden until
+    # (1) the external library is packaged into the binary and
+    # (2) the GDC supports Parcel servers in production
+    '''
     if args.udt:
         server = args.server or defaults.udt_url
         return GDCUDTDownloadClient(
@@ -44,11 +56,12 @@ def get_client(args, token, **_kwargs):
             **kwargs
         )
     else:
-        server = args.server or defaults.tcp_url
-        return GDCHTTPDownloadClient(
-            uri=server,
-            **kwargs
-        )
+    '''
+    server = args.server or defaults.tcp_url
+    return GDCHTTPDownloadClient(
+        uri=server,
+        **kwargs
+    )
 
 def download(parser, args):
     """ Downloads data from the GDC.
@@ -78,7 +91,7 @@ def config(parser):
                         'Defaults to current dir')
     parser.add_argument('-s', '--server', metavar='server', type=str,
                         default=None,
-                        help='The UDT server address server[:port]')
+                        help='The TCP server address server[:port]')
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
                         help='Calculate inbound segment md5sums and/or verify md5sums on restart')
@@ -102,8 +115,12 @@ def config(parser):
     #                       UDT options
     #############################################################
 
+    # The option to use UDT should be hidden until
+    # (1) the external library is packaged into the binary and
+    # (2) the GDC supports Parcel servers in production
     parser.add_argument('-u', '--udt', action='store_true',
                         help='Use the UDT protocol.  Better for WAN connections')
+    '''
     parser.add_argument('--proxy-host', default=defaults.proxy_host,
                         type=str, dest='proxy_host',
                         help='The port to bind the local proxy to')
@@ -113,7 +130,7 @@ def config(parser):
     parser.add_argument('-e', '--external-proxy', action='store_true',
                         dest='external_proxy',
                         help='Do not create a local proxy but bind to an external one')
-
+    '''
     parser.add_argument('-m', '--manifest',
         type=manifest.argparse_type,
         default=[],
