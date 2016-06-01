@@ -13,12 +13,21 @@ from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
 
 
+UDT_SUPPORT = ' '.join([
+    'UDT is supported through the use of the Parcel UDT proxy.',
+    'To set up a Parcel UDT proxy for use with the GDC client,',
+    'please contact your system administrator or GDC support.',
+])
+
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
     if not args.file_ids and not args.manifest:
         msg = 'must specify either --manifest or file_id'
         parser.error(msg)
+
+    if args.udt:
+        parser.error(UDT_SUPPORT)
 
 def get_client(args, token, **_kwargs):
     kwargs = {
@@ -113,9 +122,9 @@ def config(parser):
     # The option to use UDT should be hidden until
     # (1) the external library is packaged into the binary and
     # (2) the GDC supports Parcel servers in production
-    '''
     parser.add_argument('-u', '--udt', action='store_true',
                         help='Use the UDT protocol.  Better for WAN connections')
+    '''
     parser.add_argument('--proxy-host', default=defaults.proxy_host,
                         type=str, dest='proxy_host',
                         help='The port to bind the local proxy to')
