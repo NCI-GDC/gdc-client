@@ -59,16 +59,8 @@ def read_token_file(path):
 def config(parser):
     """ Configure argparse parser for GDC auth token parsing.
     """
-    token_group = parser.add_mutually_exclusive_group()
 
-    token_group.add_argument('-T', '--token',
-        # TODO add type check for token format
-        default=os.environ.get('GDC_AUTH_TOKEN'),
-        help='GDC API auth token string',
-    )
-
-    token_group.add_argument('-t', '--token-file',
-        dest='token',
+    parser.add_argument('-t', '--token-file',
         type=read_token_file,
         help='GDC API auth token file',
     )
