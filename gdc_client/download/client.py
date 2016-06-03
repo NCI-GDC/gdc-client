@@ -26,10 +26,16 @@ class GDCDownloadMixin(object):
 
         """
 
-        for related_file in index.get_related_files(file_id):
-            stream = DownloadStream(
-                related_file, self.uri, directory, self.token)
-            self._download(self.n_procs, stream)
+        related_files = index.get_related_files(file_id)
+        if related_files:
+            log.info("Found {} related files for {}.".format(len(related_files), file_id))
+            for related_file in related_files:
+                log.debug("related file {}".format(related_file))
+                stream = DownloadStream(
+                    related_file, self.uri, directory, self.token)
+                self._download(self.n_procs, stream)
+        else:
+            log.debug("No related files")
 
     def download_annotations(self, index, file_id, directory):
         """Finds and downloads annotations related to the primary entity.

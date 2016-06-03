@@ -16,7 +16,7 @@ from .client import GDCHTTPDownloadClient
 UDT_SUPPORT = ' '.join([
     'UDT is supported through the use of the Parcel UDT proxy.',
     'To set up a Parcel UDT proxy for use with the GDC client,',
-    'please contact your system administrator or GDC support.',
+    'please contact the GDC Help Desk at support@nci-gdc.datacommons.io.',
 ])
 
 def validate_args(parser, args):
@@ -27,7 +27,8 @@ def validate_args(parser, args):
         parser.error(msg)
 
     if args.udt:
-        parser.error(UDT_SUPPORT)
+        # We were asked to remove 'error' in the message
+        parser.exit(status=1, message=UDT_SUPPORT)
 
 def get_client(args, token, **_kwargs):
     kwargs = {
@@ -35,6 +36,7 @@ def get_client(args, token, **_kwargs):
         'n_procs': args.n_processes,
         'directory': args.dir,
         'segment_md5sums': args.segment_md5sums,
+        'file_md5sum': args.file_md5sum,
         # TODO remove debug argument - handled by logger
         'debug': logging.DEBUG in args.log_levels,
         'http_chunk_size': args.http_chunk_size,
@@ -72,7 +74,7 @@ def download(parser, args):
     for i in args.manifest:
         ids.add(i['id'])
 
-    client = get_client(args, args.token)
+    client = get_client(args, args.token_file)
     client.download_files(ids)
 
 def config(parser):
@@ -95,6 +97,9 @@ def config(parser):
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
                         help='Calculate inbound segment md5sums and/or verify md5sums on restart')
+    parser.add_argument('--no-file-md5sum', dest='file_md5sum',
+                        action='store_false',
+                        help="Don't verify file md5sum after download")
     parser.add_argument('-n', '--n-processes', type=int,
                         default=defaults.processes,
                         help='Number of client connections.')
@@ -119,7 +124,7 @@ def config(parser):
     # (1) the external library is packaged into the binary and
     # (2) the GDC supports Parcel servers in production
     parser.add_argument('-u', '--udt', action='store_true',
-                        help='Use the UDT protocol.  Better for WAN connections')
+                        help='Use the UDT protocol.')
     '''
     parser.add_argument('--proxy-host', default=defaults.proxy_host,
                         type=str, dest='proxy_host',

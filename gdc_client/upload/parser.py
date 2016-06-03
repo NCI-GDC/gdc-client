@@ -42,7 +42,7 @@ def upload(parser, args):
     manifest_name = args.manifest.name if args.manifest else args.identifier
 
     client = GDCUploadClient(
-        token=args.token, processes=args.n_processes,
+        token=args.token_file, processes=args.n_processes,
         multipart=args.disable_multipart,
         part_size=args.part_size, server=args.server,
         files=files, verify=args.insecure, debug=debug, manifest_name=manifest_name)

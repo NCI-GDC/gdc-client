@@ -20,8 +20,10 @@ class GDCIndexClient(object):
 
         """
 
-        r = self.get('files', file_id, fields=['related_files.file_id'])
-        return [rf['file_id'] for rf in r['data'].get('related_files', [])]
+        r = self.get('files', file_id, fields=['metadata_files.file_id', 'index_files.file_id'])
+        related_files = [rf['file_id'] for rf in r['data'].get('metadata_files', [])]
+        related_files.extend([rf['file_id'] for rf in r['data'].get('index_files', [])])
+        return related_files
 
     def get_annotations(self, file_id):
         """Query the GDC api for annotations and download them to a file.

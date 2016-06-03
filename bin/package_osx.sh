@@ -30,4 +30,5 @@ echo "Creating package for version ${VERSION}"
 pyinstaller --clean --additional-hooks-dir=. --noconfirm --onefile -c gdc-client
 
 # Zip dist
+cd dist
 zip "gdc-client_${VERSION}_OSX_x64.zip" gdc-client
