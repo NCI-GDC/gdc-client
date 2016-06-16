@@ -277,7 +277,7 @@ class GDCREPL(Cmd):
 
     @options([
         make_option('-m', '--manifest', help="a manifest file to load ids from"),
-        make_option('-t', '--token', help="a token file to load"),
+        make_option('-t', '--token-file', help="a token file to load"),
     ])
     def do_download(self, arg, opts=None):
         """Download files that have been registered from (via 'manifest' or
@@ -298,7 +298,7 @@ class GDCREPL(Cmd):
 
         """
         manifest_path = opts.get('manifest')
-        token_path = opts.get('token')
+        token_path = opts.get('token-file')
 
         if arg:
             self._add_ids(arg.split())
