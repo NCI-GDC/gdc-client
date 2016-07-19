@@ -73,7 +73,7 @@ def upload_multipart(filename, offset, bytes, url, upload_id, part_number,
     tries = MAX_RETRIES
     while tries > 0:
         try:
-            log.debug("Start upload part {}".format(part_number))
+            log.debug("Start upload part {part_num}".format(part_num=part_number))
             f = open(filename, 'rb')
             if OS_WINDOWS:
                 chunk_file = mmap(
@@ -91,7 +91,7 @@ def upload_multipart(filename, offset, bytes, url, upload_id, part_number,
                 )
             res = requests.put(
                 url +
-                "?uploadId={}&partNumber={}".format(upload_id, part_number),
+                "?uploadId={uid}&partNumber={part_num}".format(uid=upload_id, part_num=part_number),
                 headers=headers, data=chunk_file, verify=verify)
             chunk_file.close()
             f.close()
@@ -100,14 +100,15 @@ def upload_multipart(filename, offset, bytes, url, upload_id, part_number,
                     pbar.fd = sys.stderr
                     ns.completed += 1
                     pbar.update(ns.completed)
-                log.debug("Finish upload part {}".format(part_number))
+                log.debug("Finish upload part {part_num}".format(part_num=part_number))
                 return True
             else:
                 time.sleep(get_sleep_time(tries))
 
                 tries -= 1
                 log.debug(
-                    "Retry upload part {}, {}".format(part_number, res.text))
+                    "Retry upload part {part_num}, {text}".format(
+                        part_num=part_number, text=res.text))
 
         except:
             time.sleep(get_sleep_time(tries))
@@ -144,7 +145,7 @@ class GDCUploadClient(object):
         self.processes = processes
         self.part_size = (max(part_size, MIN_PARTSIZE)/PAGESIZE+1)*PAGESIZE
         self._metadata = None
-        self.resume_path = "resume_{}".format(self.manifest_name)
+        self.resume_path = "resume_{name}".format(name=self.manifest_name)
 
     @property
     def metadata(self):
@@ -165,10 +166,10 @@ class GDCUploadClient(object):
         if r.status_code == 200:
             result = r.json()
             if 'errors' in result:
-                raise Exception("Fail to query file type: {}".format(', '.join(result['errors'])))
+                raise Exception("Fail to query file type: {err}".format(err=', '.join(result['errors'])))
             nodes = result['data']['node']
             if len(nodes) == 0:
-                raise Exception("File with id {} not found".format(id))
+                raise Exception("File with id {id} not found".format(id=id))
             file_type = nodes[0]['type']
         else:
             raise Exception(r.text)
@@ -188,9 +189,9 @@ class GDCUploadClient(object):
             for node in result['data'][file_type]:
                 self._metadata = node
                 return self._metadata
-            raise Exception("File with id {} not found".format(id))
+            raise Exception("File with id {id} not found".format(id=id))
         else:
-            raise Exception("Fail to get filename: {}".format(r.text))
+            raise Exception("Fail to get filename: {text}".format(text=r.text))
 
     def get_files(self, action='download'):
         '''Parse file information from manifest'''
@@ -206,11 +207,11 @@ class GDCUploadClient(object):
                 program = (tokens[0]).upper()
                 project = ('-'.join(tokens[1:])).upper()
                 if not program or not project:
-                    raise RuntimeError('Unable to parse project id {}'
-                                       .format(project_id))
+                    raise RuntimeError('Unable to parse project id {id}'
+                                       .format(id=project_id))
                 file_entity.url = urljoin(
-                    self.server, 'v0/submission/{}/{}/files/{}'
-                    .format(program, project, f['id']))
+                    self.server, 'v0/submission/{program}/{project}/files/{id}'
+                    .format(program=program, project=project, id=f['id']))
 
                 if action == 'delete':
                     self.file_entities.append(file_entity)
@@ -225,8 +226,8 @@ class GDCUploadClient(object):
                 self.file_entities.append(file_entity)
         except KeyError as e:
             print (
-                "Please provide {} from manifest or as an argument"
-                .format(e.message))
+                "Please provide {msg} from manifest or as an argument"
+                .format(msg=e.message))
             return False
         except Exception as e:
             print e
@@ -244,7 +245,8 @@ class GDCUploadClient(object):
         """ Upload files to the GDC.
         """
         if os.path.isfile(self.resume_path):
-            use_resume = raw_input("Found an {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(self.resume_path))
+            use_resume = raw_input("Found an {path}. Press Y to resume last upload and n to start a new upload [Y/n]: "
+                .format(path=self.resume_path))
             if use_resume.lower() not in ['n','no']:
                 with open(self.resume_path,'r') as f:
                     self.files = manifest.load(f)['files']
@@ -253,13 +255,13 @@ class GDCUploadClient(object):
         for f in self.file_entities:
             self.load_file(f)
             
-            print("Attempting to upload to {}".format(self.url))
+            print("Attempting to upload to {url}".format(url=self.url))
             if not self.multipart:
                 self._upload()
             else:
 
                 if self.file_size < self.part_size:
-                    print "File size smaller than part size {}, do simple upload".format(self.part_size)
+                    print "File size smaller than part size {size}, do simple upload".format(size=self.part_size)
                     self._upload()
                 else:
                     self.multipart_upload()
@@ -271,13 +273,13 @@ class GDCUploadClient(object):
         for f in self.file_entities:
             self.load_file(f)
             r = requests.delete(
-                self.url+"?uploadId={}".format(self.upload_id),
+                self.url+"?uploadId={id}".format(id=self.upload_id),
                 headers=self.headers, verify=self.verify)
             if r.status_code not in [204, 404]:
                 raise Exception(
-                    "Fail to abort multipart upload: \n{}".format(r.text))
+                    "Fail to abort multipart upload: \n{result}".format(result=r.text))
             else:
-                print "Abort multipart upload {}".format(self.upload_id)
+                print "Abort multipart upload {id}".format(id=self.upload_id)
 
     def delete(self):
         '''Delete file from object storage'''
@@ -287,9 +289,9 @@ class GDCUploadClient(object):
             r = requests.delete(
                 self.url, headers=self.headers, verify=self.verify)
             if r.status_code == 204:
-                print "Delete file {}".format(self.node_id)
+                print "Delete file {id}".format(id=self.node_id)
             else:
-                print "Fail to delete file {}: {}".format(self.node_id, r.text)
+                print "Fail to delete file {id}: {result}".format(id=self.node_id, result=r.text)
 
     def _upload(self):
         '''Simple S3 PUT'''
@@ -298,7 +300,7 @@ class GDCUploadClient(object):
             try:
                 r = requests.put(self.url+"/_dry_run", headers=self.headers, verify=self.verify)
                 if r.status_code != 200:
-                    print "Can't upload:{}".format(r.text)
+                    print "Can't upload:{result}".format(result=r.text)
                     return
                 self.pbar = ProgressBar(
                     widgets=[Percentage(), Bar()], maxval=self.file_size).start()
@@ -308,13 +310,13 @@ class GDCUploadClient(object):
                     self.url, data=stream, headers=self.headers,
                     verify=self.verify)
                 if r.status_code != 200:
-                    print "Upload failed {}".format(r.text)
+                    print "Upload failed {result}".format(result=r.text)
                     return
                 self.pbar.finish()
                 self.cleanup()
-                print "Upload finished for file {}".format(self.node_id)
+                print "Upload finished for file {id}".format(id=self.node_id)
             except Exception as e:
-                print "Upload failed {}".format(e.message)
+                print "Upload failed {err}".format(err=e.message)
 
     def multipart_upload(self):
         '''S3 Multipart upload'''
@@ -362,8 +364,8 @@ class GDCUploadClient(object):
             else:
                 return
         raise Exception(
-            "Can't find multipart upload with upload id {}"
-            .format(self.upload_id))
+            "Can't find multipart upload with upload id {id}"
+            .format(id=self.upload_id))
 
     def initiate(self):
         if not self.upload_id:
@@ -372,10 +374,10 @@ class GDCUploadClient(object):
             if r.status_code == 200:
                 xml = XMLResponse(r.text)
                 self.upload_id = xml.get_key('UploadId')
-                print "Start multipart upload: {}".format(self.upload_id)
+                print "Start multipart upload: {id}".format(id=self.upload_id)
                 return True
             else:
-                print "Fail to initiate multipart upload: {}".format(r.text)
+                print "Fail to initiate multipart upload: {result}".format(result=r.text)
                 return False
         return True
 
@@ -418,7 +420,7 @@ class GDCUploadClient(object):
             raise Exception("Process canceled by user")
 
     def list_parts(self):
-        r = requests.get(self.url+"?uploadId={}".format(self.upload_id),
+        r = requests.get(self.url+"?uploadId={id}".format(id=self.upload_id),
                          headers=self.headers, verify=self.verify)
         if r.status_code == 200:
             self.multiparts = Multiparts(r.text)
@@ -431,12 +433,14 @@ class GDCUploadClient(object):
         self.check_multipart()
         if self.ns.completed != self.total_parts:
             raise Exception(
-                """Multipart upload failed for file {}:
-                completed parts:{}, total parts: {}, please try to resume"""
-                .format(self.node_id, self.ns.completed, self.total_parts))
+                """Multipart upload failed for file {id}:
+                completed parts:{compl}, total parts: {parts}, please try to resume"""
+                .format(id=self.node_id, 
+                    compl=self.ns.completed, 
+                    parts=self.total_parts))
 
         self.pbar.finish()
-        url = self.url+"?uploadId={}".format(self.upload_id)
+        url = self.url+"?uploadId={id}".format(id=self.upload_id)
         tries = MAX_RETRIES
         tries = 1
         while tries > 0:
@@ -449,9 +453,9 @@ class GDCUploadClient(object):
                 time.sleep(get_sleep_time(tries))
 
             else:
-                print "Multipart upload finished for file {}".format(self.node_id)
+                print "Multipart upload finished for file {id}".format(id=self.node_id)
                 return
-        raise Exception("Multipart upload complete failed: {}".format(r.text))
+        raise Exception("Multipart upload complete failed: {result}".format(result=r.text))
 
     def cleanup(self):
         if os.path.isfile(self.resume_path):

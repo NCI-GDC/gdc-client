@@ -28,9 +28,10 @@ class GDCDownloadMixin(object):
 
         related_files = index.get_related_files(file_id)
         if related_files:
-            log.info("Found {} related files for {}.".format(len(related_files), file_id))
+            log.info("Found {num_rel} related files for {file_id}.".format(
+                num_rel=len(related_files), file_id=file_id))
             for related_file in related_files:
-                log.debug("related file {}".format(related_file))
+                log.debug("related file {rel_file}".format(rel_file=related_file))
                 stream = DownloadStream(
                     related_file, self.uri, directory, self.token)
                 self._download(self.n_procs, stream)
@@ -49,10 +50,10 @@ class GDCDownloadMixin(object):
         annotation_list = ','.join(annotations)
 
         if annotations:
-            log.info('Found {} annotations for {}.'.format(
-                len(annotations), file_id))
+            log.info('Found {num_annot} annotations for {file_id}.'.format(
+                num_annot=len(annotations), file_id=file_id))
             r = requests.get(
-                urlparse.urljoin(self.uri, '/data/{}'.format(annotation_list)),
+                urlparse.urljoin(self.uri, '/data/{annot_list}'.format(annot_list=annotation_list)),
                 params={'compress': True},
                 verify=False)
             r.raise_for_status()
@@ -63,7 +64,7 @@ class GDCDownloadMixin(object):
                 path = os.path.join(directory, self.annotation_name)
                 with open(path, 'w') as f:
                     f.write(ann)
-            log.info('Wrote annotations to {}.'.format(path))
+            log.info('Wrote annotations to {path}.'.format(path=path))
 
     def parallel_download(self, stream, download_related_files=None,
                           download_annotations=None, *args, **kwargs):
@@ -81,8 +82,8 @@ class GDCDownloadMixin(object):
             try:
                 self.download_related_files(index, stream.ID, stream.directory)
             except Exception as e:
-                log.warn('Unable to download related files for {}: {}'.format(
-                    stream.ID, e))
+                log.warn('Unable to download related files for {str_id}: {err}'.format(
+                    str_id=stream.ID, err=e))
                 if self.debug:
                     raise
 
@@ -92,8 +93,8 @@ class GDCDownloadMixin(object):
             try:
                 self.download_annotations(index, stream.ID, stream.directory)
             except Exception as e:
-                log.warn('Unable to download annotations for {}: {}'.format(
-                    stream.ID, e))
+                log.warn('Unable to download annotations for {str_id}: {err}'.format(
+                    str_id=stream.ID, err=e))
                 if self.debug:
                     raise
 
