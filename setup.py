@@ -7,7 +7,7 @@ setup(
     packages=find_packages(),
     package_data={},
     install_requires=[
-        'parcel',
+        'parcel == d3b619584606ed5d2f127f9ba12df7b764ebe975',
         'lxml==3.5.0b1',
         'PyYAML==3.11',
         'setuptools==19.2',
