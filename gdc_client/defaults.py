@@ -17,7 +17,7 @@ udt_url = 'https://gdc-parcel.nci.nih.gov/'
 ####################
 
 # The number of processes used to download data files
-processes = 1
+processes = 8
 
 ####################
 # UDT Proxy settings
