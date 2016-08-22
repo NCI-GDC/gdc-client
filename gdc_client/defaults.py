@@ -2,6 +2,8 @@
 # Default settings for gdc-client
 ###############################################################################
 
+from multiprocessing import cpu_count
+
 ####################
 # API defaults
 ####################
@@ -17,7 +19,7 @@ udt_url = 'https://gdc-parcel.nci.nih.gov/'
 ####################
 
 # The number of processes used to download data files
-processes = 8
+processes = min(cpu_count(), 8)
 
 ####################
 # UDT Proxy settings
