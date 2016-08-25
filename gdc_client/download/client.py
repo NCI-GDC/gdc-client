@@ -4,7 +4,7 @@ import requests
 import tarfile
 import urlparse
 
-from parcel import HTTPClient, UDTClient
+from parcel import HTTPClient, UDTClient, utils
 from parcel.download_stream import DownloadStream
 from ..log import get_logger
 from ..query.index import GDCIndexClient
@@ -34,6 +34,8 @@ class GDCDownloadMixin(object):
                 stream = DownloadStream(
                     related_file, self.uri, directory, self.token)
                 self._download(self.n_procs, stream)
+                if os.path.isfile(stream.temp_path):
+                    utils.remove_partial_extension(stream.temp_path)
         else:
             log.debug("No related files")
 
