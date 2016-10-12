@@ -9,15 +9,20 @@ from . import manifest
 from . import exceptions
 
 from .client import GDCUploadClient
+from .. import log
 
+
+logger = log.get_logger('upload-client')
 
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
-    if args.manifest or args.identifier:
+    if args.manifest or args.file_ids:
+        if args.identifier:
+            logger.warn('The use of the -i/--identifier flag has been deprecated.')
         return
 
-    msg = 'must specify either --manifest or --identifier'
+    msg = 'must specify either --manifest or file_id'
     parser.error(msg)
 
 
@@ -29,17 +34,18 @@ def upload(parser, args):
     files = read_manifest(args.manifest) if args.manifest else []
 
     if not args.manifest:
-        files.append({
-            'id': args.identifier,
-            'project_id': args.project_id,
-            'path': args.path,
-            'upload_id': args.upload_id,
-        })
+        for uuid in args.file_ids:
+            files.append({
+                'id': uuid,
+                'project_id': args.project_id,
+                'path': args.path,
+                'upload_id': args.upload_id,
+            })
 
     # TODO remove debug - handled by logger
     debug = logging.DEBUG in args.log_levels
 
-    manifest_name = args.manifest.name if args.manifest else args.identifier
+    manifest_name = args.manifest.name if args.manifest else args.file_ids[0]
 
     client = GDCUploadClient(
         token=args.token_file, processes=args.n_processes,
@@ -62,8 +68,6 @@ def config(parser):
 
     parser.add_argument('--project-id', '-p', type=str,
                         help='The project ID that owns the file')
-    parser.add_argument('--identifier', '-i', type=str,
-                        help='The file id')
     parser.add_argument('--path', '-f', metavar='path',
                         help='directory path to find file')
     parser.add_argument('--upload-id', '-u',
@@ -95,7 +99,12 @@ def config(parser):
     parser.add_argument('--delete',
                         action="store_true",
                         help='Delete an uploaded file')
-
     parser.add_argument('--manifest', '-m',
                         type=argparse.FileType('r'),
                         help='Manifest which describes files to be uploaded')
+    parser.add_argument('--identifier', '-i', action='store_true',
+                        help='DEPRECATED')
+    parser.add_argument('file_ids',
+                        metavar='file_id', type=str,
+                        nargs='*',
+                        help='The GDC UUID of the file(s) to upload')
