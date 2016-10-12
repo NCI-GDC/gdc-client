@@ -17,13 +17,15 @@ logger = log.get_logger('upload-client')
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
+    if not args.token_file:
+        parser.error('A token is required in order to upload.')
+
     if args.manifest or args.file_ids:
         if args.identifier:
             logger.warn('The use of the -i/--identifier flag has been deprecated.')
         return
 
-    msg = 'must specify either --manifest or file_id'
-    parser.error(msg)
+    parser.error('must specify either --manifest or file_id(s)')
 
 
 def upload(parser, args):
