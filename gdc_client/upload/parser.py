@@ -26,7 +26,7 @@ def upload(parser, args):
     """
     validate_args(parser, args)
 
-    files = read_manifest(args.manifest) if args.manifest else []
+    files = manifest.load(args.manifest)['files'] if args.manifest else []
 
     if not args.manifest:
         files.append({
