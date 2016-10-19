@@ -17,7 +17,7 @@ class GDCREPL(Cmd):
 
     HEADER = """
     Type 'help' for a list of commands or 'help <topic>' for detailed usage.
-    """.format(version=__version__)
+    """
 
     BASIC_HELP = """Basic help:
     This tool is for downloading data from the GDC.  A few simple usage examples:
