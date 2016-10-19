@@ -20,11 +20,13 @@ def validate_args(parser, args):
     if args.identifier:
         logger.warn('The use of the -i/--identifier flag has been deprecated.')
 
+    if not args.token_file:
+        parser.error('A token is required in order to upload.')
+
     if args.manifest or args.file_ids:
         return
 
-    msg = 'must specify either --manifest or file_id'
-    parser.error(msg)
+    parser.error('must specify either --manifest or file_id(s)')
 
 
 def upload(parser, args):
