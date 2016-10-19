@@ -13,7 +13,7 @@ def setup_logging(args):
 def config(parser):
     """ Configure an argparse parser for logging.
     """
-    parser.set_defaults(log_levels=[logging.ERROR])
+    parser.set_defaults(log_levels=[logging.WARNING])
 
     parser.add_argument('--debug',
         action='append_const',
