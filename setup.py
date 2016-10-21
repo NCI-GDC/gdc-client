@@ -14,7 +14,7 @@ setup(
         'jsonschema==2.5.1',
     ],
     dependency_links=[
-        'git+https://github.com/LabAdvComp/parcel.git@d3b619584606ed5d2f127f9ba12df7b764ebe975#egg=parcel',
+        'git+https://github.com/LabAdvComp/parcel.git@596d779c814198a9e72a8b7a28dc0511df814467#egg=parcel',
     ],
     scripts=[
         'bin/gdc-client',
