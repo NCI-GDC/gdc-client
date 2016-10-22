@@ -11,6 +11,7 @@ from . import exceptions
 from .client import GDCUploadClient
 from .. import log
 
+
 logger = log.get_logger('upload-client')
 
 def validate_args(parser, args):
@@ -39,7 +40,7 @@ def upload(parser, args):
     if not args.manifest:
         for uuid in args.file_ids:
             files.append({
-                'id': args.identifier,
+                'id': args.uuid,
                 'project_id': args.project_id,
                 'path': args.path,
                 'upload_id': args.upload_id,
