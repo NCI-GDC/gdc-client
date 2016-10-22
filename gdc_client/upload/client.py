@@ -506,5 +506,5 @@ class XMLResponse(object):
         elements = self.root.findall("{%s}%s" % (self.namespace, key))
         keys = []
         for element in elements:
-            keys.append({(ele.tag.split('}')[-1]: ele.text) for ele in element})
+            keys.append({ele.tag.split('}')[-1]: ele.text for ele in element})
         return keys
