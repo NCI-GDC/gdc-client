@@ -507,5 +507,5 @@ class XMLResponse(object):
         keys = []
         for element in elements:
             for ele in element:
-                keys.append({ele.tag.split('}')[-1], ele.text})
+                keys.append({ele.tag.split('}')[-1]: ele.text})
         return keys
