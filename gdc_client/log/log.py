@@ -5,6 +5,7 @@ from parcel import colored
 
 loggers = {}
 
+
 class LogFormatter(logging.Formatter):
 
         err_format  = colored('ERROR: ', 'red') + '%(msg)s'

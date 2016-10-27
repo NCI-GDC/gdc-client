@@ -2,6 +2,8 @@
 # Default settings for gdc-client
 ###############################################################################
 
+from multiprocessing import cpu_count
+
 ####################
 # API defaults
 ####################

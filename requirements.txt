@@ -1,2 +1,2 @@
--e git+https://github.com/LabAdvComp/parcel.git@c6b6fbf0e9833fc617509222426513f623bbb4e1#egg=parcel
+-e git+https://github.com/LabAdvComp/parcel.git@e00b22b92eba4246d82e52463d494ef63d06b95e#egg=parcel
 .
