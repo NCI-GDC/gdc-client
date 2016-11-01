@@ -40,7 +40,7 @@ def upload(parser, args):
     if not args.manifest:
         for uuid in args.file_ids:
             files.append({
-                'id': args.uuid,
+                'id': uuid,
                 'project_id': args.project_id,
                 'path': args.path,
                 'upload_id': args.upload_id,
