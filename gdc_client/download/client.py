@@ -28,12 +28,15 @@ class GDCDownloadMixin(object):
 
         related_files = index.get_related_files(file_id)
         if related_files:
+
             log.info("Found {} related files for {}.".format(len(related_files), file_id))
             for related_file in related_files:
+
                 log.debug("related file {}".format(related_file))
                 stream = DownloadStream(
                     related_file, self.uri, directory, self.token)
                 self._download(self.n_procs, stream)
+
                 if os.path.isfile(stream.temp_path):
                     utils.remove_partial_extension(stream.temp_path)
         else:
@@ -70,10 +73,8 @@ class GDCDownloadMixin(object):
     def parallel_download(self, stream, download_related_files=None,
                           download_annotations=None, *args, **kwargs):
 
-        # Download primary file
-        super(GDCDownloadMixin, self).parallel_download(
-            stream, *args, **kwargs)
-
+        # the parcel parallel_download method does not accept *args, **kwargs
+        super(GDCDownloadMixin, self).parallel_download(stream)
         # Create reference to GDC Query API
         index = GDCIndexClient(self.base_uri)
 
@@ -104,6 +105,7 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
 
     def __init__(self, uri, download_related_files=True,
                  download_annotations=True, *args, **kwargs):
+        # accepts args, but never called with args
         self.base_uri = self.fix_uri(uri)
         self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
         self.related_files = download_related_files
@@ -121,6 +123,5 @@ class GDCUDTDownloadClient(GDCDownloadMixin, UDTClient):
         self.data_uri = urlparse.urljoin(remote_uri, 'data/')
         self.related_files = download_related_files
         self.annotations = download_annotations
-
         super(GDCDownloadMixin, self).__init__(
             remote_uri=self.data_uri, *args, **kwargs)

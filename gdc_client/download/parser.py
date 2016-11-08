@@ -1,5 +1,6 @@
 import argparse
 import logging
+import time
 
 from functools import partial
 
@@ -12,6 +13,8 @@ from .. import log as logger
 from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
 
+
+log = logging.getLogger('gdc-client')
 
 UDT_SUPPORT = ' '.join([
     'UDT is supported through the use of the Parcel UDT proxy.',
@@ -31,6 +34,7 @@ def validate_args(parser, args):
         parser.exit(status=1, message=UDT_SUPPORT)
 
 def get_client(args, token, **_kwargs):
+    # args get converted into kwargs
     kwargs = {
         'token': token,
         'n_procs': args.n_processes,
@@ -43,6 +47,8 @@ def get_client(args, token, **_kwargs):
         'save_interval': args.save_interval,
         'download_related_files': args.download_related_files,
         'download_annotations': args.download_annotations,
+        'no_auto_retry': args.no_auto_retry,
+        'retry_amount': args.retry_amount,
     }
     # The option to use UDT should be hidden until
     # (1) the external library is packaged into the binary and
@@ -60,6 +66,7 @@ def get_client(args, token, **_kwargs):
     else:
     '''
     server = args.server or defaults.tcp_url
+    # doesn't get called with args
     return GDCHTTPDownloadClient(
         uri=server,
         **kwargs
@@ -75,7 +82,49 @@ def download(parser, args):
         ids.add(i['id'])
 
     client = get_client(args, args.token_file)
-    client.download_files(ids)
+    downloaded_files, errors = client.download_files(ids)
+
+    if args.retry_amount > 0:
+        files_not_downloaded = []
+
+        for uuid in errors.keys():
+            not_downloaded_uuid = retry_download(client, uuid,
+                    args.retry_amount, args.no_auto_retry, args.wait_time)
+            if not_downloaded_uuid:
+                files_not_downloaded.append(not_downloaded_uuid)
+    if files_not_downloaded:
+        log.warning('Files not able to be downloaded: {}'.format(files_not_downloaded))
+
+
+def retry_download(client, uuid, retry_amount, no_auto_retry, wait_time):
+
+    log.info('Retrying download {}'.format(uuid))
+
+    e = True
+    while 0 < retry_amount and e:
+        if no_auto_retry:
+            should_retry = raw_input('Retry download for {}? (y/N): '.format(uuid))
+        else:
+            should_retry = 'y'
+
+        if should_retry.lower() == 'y':
+            log.info('{} retries remaning...'.format(retry_amount))
+            log.info('Retrying download... {} in {} seconds'.format(uuid, wait_time))
+            retry_amount -= 1
+            time.sleep(wait_time)
+            # client.download_files accepts a list of uuids to download
+            # but we want to only try one at a time
+            _, e = client.download_files([uuid])
+            if not e:
+                log.info('Successfully downloaded {}!'.format(uuid))
+                return
+        else:
+            e = False
+            retry_amount = 0
+
+    log.warning('Unable to download file {}'.format(uuid))
+    return uuid
+
 
 def config(parser):
     """ Configure a parser for download.
@@ -115,6 +164,15 @@ def config(parser):
     parser.add_argument('--no-annotations', action='store_false',
                         dest='download_annotations',
                         help='Do not download annotations.')
+    parser.add_argument('--no-auto-retry', action='store_true',
+                        dest='no_auto_retry',
+                        help='Ask before retrying to download a file')
+    parser.add_argument('--retry-amount', default=1,
+                        dest='retry_amount',
+                        help='Number of times to retry a download')
+    parser.add_argument('--wait-time', default=5.0,
+                        dest='wait_time', type=float,
+                        help='Amount of seconds to wait before retrying')
 
     #############################################################
     #                       UDT options
