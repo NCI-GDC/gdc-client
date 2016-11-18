@@ -1,20 +1,18 @@
 import argparse
-import logging
+import logging # needed for logging.DEBUG flag
 import time
 
 from functools import partial
-
 from parcel import const
 from parcel import manifest
 
 from .. import defaults
 from .. import log as logger
-
 from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
 
 
-log = logging.getLogger('gdc-client')
+log = None
 
 UDT_SUPPORT = ' '.join([
     'UDT is supported through the use of the Parcel UDT proxy.',
@@ -204,3 +202,8 @@ def config(parser):
         nargs='*',
         help='The GDC UUID of the file(s) to download',
     )
+
+
+def setup_logger(name='gdc-client'):
+    global log
+    log = logger.get_logger(name)
