@@ -1,4 +1,5 @@
 import argparse
+# needed for logging.DEBUG flag
 import logging
 
 from functools import partial
@@ -9,16 +10,16 @@ from . import manifest
 from . import exceptions
 
 from .client import GDCUploadClient
-from .. import log
+from .. import log as logger
 
 
-logger = log.get_logger('upload-client')
+log = None
 
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
     if args.identifier:
-        logger.warn('The use of the -i/--identifier flag has been deprecated.')
+        log.warn('The use of the -i/--identifier flag has been deprecated.')
 
     if not args.token_file:
         parser.error('A token is required in order to upload.')
@@ -111,3 +112,9 @@ def config(parser):
                         metavar='file_id', type=str,
                         nargs='*',
                         help='The GDC UUID of the file(s) to upload')
+
+
+def setup_logger(name='upload-client'):
+    global log
+    log = logger.get_logger(name)
+    log.propagate = False

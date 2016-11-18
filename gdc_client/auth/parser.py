@@ -1,6 +1,6 @@
 import os
 import stat
-import logging
+from .. import log as logger
 import argparse
 import platform
 
@@ -24,7 +24,7 @@ PERMISSIONS_MSG = ' '.join([
 def read_token_file(path):
     """ Safely open, read and close a token file.
     """
-    log = logging.getLogger('gdc-client')
+    log = logger.get_logger('gdc-client')
 
     # TODO review best way to check file security on various platforms
 

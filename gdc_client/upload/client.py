@@ -16,9 +16,11 @@ from progressbar import ProgressBar, Percentage, Bar
 from collections import deque
 import time
 import copy
-from ..log import get_logger
 
 from . import manifest
+from .. import log as logger
+
+log = logger.get_logger('upload')
 
 MAX_RETRIES = 10
 MAX_TIMEOUT = 60
@@ -45,8 +47,6 @@ else:
     from mmap import ACCESS_READ
 
 
-log = get_logger('upload-client')
-log.propagate = False
 
 
 def upload_multipart_wrapper(args):
