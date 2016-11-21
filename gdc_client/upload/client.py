@@ -120,6 +120,19 @@ def get_sleep_time(tries):
     return timeout * (0.5 + random.random()/2)
 
 
+def create_resume_path(file_path):
+    ''' in case the user enters a path, you want to create
+    a resume_filename.yml inside the same directory as the manifest.yml
+    '''
+
+    if '/' in file_path:
+        # 2.6 compatible
+        return "{0}/resume_{1}".format(
+                os.path.dirname(file_path), os.path.basename(file_path))
+
+    return 'resume_' + file_path
+
+
 class GDCUploadClient(object):
 
     def __init__(self, token, processes, server, part_size,
@@ -144,7 +157,7 @@ class GDCUploadClient(object):
         self.processes = processes
         self.part_size = (max(part_size, MIN_PARTSIZE)/PAGESIZE+1)*PAGESIZE
         self._metadata = None
-        self.resume_path = "resume_{}".format(self.manifest_name)
+        self.resume_path = create_resume_path(self.manifest_name)
 
     @property
     def metadata(self):
