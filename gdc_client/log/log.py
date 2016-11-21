@@ -3,8 +3,9 @@ import sys
 
 from parcel import colored
 
-loggers = {}
 
+loggers = {}
+logger_filename = ''
 
 class LogFormatter(logging.Formatter):
 
@@ -43,21 +44,37 @@ class LogFormatter(logging.Formatter):
 
         return result
 
-# Logging
+
 def get_logger(name='gdc-client'):
     """Create or return an existing logger with given name
     """
 
+    # logger already exists
     if name in loggers:
+        if len(loggers[name].handlers) < 2 and logger_filename:
+            loggers[name].addHandler(logging.FileHandler(logger_filename))
+
         return loggers[name]
-    log = logging.getLogger(name)
-    log.propagate = False
+
+    # need a new logger
+    logger = logging.getLogger(name)
+    logger.propagate = False
+
     if sys.stderr.isatty():
         formatter = LogFormatter()
     else:
         formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(formatter)
-    log.addHandler(handler)
-    loggers[name] = log
-    return log
+
+    stream_handler = logging.StreamHandler(sys.stderr)
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(stream_handler)
+
+    if logger_filename and logger_filename != sys.stderr:
+        file_handler = logging.FileHandler(logger_filename)
+        logger.addHandler(file_handler)
+
+    # store it for when we request a new logger
+    loggers[name] = logger
+    return logger
+

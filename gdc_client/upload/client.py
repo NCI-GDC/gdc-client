@@ -16,9 +16,11 @@ from progressbar import ProgressBar, Percentage, Bar
 from collections import deque
 import time
 import copy
-from ..log import get_logger
 
 from . import manifest
+from .. import log as logger
+
+log = logger.get_logger('upload')
 
 MAX_RETRIES = 10
 MAX_TIMEOUT = 60
@@ -45,8 +47,6 @@ else:
     from mmap import ACCESS_READ
 
 
-log = get_logger('upload-client')
-log.propagate = False
 
 
 def upload_multipart_wrapper(args):
@@ -120,6 +120,19 @@ def get_sleep_time(tries):
     return timeout * (0.5 + random.random()/2)
 
 
+def create_resume_path(file_path):
+    ''' in case the user enters a path, you want to create
+    a resume_filename.yml inside the same directory as the manifest.yml
+    '''
+
+    if '/' in file_path:
+        # 2.6 compatible
+        return "{0}/resume_{1}".format(
+                os.path.dirname(file_path), os.path.basename(file_path))
+
+    return 'resume_' + file_path
+
+
 class GDCUploadClient(object):
 
     def __init__(self, token, processes, server, part_size,
@@ -144,7 +157,7 @@ class GDCUploadClient(object):
         self.processes = processes
         self.part_size = (max(part_size, MIN_PARTSIZE)/PAGESIZE+1)*PAGESIZE
         self._metadata = None
-        self.resume_path = "resume_{}".format(self.manifest_name)
+        self.resume_path = create_resume_path(self.manifest_name)
 
     @property
     def metadata(self):
