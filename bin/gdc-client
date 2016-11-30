@@ -82,15 +82,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     logger.setup_logging(args)
-    logger.logger_filename = args.log_file.name
 
-
-    log = logger.get_logger()
-
+    log = logging.getLogger('gdc-client')
     log_version_header(log)
-
-    download.parser.setup_logger('gdc-client')
-    upload.parser.setup_logger('upload')
 
     try:
         # go

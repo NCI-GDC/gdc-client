@@ -5,6 +5,7 @@ import sys
 
 from .. import version
 
+from .log import LogFormatter
 
 
 def setup_logging(args):
@@ -12,12 +13,21 @@ def setup_logging(args):
     """
     logging.root.setLevel(min(args.log_levels))
 
-    # this will apply to any logging done independantly of get_logger()
     if args.log_file and args.log_file != sys.stderr:
         logger_filename = args.log_file.name
 
-        logging.basicConfig(filename=logger_filename)
-        log.logger_filename = logger_filename
+    if sys.stderr.isatty():
+        formatter = LogFormatter()
+    else:
+        formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
+
+
+    logging.basicConfig(
+            level=min(args.log_levels),
+            filename=logger_filename,
+            formatter=formatter)
+
+    log.logger_filename = logger_filename
 
 def config(parser):
     """ Configure an argparse parser for logging.

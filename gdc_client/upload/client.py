@@ -18,9 +18,9 @@ import time
 import copy
 
 from . import manifest
-from .. import log as logger
+import logging
 
-log = logger.get_logger('upload')
+log = logging.getLogger('upload')
 
 MAX_RETRIES = 10
 MAX_TIMEOUT = 60

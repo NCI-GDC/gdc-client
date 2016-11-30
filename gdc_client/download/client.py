@@ -8,9 +8,9 @@ from parcel import HTTPClient, UDTClient, utils
 from parcel.download_stream import DownloadStream
 from ..query.index import GDCIndexClient
 
-from .. import log as logger
+import logging
 
-log = logger.get_logger('gdc-client')
+log = logging.getLogger('gdc-download')
 
 class GDCDownloadMixin(object):
 

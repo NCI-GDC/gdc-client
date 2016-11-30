@@ -7,12 +7,12 @@ from parcel import const
 from parcel import manifest
 
 from .. import defaults
-from .. import log as logger
+import logging
 from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
 
 
-log = None
+log = logging.getLogger('gdc-download')
 
 UDT_SUPPORT = ' '.join([
     'UDT is supported through the use of the Parcel UDT proxy.',
@@ -204,6 +204,3 @@ def config(parser):
     )
 
 
-def setup_logger(name='gdc-client'):
-    global log
-    log = logger.get_logger(name)
