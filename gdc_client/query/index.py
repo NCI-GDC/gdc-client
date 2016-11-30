@@ -1,10 +1,6 @@
 import requests
 from urlparse import urljoin
 
-from ..log import get_logger
-
-# Logging
-log = get_logger('query')
 
 
 class GDCIndexClient(object):
@@ -45,3 +41,4 @@ class GDCIndexClient(object):
             r = requests.get(url, verify=False, params=params)
             r.raise_for_status()
         return r.json()
+

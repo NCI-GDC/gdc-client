@@ -7,13 +7,11 @@ import sys
 from gdc_client import download, upload, interactive
 from gdc_client.exceptions import ClientError
 
-from gdc_client import log
+from gdc_client import log as logger
 from gdc_client import auth
 from gdc_client import client
 from gdc_client import version
 
-
-logger = log.get_logger()
 
 DESCRIPTION = '''
 The Genomic Data Commons Command Line Client
@@ -29,8 +27,8 @@ ERROR_MSG = ' '.join([
 ]).format(support_email=SUPPORT_EMAIL)
 
 
-def log_version_header():
-    logger.info('gdc-client - {version}'.format(version=version.__version__))
+def log_version_header(log):
+    log.info('gdc-client - {version}'.format(version=version.__version__))
 
 
 if __name__ == '__main__':
@@ -51,7 +49,7 @@ if __name__ == '__main__':
         add_help=False,
     )
 
-    log.parser.config(template)
+    logger.parser.config(template)
     auth.parser.config(template)
     client.parser.config(template)
 
@@ -83,20 +81,26 @@ if __name__ == '__main__':
     # Parse and run.
     args = parser.parse_args()
 
-    log.setup_logging(args)
-    log_version_header()
+    logger.setup_logging(args)
+
+    log = logging.getLogger('gdc-client')
+    log_version_header(log)
 
     try:
+        # go
         args.func(args)
     except ClientError as err:
-        logger.error(err)
+        log.error(err)
         sys.exit(1)
     except KeyboardInterrupt:
-        logger.warning('Process cancelled by user.')
+        log.warning('Process cancelled by user.')
         sys.exit(130)
     except Exception as err:
-        logger.error(ERROR_MSG)
-        logger.exception(err)
+        log.error(ERROR_MSG)
+        log.exception(err)
+        log.error('Exiting')
         sys.exit(1)
     else:
-        logger.info('Completed successfully.')
+        # will hit this branch even if downloads fail
+        # and debug is turned off
+        log.info('gdc-client exited normally')
