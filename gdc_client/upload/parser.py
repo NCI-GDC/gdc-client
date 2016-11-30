@@ -10,10 +10,10 @@ from . import manifest
 from . import exceptions
 
 from .client import GDCUploadClient
-from .. import log as logger
+import logging
 
 
-log = None
+log = logging.getLogger('gdc-upload')
 
 def validate_args(parser, args):
     """ Validate argparse namespace.
@@ -112,9 +112,3 @@ def config(parser):
                         metavar='file_id', type=str,
                         nargs='*',
                         help='The GDC UUID of the file(s) to upload')
-
-
-def setup_logger(name='upload-client'):
-    global log
-    log = logger.get_logger(name)
-    log.propagate = False
