@@ -96,7 +96,7 @@ def config(parser):
                         help='The TCP server address server[:port]')
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
-                        help='Calculate inbound segment md5sums and/or verify md5sums on restart')
+                        help="Don't calculate inbound segment md5sums and/or don't verify md5sums on restart")
     parser.add_argument('--no-file-md5sum', dest='file_md5sum',
                         action='store_false',
                         help="Don't verify file md5sum after download")
@@ -144,5 +144,5 @@ def config(parser):
     parser.add_argument('file_ids',
         metavar='file_id',
         nargs='*',
-        help='GDC files to download',
+        help='The GDC UUID of the file(s) to download',
     )
