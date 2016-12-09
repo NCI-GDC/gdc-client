@@ -138,62 +138,79 @@ class GDCUploadClient(object):
 
         self.files = files
         self.incompleted = deque(copy.deepcopy(self.files))
+
         if not (server.startswith('http://') or server.startswith('https://')):
             server = 'https://' + server
+
         self.server = server
         self.multipart = multipart
         self.upload_id = None
         self.debug = debug
         self.processes = processes
         self.part_size = (max(part_size, MIN_PARTSIZE)/PAGESIZE+1)*PAGESIZE
-        self._metadata = None
+        self._metadata = {}
         self.resume_path = "resume_{}".format(self.manifest_name)
 
-    @property
-    def metadata(self):
-        return self._metadata or self.get_metadata(self.node_id)
+    def metadata(self, field):
+        return self._metadata.get(field) or self.get_metadata(self.node_id)[field]
 
     def get_metadata(self, id):
         '''
         Get file's project_id and filename from graphql
         '''
-        self._metadata = None
-        query = {'query':
-                 """query Files { node (id: "%s") { type }}""" % id}
+
+        # first get the file_type
+        self._metadata = {}
+        query = {'query': 'query Files { node (id: "%s") { type }}' % id}
+
         r = requests.post(
             urljoin(self.server, "v0/submission/graphql"),
             headers=self.headers,
             data=json.dumps(query),
             verify=self.verify)
+
         if r.status_code == 200:
             result = r.json()
+
             if 'errors' in result:
                 raise Exception("Fail to query file type: {}".format(', '.join(result['errors'])))
+
             nodes = result['data']['node']
             if len(nodes) == 0:
                 raise Exception("File with id {} not found".format(id))
+
             file_type = nodes[0]['type']
+
         else:
             raise Exception(r.text)
+        # </file_type>
 
-        query = {'query':
-                 """query Files { %s (id: "%s") { project_id, file_name }}""" % (file_type, id)}
+        # get metadata about file_type
+        query = {'query': 'query Files { %s (id: "%s") { project_id, file_name }}' % (file_type, id)}
+
         r = requests.post(
             urljoin(self.server, "v0/submission/graphql"),
             headers=self.headers,
             data=json.dumps(query),
             verify=self.verify)
+
         if r.status_code == 200:
+
             result = r.json()
             if 'errors' in result:
                 raise Exception("Fail to query project_id and file_name: {}"
                     .format(', '.join(result['errors'])))
-            for node in result['data'][file_type]:
-                self._metadata = node
+
+            # get first result only
+            if len(result['data'][file_type]) > 0:
+                self._metadata = result['data'][file_type][0]
                 return self._metadata
+
             raise Exception("File with id {} not found".format(id))
+
         else:
             raise Exception("Fail to get filename: {}".format(r.text))
+        # </metadata>
 
     def get_files(self, action='download'):
         '''Parse file information from manifest'''
@@ -204,42 +221,71 @@ class GDCUploadClient(object):
                 file_entity.node_id = f['id']
                 # cache node_id to use metadata property
                 self.node_id = file_entity.node_id
-                project_id = f.get('project_id') or self.metadata['project_id']
+                project_id = f.get('project_id') or self.metadata('project_id')
                 tokens = project_id.split('-')
                 program = (tokens[0]).upper()
                 project = ('-'.join(tokens[1:])).upper()
+
                 if not program or not project:
                     raise RuntimeError('Unable to parse project id {}'
                                        .format(project_id))
+
                 file_entity.url = urljoin(
                     self.server, 'v0/submission/{}/{}/files/{}'
                     .format(program, project, f['id']))
 
+
+                # https://github.com/NCI-GDC/gdcapi/pull/426#issue-146068652
+                # [[[ --path takes precedence over everything ]]]
+                # -----------------------------------------------
+                # 1)--path and f[file_name] from manifest_file
+                # 2) --path and UUID's filename, pull filename from API
+                # 3) manifest's local_file_path
+                # 4) manifest's file_name (in current directory)
+                # 5) UUID's resolved files
+
+                # 1) --path and f[file_name] from manifest_file
+                if f.get('path') and f.get('file_name') and \
+                        os.path.exists(os.path.join(f.get('path'), f.get('file_name'))):
+                    file_entity.file_path = os.path.join(f.get('path'), f.get('file_name'))
+
+                # 2) --path and UUID's filename, pull filename from API
+                elif f.get('path') and f.get('id') and\
+                        os.path.exists(os.path.join(f.get('path'), self.metadata('file_name'))):
+                    file_entity.file_path = os.path.join(f.get('path'), self.metadata('file_name'))
+
+                # 3) only local_file_path from manifest file
+                elif f.get('local_file_path') and \
+                        os.path.basename(f.get('local_file_path')) and os.path.exists(f.get('local_file_path')):
+                    file_entity.file_path = f.get('local_file_path')
+
+                # only file_name provided by manifest
+                elif f.get('file_name') and os.path.exists(f.get('file_name')):
+                    file_entity.file_path = f.get('file_name')
+
+                # 5) UUID given, get filename from api
+                else:
+                    file_entity.file_path = self.metadata('file_name')
+
+                # not currently used
                 if action == 'delete':
                     self.file_entities.append(file_entity)
                     continue
 
-                # first check local_file_path
-                # second check file_name
-                # https://github.com/NCI-GDC/gdcapi/pull/426#issue-146068652
-                file_entity.file_path = self.metadata['file_name']
-
-                # check to see if file exists in local_file_path
-                if os.path.basename(f.get('local_file_path')) and os.path.exists(f.get_('local_file_path')):
-                    file_entity.file_path = f.get('local_file_path')
-
-                elif os.path.exists(f.get('file_name')):
-                    file_entity.file_path = f.get('file_name')
-
                 with open(file_entity.file_path, 'rb') as fp:
                     file_entity.file_size = os.fstat(fp.fileno()).st_size
+
                 file_entity.upload_id = f.get('upload_id')
                 self.file_entities.append(file_entity)
+
         except KeyError as e:
             log.error(
                 "Please provide {} from manifest or as an argument"
                 .format(e.message))
             return False
+
+        # this makes things very hard to debug
+        # comment out if you need
         except Exception as e:
             log.error(e)
             return False
@@ -479,6 +525,7 @@ class FileEntity(object):
         self.node_id = None
         self.url = None
         self.file_path = None
+        self.path = None
         self.file_size = None
         self.upload_id = None
 

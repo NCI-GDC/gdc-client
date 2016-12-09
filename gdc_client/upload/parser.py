@@ -37,6 +37,10 @@ def upload(parser, args):
 
     files = manifest.load(args.manifest)['files'] if args.manifest else []
 
+    for f in files:
+        # empty string if nothing else
+        f['path'] = args.path
+
     if not args.manifest:
         for uuid in args.file_ids:
             files.append({
@@ -72,7 +76,7 @@ def config(parser):
 
     parser.add_argument('--project-id', '-p', type=str,
                         help='The project ID that owns the file')
-    parser.add_argument('--path', '-f', metavar='path',
+    parser.add_argument('--path', '-f', metavar='path', default='',
                         help='directory path to find file')
     parser.add_argument('--upload-id', '-u',
                         help='Multipart upload id')
