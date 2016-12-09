@@ -264,7 +264,6 @@ class GDCUploadClient(object):
                 else:
                     file_entity.file_path = self.metadata('file_name')
 
-                # not currently used
                 if action == 'delete':
                     self.file_entities.append(file_entity)
                     continue
@@ -336,7 +335,7 @@ class GDCUploadClient(object):
 
     def delete(self):
         '''Delete file from object storage'''
-        self.get_files()
+        self.get_files(action='delete')
         for f in self.file_entities:
             self.load_file(f)
             r = requests.delete(
