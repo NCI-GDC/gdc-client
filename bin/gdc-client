@@ -13,6 +13,15 @@ from gdc_client import client
 from gdc_client import version
 
 
+####################################################
+# These packages are important but PyInstaller won't
+# bundle them unless they are imported
+import cffi
+import cryptography
+import OpenSSL
+import ndg.httpsclient
+####################################################
+
 DESCRIPTION = '''
 The Genomic Data Commons Command Line Client
 '''
