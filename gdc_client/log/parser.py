@@ -11,29 +11,26 @@ from .log import LogFormatter
 def setup_logging(args):
     """ Set up logging given parsed logging arguments.
     """
-    logging.root.setLevel(min(args.log_levels))
 
-    if args.log_file and args.log_file != sys.stderr:
-        logger_filename = args.log_file.name
+    f_formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
 
-    if sys.stderr.isatty():
-        formatter = LogFormatter()
-    else:
-        formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
+    root = logging.getLogger()
+    root.setLevel(min(args.log_levels))
 
+    s_handler = logging.StreamHandler(sys.stdout)
+    s_handler.setFormatter(LogFormatter())
+    root.addHandler(s_handler)
 
-    logging.basicConfig(
-            level=min(args.log_levels),
-            filename=logger_filename,
-            formatter=formatter)
+    f_handler = logging.FileHandler(args.log_file.name)
+    f_handler.setFormatter(f_formatter)
+    root.addHandler(f_handler)
 
-    log.logger_filename = logger_filename
 
 def config(parser):
     """ Configure an argparse parser for logging.
     """
 
-    parser.set_defaults(log_levels=[logging.WARNING])
+    parser.set_defaults(log_levels=[logging.INFO])
 
     parser.add_argument('--debug',
         action='append_const',
@@ -42,12 +39,15 @@ def config(parser):
         help='Enable debug logging. If a failure occurs, the program will stop.',
     )
 
+    '''
+    # verbose by default now
     parser.add_argument('-v', '--verbose',
         action='append_const',
         dest='log_levels',
         const=logging.INFO,
         help='Enable verbose logging',
     )
+    '''
 
     parser.add_argument('--log-file',
         dest='log_file',
