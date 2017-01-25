@@ -12,6 +12,9 @@ def setup_logging(args):
     """ Set up logging given parsed logging arguments.
     """
 
+    logging.root.setLevel(min(args.log_levels))
+    root = logging.getLogger()
+
     f_formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
 
     root = logging.getLogger()
@@ -21,9 +24,13 @@ def setup_logging(args):
     s_handler.setFormatter(LogFormatter())
     root.addHandler(s_handler)
 
-    f_handler = logging.FileHandler(args.log_file.name)
-    f_handler.setFormatter(f_formatter)
-    root.addHandler(f_handler)
+    if args.log_file:
+        f_handler = logging.FileHandler(args.log_file.name)
+        f_handler.setFormatter(f_formatter)
+        root.addHandler(f_handler)
+
+    # the requests library has it's own log statements, and it bundles itself without asking
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 def config(parser):
@@ -52,6 +59,6 @@ def config(parser):
     parser.add_argument('--log-file',
         dest='log_file',
         type=argparse.FileType('a'),
-        default=sys.stderr,
+        default=None,
         help='Save logs to file. Amount logged affected by --debug, and --verbose flags',
     )
