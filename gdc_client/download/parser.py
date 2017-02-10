@@ -98,16 +98,16 @@ def download(parser, args):
     # the big files will be normal downloads
     # the small files will be joined together and tarfiled
 
-    i = 0
+    index = 0
     if smalls:
         log.info('Downlading smaller files...')
-        errors = client.download_small_groups(smalls)
+        small_errors = client.download_small_groups(smalls)
 
-        while i < args.retry_amount and errors:
+        while index < args.retry_amount and errors:
             time.sleep(args.wait_time)
             log.info('Retrying failed grouped downloads')
-            errors = client.download_small_groups(errors)
-            i += 1
+            small_errors = client.download_small_groups(errors)
+            index += 1
 
     # client.download_files is located in parcel which calls
     # self.parallel_download, which goes back to to gdc-client's parallel_download
@@ -116,14 +116,13 @@ def download(parser, args):
 
         # create URLs to send to parcel for download
         bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
-        downloaded_files, errors = client.download_files(bigs)
+        downloaded_files, big_errors = client.download_files(bigs)
 
         # next
-        i = 0
         if args.retry_amount > 0:
             files_not_downloaded = []
 
-            for url in errors.keys():
+            for url in big_errors.keys():
                 not_downloaded_url = retry_download(client, url,
                         args.retry_amount, args.no_auto_retry, args.wait_time)
                 if not_downloaded_url:
@@ -136,8 +135,8 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
 
     log.info('Retrying download {}'.format(url))
 
-    e = True
-    while 0 < retry_amount and e:
+    error = True
+    while 0 < retry_amount and error:
         if no_auto_retry:
             should_retry = raw_input('Retry download for {}? (y/N): '.format(url))
         else:
@@ -155,7 +154,7 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
                 log.info('Successfully downloaded {}!'.format(url))
                 return
         else:
-            e = False
+            error = False
             retry_amount = 0
 
     log.warning('Unable to download file {}'.format(url))

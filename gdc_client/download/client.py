@@ -26,6 +26,10 @@ class GDCDownloadMixin(object):
         errors = []
         groupings_len = len(smalls)
         for i, s in enumerate(smalls):
+            if len(s) == 0:
+                log.error('There are no files to download')
+                return
+
             try:
                 # post request
                 # {'ids': ['id1', 'id2'..., 'idn']}
@@ -36,8 +40,13 @@ class GDCDownloadMixin(object):
                 if r.status_code == requests.codes.ok:
 
                     # {'content-disposition': 'filename=the_actual_filename.tar'}j
-                    filename = r.headers.get('content-disposition')
-                    filename = os.path.join(self.directory, filename.split('=')[1])
+                    filename = r.headers.get('content-disposition') or \
+                            r.headers.get('Content-Disposition')
+
+                    if filename:
+                        filename = os.path.join(self.directory, filename.split('=')[1])
+                    else:
+                        filename = time.strftime("gdc-client-%Y%m%d-%H%M%S")
                     log.info('Saving grouping {0}/{1}'.format(i+1, groupings_len))
                     with open(filename, 'wb') as f:
                         for chunk in r:
@@ -80,8 +89,8 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
         self.annotations = download_annotations
 
         self.directory = os.path.abspath(time.strftime("gdc-client-%Y%m%d-%H%M%S"))
-        if args.directory:
-            self.directory = args.directory
+        if kwargs.get('directory'):
+            self.directory = kwargs.get('directory')
 
         self.verify = kwargs.get('verify')
         super(GDCDownloadMixin, self).__init__(*args, **kwargs)

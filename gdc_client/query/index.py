@@ -13,7 +13,7 @@ class GDCIndexClient(object):
             self.uri += '/'
 
 
-    def get_related_files(self, file_id):
+    def _get_related_files(self, file_id):
         """Query the GDC api for related files.
 
         :params str file_id: String containing the id of the primary entity
@@ -26,7 +26,7 @@ class GDCIndexClient(object):
         related_files.extend([rf['file_id'] for rf in r['data'].get('index_files', [])])
         return related_files
 
-    def get_annotations(self, file_id):
+    def _get_annotations(self, file_id):
         """Query the GDC api for annotations and download them to a file.
 
         :params str file_id: String containing the id of the primary entity
@@ -56,7 +56,7 @@ class GDCIndexClient(object):
 
 
     def separate_small_files(self, ids, related_files=False, annotations=False):
-        # type: (set{string}) -> (List[string], List[string])
+        # type: (Set[string], bool, bool) -> (List[string], List[string] List[string])
         """Separate the small files from the larger files in
         order to combine them into single downloads. This will reduce
         the number of open connections needed to be made for many small files
@@ -100,7 +100,10 @@ class GDCIndexClient(object):
 
 	filesize_query = {
             'fields': 'file_id,file_size',
-            'filters': '{"op":"and","content":[{"op":"in","content":{"field":"files.file_id","value":["' + '","'.join(ids) + '"]}}]}',
+            'filters': '{"op":"and","content":['
+                       '{"op":"in","content":{'
+                       '"field":"files.file_id","value":'
+                       '["' + '","'.join(ids) + '"]}}]}',
             'from': '1',
             'size':str(len(ids)),       # one big ol' request
         }
@@ -134,8 +137,11 @@ class GDCIndexClient(object):
                 i += 1
                 bundle_size = 0
 
-            smalls[i].append(h['file_id'])
-            bundle_size += int(h['file_size'])
+            if h['file_size'] > MAX_BUNDLE_LEN:
+                bigs.append(h['file_id'])
+            else:
+                smalls[i].append(h['file_id'])
+                bundle_size += int(h['file_size'])
 
         total_files = len(bigs) + len([ i for s in smalls for i in s])
         if len(ids) > total_files:
@@ -144,5 +150,10 @@ class GDCIndexClient(object):
 
         log.info('{0} total number of files to download'.format(total_files))
         log.info('{0} groupings of files'.format(len(smalls)))
+
+        # if there are no smalls, then the original list looks like [[]]
+        # and we want to just return an empty list
+        if smalls[0] == []:
+            smalls = []
 
         return bigs, smalls, None

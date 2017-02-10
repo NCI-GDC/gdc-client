@@ -1,4 +1,4 @@
--e git+https://github.com/LabAdvComp/parcel.git@83163b4cfc0418e05211be11be59bc81f7fa00b5#egg=parcel
+-e git+https://github.com/LabAdvComp/parcel.git@a419ed0bb9bd37daa68bb3055d0aba1becc88a81#egg=parcel
 setuptools==19.2
 pyOpenSSL==16.2.0
 ndg-httpsclient==0.4.2

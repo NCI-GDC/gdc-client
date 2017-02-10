@@ -259,7 +259,7 @@ class GDCUploadClient(object):
                         os.path.basename(f.get('local_file_path')) and os.path.exists(f.get('local_file_path')):
                     file_entity.file_path = f.get('local_file_path')
 
-                # only file_name provided by manifest
+                # 4) only file_name provided by manifest
                 elif f.get('file_name') and os.path.exists(f.get('file_name')):
                     file_entity.file_path = f.get('file_name')
 
