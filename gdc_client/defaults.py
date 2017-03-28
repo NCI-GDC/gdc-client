@@ -9,7 +9,7 @@ from multiprocessing import cpu_count
 ####################
 
 # The base url for the tcp (http) client
-tcp_url = 'https://gdc-api.nci.nih.gov/'
+tcp_url = 'https://api.gdc.cancer.gov/'
 
 # The base url for the tcp (http) client
 udt_url = 'https://gdc-parcel.nci.nih.gov/'

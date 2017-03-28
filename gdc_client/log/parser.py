@@ -60,5 +60,5 @@ def config(parser):
         dest='log_file',
         type=argparse.FileType('a'),
         default=None,
-        help='Save logs to file. Amount logged affected by --debug, and --verbose flags',
+        help='Save logs to file. Amount logged affected by --debug',
     )
