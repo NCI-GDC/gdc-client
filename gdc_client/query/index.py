@@ -62,19 +62,23 @@ class GDCIndexClient(object):
         the number of open connections needed to be made for many small files
         """
 
+        # deep copy of a set
+        given_ids = ids.copy()
+
         # collect the related/annotation files prior to any downloading
         log.info('Collecting related files')
         extra_files = set()
-        for uuid in ids:
+        for uuid in given_ids:
             # add in the related files
             if related_files:
                 log.debug('Collecting related files for {0}'.format(uuid))
                 try:
                     rf = self._get_related_files(uuid)
                     if rf:
-                        extra_files.append(rf)
-                except:
+                        extra_files |= set(rf)
+                except Exception as e:
                     log.warn('Unable to find related files for {0}'.format(uuid))
+                    log.error(e)
 
             # add in the annotations
             if annotations:
@@ -82,9 +86,10 @@ class GDCIndexClient(object):
                 try:
                     af = self._get_annotations(uuid)
                     if af:
-                        extra_files.append(af)
-                except:
+                        extra_files |= set(af)
+                except Exception as e:
                     log.warn('Unable to find annotation files for {0}'.format(uuid))
+                    log.error(e)
 
         # now the list of UUIDs contain the related files and annotations
         # and can be grouped into bulk tarfile downloads if applicable
@@ -144,9 +149,9 @@ class GDCIndexClient(object):
                 bundle_size += int(h['file_size'])
 
         total_files = len(bigs) + len([ i for s in smalls for i in s])
-        if len(ids) > total_files:
+        if len(given_ids) > total_files:
             log.warning('There are less files to download than originally given')
-            log.warning('Number of files originally given: {0}'.format(len(ids)))
+            log.warning('Number of files originally given: {0}'.format(len(given_ids)))
 
         log.info('{0} total number of files to download'.format(total_files))
         log.info('{0} groupings of files'.format(len(smalls)))

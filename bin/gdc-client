@@ -20,6 +20,7 @@ import cffi
 import cryptography
 import OpenSSL
 import ndg.httpsclient
+import pyasn1
 ####################################################
 
 DESCRIPTION = '''
