@@ -1,20 +1,20 @@
 import argparse
-import logging
+import logging # needed for logging.DEBUG flag
 import time
 
 from functools import partial
-
 from parcel import const
 from parcel import manifest
+import urlparse
 
 from .. import defaults
-from .. import log as logger
-
+import logging
 from .client import GDCUDTDownloadClient
 from .client import GDCHTTPDownloadClient
+from ..query.index import GDCIndexClient
 
 
-log = logging.getLogger('gdc-client')
+log = logging.getLogger('gdc-download')
 
 UDT_SUPPORT = ' '.join([
     'UDT is supported through the use of the Parcel UDT proxy.',
@@ -49,6 +49,7 @@ def get_client(args, token, **_kwargs):
         'download_annotations': args.download_annotations,
         'no_auto_retry': args.no_auto_retry,
         'retry_amount': args.retry_amount,
+        'verify': not args.no_verify,
     }
     # The option to use UDT should be hidden until
     # (1) the external library is packaged into the binary and
@@ -68,62 +69,96 @@ def get_client(args, token, **_kwargs):
     server = args.server or defaults.tcp_url
     # doesn't get called with args
     return GDCHTTPDownloadClient(
-        uri=server,
-        **kwargs
+            uri=server,
+            **kwargs
     )
 
 def download(parser, args):
     """ Downloads data from the GDC.
+
+        Combine the smaller files (~KB range) into a grouped download.
+        The API now supports combining UUID's into one uncompressed tarfile
+        using the ?tarfile url parameter. Combining many smaller files into one
+        download drecreases the number of open connections we have to make
     """
+
     validate_args(parser, args)
 
+    # sets do not allow duplicates in a list
     ids = set(args.file_ids)
     for i in args.manifest:
         ids.add(i['id'])
 
     client = get_client(args, args.token_file)
-    downloaded_files, errors = client.download_files(ids)
 
-    if args.retry_amount > 0:
-        files_not_downloaded = []
+    # separate the smaller files from the larger files
+    bigs, smalls, errors = GDCIndexClient(client.base_uri).separate_small_files(
+            ids, client.related_files, client.annotations)
 
-        for uuid in errors.keys():
-            not_downloaded_uuid = retry_download(client, uuid,
-                    args.retry_amount, args.no_auto_retry, args.wait_time)
-            if not_downloaded_uuid:
-                files_not_downloaded.append(not_downloaded_uuid)
-    if files_not_downloaded:
-        log.warning('Files not able to be downloaded: {}'.format(files_not_downloaded))
+    # the big files will be normal downloads
+    # the small files will be joined together and tarfiled
+
+    index = 0
+    if smalls:
+        log.info('Downlading smaller files...')
+        small_errors = client.download_small_groups(smalls)
+
+        while index < args.retry_amount and errors:
+            time.sleep(args.wait_time)
+            log.info('Retrying failed grouped downloads')
+            small_errors = client.download_small_groups(errors)
+            index += 1
+
+    # client.download_files is located in parcel which calls
+    # self.parallel_download, which goes back to to gdc-client's parallel_download
+    if bigs:
+        log.info('Downloading larger files...')
+
+        # create URLs to send to parcel for download
+        bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
+        downloaded_files, big_errors = client.download_files(bigs)
+
+        # next
+        if args.retry_amount > 0:
+            files_not_downloaded = []
+
+            for url in big_errors.keys():
+                not_downloaded_url = retry_download(client, url,
+                        args.retry_amount, args.no_auto_retry, args.wait_time)
+                if not_downloaded_url:
+                    files_not_downloaded.append(not_downloaded_url)
+        if files_not_downloaded:
+            log.warning('Large files not able to be downloaded: {}'.format(files_not_downloaded))
 
 
-def retry_download(client, uuid, retry_amount, no_auto_retry, wait_time):
+def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
 
-    log.info('Retrying download {}'.format(uuid))
+    log.info('Retrying download {}'.format(url))
 
-    e = True
-    while 0 < retry_amount and e:
+    error = True
+    while 0 < retry_amount and error:
         if no_auto_retry:
-            should_retry = raw_input('Retry download for {}? (y/N): '.format(uuid))
+            should_retry = raw_input('Retry download for {}? (y/N): '.format(url))
         else:
             should_retry = 'y'
 
         if should_retry.lower() == 'y':
             log.info('{} retries remaning...'.format(retry_amount))
-            log.info('Retrying download... {} in {} seconds'.format(uuid, wait_time))
+            log.info('Retrying download... {} in {} seconds'.format(url, wait_time))
             retry_amount -= 1
             time.sleep(wait_time)
             # client.download_files accepts a list of uuids to download
             # but we want to only try one at a time
-            _, e = client.download_files([uuid])
+            _, e = client.download_files([url])
             if not e:
-                log.info('Successfully downloaded {}!'.format(uuid))
+                log.info('Successfully downloaded {}!'.format(url))
                 return
         else:
-            e = False
+            error = False
             retry_amount = 0
 
-    log.warning('Unable to download file {}'.format(uuid))
-    return uuid
+    log.warning('Unable to download file {}'.format(url))
+    return url
 
 
 def config(parser):
@@ -158,6 +193,8 @@ def config(parser):
     parser.add_argument('--save-interval', type=int,
                         default=const.SAVE_INTERVAL,
                         help='The number of chunks after which to flush state file. A lower save interval will result in more frequent printout but lower performance.')
+    parser.add_argument('--no-verify', dest='no_verify', action='store_true',
+                        help='Perform insecure SSL connection and transfer')
     parser.add_argument('--no-related-files', action='store_false',
                         dest='download_related_files',
                         help='Do not download related files.')
@@ -204,3 +241,5 @@ def config(parser):
         nargs='*',
         help='The GDC UUID of the file(s) to download',
     )
+
+
