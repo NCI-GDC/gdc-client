@@ -3,9 +3,6 @@ import sys
 
 from parcel import colored
 
-loggers = {}
-
-
 class LogFormatter(logging.Formatter):
 
     err_format  = colored('ERROR: ', 'red') + '%(msg)s'
@@ -43,21 +40,3 @@ class LogFormatter(logging.Formatter):
 
         return result
 
-# Logging
-def get_logger(name='gdc-client'):
-    """Create or return an existing logger with given name
-    """
-
-    if name in loggers:
-        return loggers[name]
-    log = logging.getLogger(name)
-    log.propagate = False
-    if sys.stderr.isatty():
-        formatter = LogFormatter()
-    else:
-        formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(formatter)
-    log.addHandler(handler)
-    loggers[name] = log
-    return log

@@ -24,7 +24,7 @@ PERMISSIONS_MSG = ' '.join([
 def read_token_file(path):
     """ Safely open, read and close a token file.
     """
-    log = logging.getLogger('gdc-client')
+    log = logging.getLogger('auth')
 
     # TODO review best way to check file security on various platforms
 
