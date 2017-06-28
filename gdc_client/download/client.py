@@ -75,6 +75,19 @@ class GDCDownloadMixin(object):
         stream.directory = self.directory
         super(GDCDownloadMixin, self).parallel_download(stream)
 
+    def fix_url(self, url):
+        """ Fix a url to be used in the rest of the program
+
+            example:
+                api.gdc.cancer.gov -> https://api.gdc.cancer.gov/
+        """
+        if not url.endswith('/'):
+            url = '{}/'.format(url)
+
+        if not (url.startswith('https://') or url.startswith('http://')):
+            url = 'https://{}'.format(url)
+
+        return url
 
 class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
 
