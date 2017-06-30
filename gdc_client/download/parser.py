@@ -96,20 +96,26 @@ def download(parser, args):
     client = get_client(args, args.token_file)
 
     # separate the smaller files from the larger files
-    bigs, smalls, errors = GDCIndexClient(client.base_uri).separate_small_files(
-        ids, args.http_chunk_size, client.related_files, client.annotations)
+    md5_dict, bigs, smalls, errors = GDCIndexClient(client.base_uri)\
+            .separate_small_files(
+                    ids,
+                    args.http_chunk_size,
+                    client.related_files,
+                    client.annotations)
 
     # the big files will be normal downloads
     # the small files will be joined together and tarfiled
     index = 0
     if smalls:
         log.info('Downlading smaller files...')
-        small_errors = client.download_small_groups(smalls)
 
-        while index < args.retry_amount and errors:
+        # download smallfile grouped in an uncompressed tarfile
+        small_errors = client.download_small_groups(smalls, md5_dict)
+
+        while index < args.retry_amount and small_errors:
             time.sleep(args.wait_time)
             log.info('Retrying failed grouped downloads')
-            small_errors = client.download_small_groups(errors)
+            small_errors = client.download_small_groups(small_errors, md5_dict)
             index += 1
 
     # client.download_files is located in parcel which calls
