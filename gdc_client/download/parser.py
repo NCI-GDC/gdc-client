@@ -81,6 +81,8 @@ def download(parser, args):
         download drecreases the number of open connections we have to make
     """
 
+    files_not_downloaded = []
+    small_errors = []
     validate_args(parser, args)
 
     # sets do not allow duplicates in a list
@@ -120,7 +122,6 @@ def download(parser, args):
         downloaded_files, big_errors = client.download_files(bigs)
 
         if args.retry_amount > 0:
-            files_not_downloaded = []
 
             for url in big_errors.keys():
                 not_downloaded_url = retry_download(client, url,
@@ -131,6 +132,8 @@ def download(parser, args):
         if files_not_downloaded:
             log.warning('Large files not able to be downloaded: {}'
                     .format(files_not_downloaded))
+
+    return small_errors or files_not_downloaded
 
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
