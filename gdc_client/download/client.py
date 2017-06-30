@@ -47,19 +47,19 @@ class GDCDownloadMixin(object):
                         filename = os.path.join(self.directory, filename.split('=')[1])
                     else:
                         filename = time.strftime("gdc-client-%Y%m%d-%H%M%S")
-                    log.info('Saving grouping {0}/{1}'.format(i+1, groupings_len))
+                    log.info('Saving grouping {}/{}'.format(i+1, groupings_len))
                     with open(filename, 'wb') as f:
                         for chunk in r:
                             f.write(chunk)
                 else:
-                    log.warning('[{0}] unable to download group {1} '.format(r.status_code, i+1))
+                    log.warning('[{}] unable to download group {} '.format(r.status_code, i+1))
                     errors.append(ids['ids'])
                     time.sleep(0.5)
 
                 r.close()
 
             except Exception as e:
-                log.warning('Grouping download failed: {0}'.format(i+1))
+                log.warning('Grouping download failed: {}'.format(i+1))
                 errors.append(ids['ids'])
                 log.warn(e)
 
@@ -93,11 +93,9 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
 
     def __init__(self, uri, download_related_files=True,
                  download_annotations=True, *args, **kwargs):
-        # accepts args, but never called with args
+
         self.base_uri = self.fix_url(uri)
-        if not self.base_uri.endswith('/'):
-            self.base_uri += '/'
-        self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
+        self.data_uri = urlparse.urljoin(self.base_uri, 'v0/data/')
         self.related_files = download_related_files
         self.annotations = download_annotations
 
@@ -106,7 +104,7 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
             self.directory = kwargs.get('directory')
 
         self.verify = kwargs.get('verify')
-        super(GDCDownloadMixin, self).__init__(*args, **kwargs)
+        super(GDCDownloadMixin, self).__init__(self.data_uri, *args, **kwargs)
 
 
 class GDCUDTDownloadClient(GDCDownloadMixin, UDTClient):

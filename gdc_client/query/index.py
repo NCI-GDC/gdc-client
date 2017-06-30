@@ -7,11 +7,7 @@ log = logging.getLogger('query')
 class GDCIndexClient(object):
 
     def __init__(self, uri):
-
         self.uri = uri
-        if not self.uri.endswith('/'):
-            self.uri += '/'
-
 
     def _get_related_files(self, file_id):
         """Query the GDC api for related files.
@@ -46,6 +42,7 @@ class GDCIndexClient(object):
 
         url = urljoin(self.uri, 'v0/{}/{}'.format(path, ID))
         params = {'fields': ','.join(fields)} if fields else {}
+
         r = requests.get(url, verify=False, params=params)
         if r.status_code != requests.codes.ok:
             url = urljoin(self.uri, 'v0/legacy/{}/{}'.format(path, ID))
@@ -55,12 +52,15 @@ class GDCIndexClient(object):
         return r.json()
 
 
-    def separate_small_files(self, ids, related_files=False, annotations=False):
-        # type: (Set[string], bool, bool) -> (List[string], List[string] List[string])
+    def separate_small_files(self, ids, chunk_size, related_files=False, annotations=False):
+        # type: (Set[string], bool, bool) -> (List[string], List[string] List[List[string]])
         """Separate the small files from the larger files in
         order to combine them into single downloads. This will reduce
         the number of open connections needed to be made for many small files
         """
+
+        bigs = []
+        smalls = [[]]
 
         # deep copy of a set
         given_ids = ids.copy()
@@ -71,47 +71,39 @@ class GDCIndexClient(object):
         for uuid in given_ids:
             # add in the related files
             if related_files:
-                log.debug('Collecting related files for {0}'.format(uuid))
+                log.debug('Collecting related files for {}'.format(uuid))
                 try:
                     rf = self._get_related_files(uuid)
                     if rf:
                         extra_files |= set(rf)
                 except Exception as e:
-                    log.warn('Unable to find related files for {0}'.format(uuid))
+                    log.warn('Unable to find related files for {}'.format(uuid))
                     log.error(e)
 
             # add in the annotations
             if annotations:
-                log.debug('Collecting annotation files for {0}'.format(uuid))
+                log.debug('Collecting annotation files for {}'.format(uuid))
                 try:
                     af = self._get_annotations(uuid)
                     if af:
                         extra_files |= set(af)
                 except Exception as e:
-                    log.warn('Unable to find annotation files for {0}'.format(uuid))
+                    log.warn('Unable to find annotation files for {}'.format(uuid))
                     log.error(e)
 
         # now the list of UUIDs contain the related files and annotations
         # and can be grouped into bulk tarfile downloads if applicable
         ids |= extra_files # set union
 
-        AVAILABLE_SIZES = {
-                'xsmall': 33554432,  #  32MB
-                'small': 67108864,   #  64MB
-                'medium': 134217728, # 128MB
-                'large': 268435456,  # 256MB
-        }
-        MAX_BUNDLE_LEN = AVAILABLE_SIZES['xsmall']
-
 	filesize_query = {
-            'fields': 'file_id,file_size',
-            'filters': '{"op":"and","content":['
-                       '{"op":"in","content":{'
-                       '"field":"files.file_id","value":'
-                       '["' + '","'.join(ids) + '"]}}]}',
-            'from': '1',
-            'size':str(len(ids)),       # one big ol' request
-        }
+        'fields': 'file_id,file_size',
+        'filters': '{"op":"and","content":['
+                   '{"op":"in","content":{'
+                   '"field":"files.file_id","value":'
+                   '["' + '","'.join(ids) + '"]}}]}',
+        'from': '0',
+        'size': str(len(ids)), # one (potentially) big ol' request
+    }
 
         filesize_url = urljoin(self.uri, 'v0/files')
         hits = {}
@@ -123,42 +115,39 @@ class GDCIndexClient(object):
             r.close()
 
         else:
-            log.error('Unable to get file sizes. Is this the correct URL? {0}'.format(filesize_url))
+            log.error('Unable to get file sizes. Is this the correct URL? {}'.format(filesize_url))
             # bigs, smalls, errors
-            return None, None, ids
-
-        # if the file size is less than MAX_BUNDLE_LEN then group and tarfile it
-        bigs = []
-        smalls = [[]]
-        i = 0
-        bundle_size = 0
+            return [], [], list(ids)
 
         log.debug('Combining IDs into bulk download queries')
 
+        # if the file size is less than chunk_size then group and tarfile it
         # hits = [ {file_id: string, file_size: int} ]
+        i = 0
+        bundle_size = 0
         for h in hits:
-            if bundle_size > MAX_BUNDLE_LEN:
+            if bundle_size > chunk_size:
                 smalls.append([])
                 i += 1
                 bundle_size = 0
 
-            if h['file_size'] > MAX_BUNDLE_LEN:
+            if h['file_size'] > chunk_size:
                 bigs.append(h['file_id'])
             else:
                 smalls[i].append(h['file_id'])
                 bundle_size += int(h['file_size'])
 
-        total_files = len(bigs) + len([ i for s in smalls for i in s])
+        total_files = len(bigs) + sum([ len(s) for s in smalls ])
         if len(given_ids) > total_files:
             log.warning('There are less files to download than originally given')
-            log.warning('Number of files originally given: {0}'.format(len(given_ids)))
+            log.warning('Number of files originally given: {}'.format(len(given_ids)))
 
-        log.info('{0} total number of files to download'.format(total_files))
-        log.info('{0} groupings of files'.format(len(smalls)))
+        log.info('{} total number of files to download'.format(total_files))
+        log.info('{} groupings of files'.format(len(smalls)))
 
         # if there are no smalls, then the original list looks like [[]]
         # and we want to just return an empty list
         if smalls[0] == []:
             smalls = []
 
-        return bigs, smalls, None
+        return bigs, smalls, []

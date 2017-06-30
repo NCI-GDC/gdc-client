@@ -33,7 +33,7 @@ def validate_args(parser, args):
         # We were asked to remove 'error' in the message
         parser.exit(status=1, message=UDT_SUPPORT)
 
-def get_client(args, token, **_kwargs):
+def get_client(args, token):
     # args get converted into kwargs
     kwargs = {
         'token': token,
@@ -67,7 +67,6 @@ def get_client(args, token, **_kwargs):
     else:
     '''
     server = args.server or defaults.tcp_url
-    # doesn't get called with args
     return GDCHTTPDownloadClient(
             uri=server,
             **kwargs
@@ -87,17 +86,19 @@ def download(parser, args):
     # sets do not allow duplicates in a list
     ids = set(args.file_ids)
     for i in args.manifest:
+        if not i.get('id'):
+            log.error('Invalid manifest')
+            break
         ids.add(i['id'])
 
     client = get_client(args, args.token_file)
 
     # separate the smaller files from the larger files
     bigs, smalls, errors = GDCIndexClient(client.base_uri).separate_small_files(
-            ids, client.related_files, client.annotations)
+        ids, args.http_chunk_size, client.related_files, client.annotations)
 
     # the big files will be normal downloads
     # the small files will be joined together and tarfiled
-
     index = 0
     if smalls:
         log.info('Downlading smaller files...')
@@ -118,7 +119,6 @@ def download(parser, args):
         bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
         downloaded_files, big_errors = client.download_files(bigs)
 
-        # next
         if args.retry_amount > 0:
             files_not_downloaded = []
 
@@ -127,8 +127,10 @@ def download(parser, args):
                         args.retry_amount, args.no_auto_retry, args.wait_time)
                 if not_downloaded_url:
                     files_not_downloaded.append(not_downloaded_url)
+
         if files_not_downloaded:
-            log.warning('Large files not able to be downloaded: {}'.format(files_not_downloaded))
+            log.warning('Large files not able to be downloaded: {}'
+                    .format(files_not_downloaded))
 
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
@@ -241,5 +243,4 @@ def config(parser):
         nargs='*',
         help='The GDC UUID of the file(s) to download',
     )
-
 
