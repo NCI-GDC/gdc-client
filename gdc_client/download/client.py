@@ -131,7 +131,7 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
                  download_annotations=True, *args, **kwargs):
 
         self.base_uri = self.fix_url(uri)
-        self.data_uri = urlparse.urljoin(self.base_uri, 'v0/data/')
+        self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
         self.related_files = download_related_files
         self.annotations = download_annotations
 
