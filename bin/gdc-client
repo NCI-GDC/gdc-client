@@ -98,7 +98,8 @@ if __name__ == '__main__':
 
     try:
         # go
-        args.func(args)
+        if args.func(args):
+            sys.exit(2)
     except ClientError as err:
         log.error(err)
         sys.exit(1)
