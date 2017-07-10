@@ -1,4 +1,5 @@
 from StringIO import StringIO
+import hashlib
 import os
 import requests
 import tarfile
@@ -15,13 +16,14 @@ log = logging.getLogger('gdc-download')
 
 class GDCDownloadMixin(object):
 
-    def download_small_groups(self, smalls):
-        # List[List[str]] -> List[List[str]]
+    def download_small_groups(self, smalls, md5_dict):
+        # type: (List[List[str]], Dict[str]str) -> List[List[str]]
         """Smalls are predetermined groupings of smaller filesize files.
         They are grouped to reduce the number of open connections per download
 
         """
 
+        filename = None
         tarfile_url = self.data_uri + '?tarfile'
         errors = []
         groupings_len = len(smalls)
@@ -35,11 +37,17 @@ class GDCDownloadMixin(object):
                 # {'ids': ['id1', 'id2'..., 'idn']}
                 ids = {"ids": s}
 
-                # using a POST request lets us avoid the MAX URL character length limit
-                r = requests.post(tarfile_url, stream=True, verify=self.verify, json=ids)
+                # using a POST request lets us avoid
+                # the MAX URL character length limit
+                r = requests.post(
+                        tarfile_url,
+                        stream=True,
+                        verify=self.verify,
+                        json=ids
+                )
                 if r.status_code == requests.codes.ok:
 
-                    # {'content-disposition': 'filename=the_actual_filename.tar'}j
+                    # {'content-disposition': 'filename=the_actual_filename.tar'}
                     filename = r.headers.get('content-disposition') or \
                             r.headers.get('Content-Disposition')
 
@@ -52,7 +60,9 @@ class GDCDownloadMixin(object):
                         for chunk in r:
                             f.write(chunk)
                 else:
-                    log.warning('[{}] unable to download group {} '.format(r.status_code, i+1))
+                    log.warning('[{}] unable to download group {} '\
+                            .format(r.status_code, i+1))
+
                     errors.append(ids['ids'])
                     time.sleep(0.5)
 
@@ -62,6 +72,32 @@ class GDCDownloadMixin(object):
                 log.warning('Grouping download failed: {}'.format(i+1))
                 errors.append(ids['ids'])
                 log.warn(e)
+                return errors
+
+        if not filename:
+            log.error('No tarfile downloaded')
+            return errors
+
+        # untar
+        t = tarfile.open(filename)
+        members = [ m for m in t.getmembers() if m.name != 'MANIFEST.txt' ]
+        t.extractall(members=members)
+        t.close()
+
+        # check md5sum with what's on the server (provided in md5_dict)
+        for m in members:
+            member_uuid = m.name.split('/')[0]
+
+            md5sum = hashlib.md5()
+            with open(m.name, 'r') as f:
+                md5sum.update(f.read())
+
+            if md5_dict[member_uuid] != md5sum.hexdigest():
+                log.error('UUID {} has invalid md5sum'.format(member_uuid))
+                errors.append(member_uuid)
+
+        # cleanup the tarfile at the end
+        os.remove(filename)
 
         return errors
 
