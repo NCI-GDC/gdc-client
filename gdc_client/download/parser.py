@@ -136,7 +136,7 @@ def download(parser, args):
                     files_not_downloaded.append(not_downloaded_url)
 
         if files_not_downloaded:
-            log.warning('Large files not able to be downloaded: {}'
+            log.warning('Large files not able to be downloaded: {0}'
                     .format(files_not_downloaded))
 
     return small_errors or files_not_downloaded
@@ -144,31 +144,31 @@ def download(parser, args):
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
 
-    log.info('Retrying download {}'.format(url))
+    log.info('Retrying download {0}'.format(url))
 
     error = True
     while 0 < retry_amount and error:
         if no_auto_retry:
-            should_retry = raw_input('Retry download for {}? (y/N): '.format(url))
+            should_retry = raw_input('Retry download for {0}? (y/N): '.format(url))
         else:
             should_retry = 'y'
 
         if should_retry.lower() == 'y':
-            log.info('{} retries remaning...'.format(retry_amount))
-            log.info('Retrying download... {} in {} seconds'.format(url, wait_time))
+            log.info('{0} retries remaning...'.format(retry_amount))
+            log.info('Retrying download... {0} in {1} seconds'.format(url, wait_time))
             retry_amount -= 1
             time.sleep(wait_time)
             # client.download_files accepts a list of uuids to download
             # but we want to only try one at a time
             _, e = client.download_files([url])
             if not e:
-                log.info('Successfully downloaded {}!'.format(url))
+                log.info('Successfully downloaded {0}!'.format(url))
                 return
         else:
             error = False
             retry_amount = 0
 
-    log.warning('Unable to download file {}'.format(url))
+    log.warning('Unable to download file {0}'.format(url))
     return url
 
 

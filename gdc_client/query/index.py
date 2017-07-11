@@ -40,12 +40,12 @@ class GDCIndexClient(object):
 
         """
 
-        url = urljoin(self.uri, 'v0/{}/{}'.format(path, ID))
+        url = urljoin(self.uri, 'v0/{0}/{1}'.format(path, ID))
         params = {'fields': ','.join(fields)} if fields else {}
 
         r = requests.get(url, verify=False, params=params)
         if r.status_code != requests.codes.ok:
-            url = urljoin(self.uri, 'v0/legacy/{}/{}'.format(path, ID))
+            url = urljoin(self.uri, 'v0/legacy/{0}/{1}'.format(path, ID))
             r = requests.get(url, verify=False, params=params)
             r.raise_for_status()
         r.close()
@@ -75,24 +75,24 @@ class GDCIndexClient(object):
         for uuid in given_ids:
             # add in the related files
             if related_files:
-                log.debug('Collecting related files for {}'.format(uuid))
+                log.debug('Collecting related files for {0}'.format(uuid))
                 try:
                     rf = self._get_related_files(uuid)
                     if rf:
                         extra_files |= set(rf)
                 except Exception as e:
-                    log.warn('Unable to find related files for {}'.format(uuid))
+                    log.warn('Unable to find related files for {0}'.format(uuid))
                     log.error(e)
 
             # add in the annotations
             if annotations:
-                log.debug('Collecting annotation files for {}'.format(uuid))
+                log.debug('Collecting annotation files for {0}'.format(uuid))
                 try:
                     af = self._get_annotations(uuid)
                     if af:
                         extra_files |= set(af)
                 except Exception as e:
-                    log.warn('Unable to find annotation files for {}'.format(uuid))
+                    log.warn('Unable to find annotation files for {0}'.format(uuid))
                     log.error(e)
 
         # now the list of UUIDs contain the related files and annotations
@@ -119,7 +119,7 @@ class GDCIndexClient(object):
             r.close()
 
         else:
-            log.error('Unable to get file sizes. Is this the correct URL? {}'.format(filesize_url))
+            log.error('Unable to get file sizes. Is this the correct URL? {0}'.format(filesize_url))
             # bigs, smalls, errors
             return [], [], list(ids)
 
@@ -156,9 +156,9 @@ class GDCIndexClient(object):
         total_files = len(bigs) + sum([ len(s) for s in smalls ])
         if len(given_ids) > total_files:
             log.warning('There are less files to download than originally given')
-            log.warning('Number of files originally given: {}'.format(len(given_ids)))
+            log.warning('Number of files originally given: {0}'.format(len(given_ids)))
 
-        log.info('{} total number of files to download'.format(total_files))
-        log.info('{} groupings of files'.format(len(smalls)))
+        log.info('{0} total number of files to download'.format(total_files))
+        log.info('{0} groupings of files'.format(len(smalls)))
 
         return md5_dict, bigs, smalls, []

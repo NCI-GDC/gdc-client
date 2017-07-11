@@ -102,7 +102,7 @@ class GDCREPL(Cmd):
                 val = stype(val)
             except:
                 raise RuntimeError(
-                    "Unable to convert setting '{}'='{}' to type {}".format(
+                    "Unable to convert setting '{0}'='{1}' to type {2}".format(
                         setting, val, stype))
         return val
 
@@ -121,7 +121,7 @@ class GDCREPL(Cmd):
         start_len = len(self.file_ids)
         map(self.file_ids.add, ids)
         end_len = len(self.file_ids)
-        print(("Loaded {} new file ids.  There are {} file ids to download.\n"
+        print(("Loaded {0} new file ids.  There are {1} file ids to download.\n"
                "Start download with 'download'.  List ids with 'list'").format(
                    end_len - start_len, end_len))
 
@@ -136,10 +136,10 @@ class GDCREPL(Cmd):
             try:
                 self.file_ids.remove(fid)
             except Exception as msg:
-                print('Unable to remove id {}: {}'.format(fid, msg))
+                print('Unable to remove id {0}: {1}'.format(fid, msg))
         end_len = len(self.file_ids)
-        print(("Removed {} file ids from registry.\n"
-               "There are {} file ids left to download.\n"
+        print(("Removed {0} file ids from registry.\n"
+               "There are {1} file ids left to download.\n"
                "Start download with 'download'.  List ids with 'list'").format(
                    start_len - end_len, end_len))
 
@@ -172,14 +172,14 @@ class GDCREPL(Cmd):
         if not token_path:
             print('No token specified to load.')
             if self.token:
-                print('Previously loaded token ({} bytes).'.format(
+                print('Previously loaded token ({0} bytes).'.format(
                     len(self.token)))
             else:
                 print('No token previously loaded')
             return
         with open(token_path, 'r') as f:
             self.token = f.read().strip()
-        print('Loaded token ({} bytes).'.format(len(self.token)))
+        print('Loaded token ({0} bytes).'.format(len(self.token)))
 
     def do_list(self, arg):
         """List all ids that have been registered to download.  You can
@@ -194,7 +194,7 @@ class GDCREPL(Cmd):
         else:
             print('File ids schedule to download:')
             for fid in self.file_ids:
-                print(' - {}'.format(fid))
+                print(' - {0}'.format(fid))
 
     def do_add(self, arg):
         """Add an id to the registry to be downloaded with the 'download'
@@ -262,7 +262,7 @@ class GDCREPL(Cmd):
 
         """
         os.chdir(os.path.expanduser(path))
-        print('Changed working directory to {}'.format(os.getcwd()))
+        print('Changed working directory to {0}'.format(os.getcwd()))
 
     def do_pwd(self, path):
         """Prints out the current working directory. This is where the data
@@ -328,13 +328,13 @@ class GDCREPL(Cmd):
                 ("UDT protocol not supported in interactive mode.  "
                  "Try running  'gdc-client download -u'"))
         else:
-            raise RuntimeError('Protocol ({}) not recognized'.format(
+            raise RuntimeError('Protocol ({0}) not recognized'.format(
                 self.settings['protocol']))
 
         try:
             downloaded, errors = client.download_files(self.file_ids)
         except Exception as e:
-            print('Download aborted: {}'.format(str(e)))
+            print('Download aborted: {0}'.format(str(e)))
         self._remove_ids(downloaded)
 
     def _get_upload_client(self, manifest):
@@ -374,10 +374,10 @@ class GDCREPL(Cmd):
             print(self.BASIC_COMMANDS)
             print(self.BASIC_HELP)
         else:
-            fname = 'do_{}'.format(arg)
+            fname = 'do_{0}'.format(arg)
             f = getattr(self, fname, None)
             if not f:
-                print('help: {} is not a command'.format(fname))
+                print('help: {0} is not a command'.format(fname))
             print self.format_docstring(f.__doc__)
 
     def do_set(self, arg):
@@ -396,8 +396,8 @@ class GDCREPL(Cmd):
 
         if attr not in self.settings:
             raise ValueError(
-                "{} not a valid setting. Try 'settings'.".format(attr))
-        print("Updating {} from '{}' to '{}'".format(
+                "{0} not a valid setting. Try 'settings'.".format(attr))
+        print("Updating {0} from '{1}' to '{2}'".format(
             attr, self.settings[attr], value))
         self.settings[attr] = value
 
@@ -418,7 +418,7 @@ class GDCREPL(Cmd):
         print('-- Settings --')
         pad = max([len(key) for key in self.settings])+1
         for key, val in self.settings.iteritems():
-            print('{}: {}'.format(key.ljust(pad), val))
+            print('{0}: {1}'.format(key.ljust(pad), val))
 
     def do_show(self, arg):
         """Alias for 'settings' commands.
