@@ -15,6 +15,7 @@ setup(
         'pyOpenSSL==16.2.0',
         'ndg-httpsclient==0.4.2',
         'pyasn1==0.2.3',
+        'setuptools==19.2',
     ],
     dependency_links=[
         'git+https://github.com/LabAdvComp/parcel.git@fddae5c09283ee5058fb9f43727a97a253de31fb#egg=parcel',
