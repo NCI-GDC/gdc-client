@@ -55,12 +55,12 @@ class GDCDownloadMixin(object):
                         filename = os.path.join(self.directory, filename.split('=')[1])
                     else:
                         filename = time.strftime("gdc-client-%Y%m%d-%H%M%S")
-                    log.info('Saving grouping {}/{}'.format(i+1, groupings_len))
+                    log.info('Saving grouping {0}/{1}'.format(i+1, groupings_len))
                     with open(filename, 'wb') as f:
                         for chunk in r:
                             f.write(chunk)
                 else:
-                    log.warning('[{}] unable to download group {} '\
+                    log.warning('[{0}] unable to download group {1} '\
                             .format(r.status_code, i+1))
 
                     errors.append(ids['ids'])
@@ -69,7 +69,7 @@ class GDCDownloadMixin(object):
                 r.close()
 
             except Exception as e:
-                log.warning('Grouping download failed: {}'.format(i+1))
+                log.warning('Grouping download failed: {0}'.format(i+1))
                 errors.append(ids['ids'])
                 log.warn(e)
                 return errors
@@ -93,7 +93,7 @@ class GDCDownloadMixin(object):
                 md5sum.update(f.read())
 
             if md5_dict[member_uuid] != md5sum.hexdigest():
-                log.error('UUID {} has invalid md5sum'.format(member_uuid))
+                log.error('UUID {0} has invalid md5sum'.format(member_uuid))
                 errors.append(member_uuid)
 
         # cleanup the tarfile at the end
@@ -118,10 +118,10 @@ class GDCDownloadMixin(object):
                 api.gdc.cancer.gov -> https://api.gdc.cancer.gov/
         """
         if not url.endswith('/'):
-            url = '{}/'.format(url)
+            url = '{0}/'.format(url)
 
         if not (url.startswith('https://') or url.startswith('http://')):
-            url = 'https://{}'.format(url)
+            url = 'https://{0}'.format(url)
 
         return url
 
