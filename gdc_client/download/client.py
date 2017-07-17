@@ -89,7 +89,7 @@ class GDCDownloadMixin(object):
             member_uuid = m.name.split('/')[0]
 
             md5sum = hashlib.md5()
-            with open(m.name, 'r') as f:
+            with open(m.name, 'rb') as f:
                 md5sum.update(f.read())
 
             if md5_dict[member_uuid] != md5sum.hexdigest():
