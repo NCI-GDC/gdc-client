@@ -69,6 +69,5 @@ package.json
 *.spec
 *.zip
 *.tar
-*.txt
 *.tsv
 *.DS_Store
