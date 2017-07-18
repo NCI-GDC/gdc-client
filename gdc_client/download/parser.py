@@ -78,7 +78,7 @@ def download(parser, args):
         Combine the smaller files (~KB range) into a grouped download.
         The API now supports combining UUID's into one uncompressed tarfile
         using the ?tarfile url parameter. Combining many smaller files into one
-        download drecreases the number of open connections we have to make
+        download decreases the number of open connections we have to make
     """
 
     files_not_downloaded = []
@@ -107,7 +107,7 @@ def download(parser, args):
     # the small files will be joined together and tarfiled
     index = 0
     if smalls:
-        log.info('Downlading smaller files...')
+        log.debug('Downloading smaller files...')
 
         # download smallfile grouped in an uncompressed tarfile
         small_errors = client.download_small_groups(smalls, md5_dict)
@@ -121,7 +121,7 @@ def download(parser, args):
     # client.download_files is located in parcel which calls
     # self.parallel_download, which goes back to to gdc-client's parallel_download
     if bigs:
-        log.info('Downloading larger files...')
+        log.debug('Downloading larger files...')
 
         # create URLs to send to parcel for download
         bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
@@ -154,7 +154,7 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
             should_retry = 'y'
 
         if should_retry.lower() == 'y':
-            log.info('{0} retries remaning...'.format(retry_amount))
+            log.info('{0} retries remaining...'.format(retry_amount))
             log.info('Retrying download... {0} in {1} seconds'.format(url, wait_time))
             retry_amount -= 1
             time.sleep(wait_time)

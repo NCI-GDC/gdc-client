@@ -66,47 +66,48 @@ class GDCIndexClient(object):
         # {uuid: md5sum}
         md5_dict = dict()
 
-        # deep copy of a set
-        given_ids = ids.copy()
-
         # collect the related/annotation files prior to any downloading
-        log.info('Collecting related files')
-        extra_files = set()
-        for uuid in given_ids:
-            # add in the related files
+        log.debug('Collecting related files')
+        potential_smalls = set()
+        for uuid in ids:
+            rf = None
+            af = None
+
+            # check for related files
             if related_files:
-                log.debug('Collecting related files for {0}'.format(uuid))
+                log.debug('Checking for related files for {0}'.format(uuid))
                 try:
                     rf = self._get_related_files(uuid)
-                    if rf:
-                        extra_files |= set(rf)
+                    if rf and uuid not in bigs:
+                        bigs.append(uuid)
                 except Exception as e:
                     log.warn('Unable to find related files for {0}'.format(uuid))
                     log.error(e)
 
-            # add in the annotations
+            # check for annotation files
             if annotations:
-                log.debug('Collecting annotation files for {0}'.format(uuid))
+                log.debug('Checking for annotation files for {0}'.format(uuid))
                 try:
                     af = self._get_annotations(uuid)
-                    if af:
-                        extra_files |= set(af)
+                    if af and uuid not in bigs:
+                        bigs.append(uuid)
                 except Exception as e:
                     log.warn('Unable to find annotation files for {0}'.format(uuid))
                     log.error(e)
 
-        # now the list of UUIDs contain the related files and annotations
-        # and can be grouped into bulk tarfile downloads if applicable
-        ids |= extra_files # set union
+            # if uuid has no related or annotation files
+            # then proceed to the small file sorting with them
+            if not af and not rf:
+                potential_smalls |= {uuid}
 
         filesize_query = {
             'fields': 'file_id,file_size,md5sum',
             'filters': '{"op":"and","content":['
                        '{"op":"in","content":{'
                        '"field":"files.file_id","value":'
-                       '["' + '","'.join(ids) + '"]}}]}',
+                       '["' + '","'.join(potential_smalls) + '"]}}]}',
             'from': '0',
-            'size': str(len(ids)), # one (potentially) big ol' request
+            'size': str(len(potential_smalls)), # one (potentially) big ol' request
         }
 
         filesize_url = urljoin(self.uri, 'v0/files')
@@ -114,20 +115,24 @@ class GDCIndexClient(object):
 
         # using a POST request lets us avoid the MAX URL character length limit
         r = requests.post(filesize_url, json=filesize_query, verify=False)
-        if r.status_code == requests.codes.ok:
-            hits = r.json()['data']['hits']
-            r.close()
+        json_resp = r.json()
+        if r.status_code != requests.codes.ok:
 
-        else:
-            log.error('Unable to get file sizes. Is this the correct URL? {0}'.format(filesize_url))
-            # bigs, smalls, errors
-            return [], [], list(ids)
+            filesize_url = urljoin(self.uri, 'v0/legacy/files')
+            r = requests.post(filesize_url, json=filesize_query, verify=False)
+            json_resp = r.json()
+
+            if r.status_code != requests.codes.ok or json_resp['data']['pagination']['count'] <= len(ids):
+                log.info('Unable to group all small files file sizes. Is this the correct URL? {0}'.format(self.uri))
+
+        hits = r.json()['data']['hits']
+        r.close()
 
         log.debug('Combining IDs into bulk download queries')
 
-        ######################################################################
+        ####################################################################
         # if the file size is less than chunk_size then group and tarfile it
-        ######################################################################
+        ####################################################################
 
         # this will get set to 0 on the first bundle_size > chunk_size
         i = -1
@@ -154,9 +159,9 @@ class GDCIndexClient(object):
                 bundle_size += int(h['file_size'])
 
         total_files = len(bigs) + sum([ len(s) for s in smalls ])
-        if len(given_ids) > total_files:
+        if len(potential_smalls) > total_files:
             log.warning('There are less files to download than originally given')
-            log.warning('Number of files originally given: {0}'.format(len(given_ids)))
+            log.warning('Number of files originally given: {0}'.format(len(potential_smalls)))
 
         log.info('{0} total number of files to download'.format(total_files))
         log.info('{0} groupings of files'.format(len(smalls)))
