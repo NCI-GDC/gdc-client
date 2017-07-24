@@ -103,8 +103,7 @@ class GDCDownloadMixin(object):
 
 
     def _post(self, path, headers={}, json={}, stream=True):
-        # type: (str, str, Dict[str]str, Dict[str]str, bool, bool) ->
-        #    requests.models.Response
+        # type: (str, Dict[str]str, Dict[str]str, bool) -> requests.models.Response
         """ custom post request that will query both active and legacy api
 
         return a python requests object to be handled by the method calling self._post
@@ -117,11 +116,11 @@ class GDCDownloadMixin(object):
             legacy = urlparse.urljoin(self.base_uri, 'legacy/{0}'.format(path))
 
             r = requests.post(
-               active,
-               stream=stream,
-               verify=self.verify,
-               json=json,
-               headers=headers,
+                active,
+                stream=stream,
+                verify=self.verify,
+                json=json,
+                headers=headers,
             )
             if r.status_code != requests.codes.ok:
                 # try legacy if active doesn't return OK
@@ -186,7 +185,7 @@ class GDCDownloadMixin(object):
 
 
     def download_small_groups(self, smalls):
-        # type: (List[str]) -> List[List[str]], int
+        # type: (List[str]) -> List[str], int
         """ Smalls are predetermined groupings of smaller file size files.
         They are grouped to reduce the number of open connections per download
 
@@ -211,7 +210,6 @@ class GDCDownloadMixin(object):
             successful_count += len(s)
             members = self._untar_file(tarfile_name)
             if self.md5_check:
-                import pdb; pdb.set_trace()
                 errors += self._md5_members(members)
 
         return errors, successful_count
@@ -248,6 +246,7 @@ class GDCDownloadMixin(object):
                     raise
 
     def fix_url(self, url):
+        # type: (str) -> str
         """ Fix a url to be used in the rest of the program
 
             example:

@@ -40,7 +40,6 @@ def get_client(args, index_client):
         'directory': args.dir,
         'segment_md5sums': args.segment_md5sums,
         'file_md5sum': args.file_md5sum,
-        # TODO remove debug argument - handled by logger
         'debug': logging.DEBUG in args.log_levels,
         'http_chunk_size': args.http_chunk_size,
         'save_interval': args.save_interval,

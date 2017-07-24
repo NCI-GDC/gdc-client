@@ -27,7 +27,7 @@ class GDCIndexClient(object):
         return int(self.metadata[file_id]['file_size'])
 
     def _get_metadata(self, uuids):
-        # type: List[str] -> None
+        # type: List[str] -> Dict[str]str
         """ Capture the metadata of all the UUIDs while making
             as little open connections as possible.
 
@@ -94,7 +94,7 @@ class GDCIndexClient(object):
 
 
     def separate_small_files(self, ids, chunk_size, related_files=False, annotations=False):
-        # type: (Set[str], int, bool, bool) -> (List[str], List[str] List[List[str]])
+        # type: (Set[str], int, bool, bool) -> (List[str], List[List[str]], List[str])
         """Separate the small files from the larger files in
         order to combine them into single downloads. This will reduce
         the number of open connections needed to be made for many small files
@@ -113,17 +113,17 @@ class GDCIndexClient(object):
             af = self.get_annotations(uuid)
 
             # check for related files
-            if rf and uuid not in bigs:
+            if related_files and rf and uuid not in bigs:
                 bigs.append(uuid)
 
             # check for annotation files
-            if af and uuid not in bigs:
+            if annotations and af and uuid not in bigs:
                 bigs.append(uuid)
 
             # if uuid has no related or annotation files
             # then proceed to the small file sorting with them
             if not af and not rf:
-                potential_smalls |= {uuid}
+                potential_smalls |= set(uuid)
 
         log.debug('Grouping ids by size')
 
