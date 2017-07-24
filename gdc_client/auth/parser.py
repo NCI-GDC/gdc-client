@@ -7,8 +7,6 @@ import platform
 from contextlib import closing
 
 
-logging.basicConfig()
-
 PLATFORM_HELP = {
     'Darwin': 'On OS X: chmod 600 {token_file}',
     'Linux': 'On Linux: chmod 600 {token_file}',

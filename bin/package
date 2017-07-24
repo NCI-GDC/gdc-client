@@ -22,27 +22,38 @@ with ZipFile('${zip_name}', 'w') as z:
     z.write('${binary_name}')"
 }
 
+while getopts ":d" opt; do
+    case $opt in
+        d)
+            DATE=`date "+%m_%d_%Y"`
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            ;;
+	esac
+done
+
 VENV_NAME="venv"
+BINARY_NAME="gdc-client"
+VENV_PATH=$VENV_NAME/bin/activate
 
 case `uname -s` in
     *NT*)
         # for use in git bash with all the nice unix utilities
         TARGET_ENVIRONMENT="Windows"
         BINARY_NAME="gdc-client.exe"
+
         #  this works in git bash
         alias python="winpty python"
+
         # why does windows have to be so different?
         VENV_PATH=$VENV_NAME/Scripts/activate
         ;;
     *Linux*)
         TARGET_ENVIRONMENT="Ubuntu"
-        BINARY_NAME="gdc-client"
-        VENV_PATH=$VENV_NAME/bin/activate
         ;;
     *Darwin*)
         TARGET_ENVIRONMENT="OSX"
-        BINARY_NAME="gdc-client"
-        VENV_PATH=$VENV_NAME/bin/activate
         ;;
 esac
 
@@ -51,6 +62,7 @@ source $VENV_PATH
 
 # setup.py is in previous dir
 cd ..
+
 # only way to enforce install order
 # installing the cryptography library from the dependency resolution
 # always breaks because it does not install the wheel
@@ -82,7 +94,11 @@ echo "Testing produced binary..."
 # Zip dist
 echo "Zipping binary..."
 cd dist
+
 ZIP_NAME="gdc-client_${VERSION}_${TARGET_ENVIRONMENT}_x64.zip"
+if [ -n "${DATE}" ]; then
+    ZIP_NAME="gdc-client_${VERSION}_${DATE}_${TARGET_ENVIRONMENT}_x64.zip"
+fi
 
 echo "The output zip file will be called ${ZIP_NAME}"
 compress $ZIP_NAME $BINARY_NAME

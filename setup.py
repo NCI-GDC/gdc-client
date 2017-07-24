@@ -16,7 +16,7 @@ setup(
         'pyasn1==0.2.3',
     ],
     dependency_links=[
-        'git+https://github.com/LabAdvComp/parcel.git@fddae5c09283ee5058fb9f43727a97a253de31fb#egg=parcel',
+        'git+https://github.com/LabAdvComp/parcel.git@0c220e84a5c783908e91940937dc94d1cab569c7#egg=parcel',
     ],
     scripts=[
         'bin/gdc-client',

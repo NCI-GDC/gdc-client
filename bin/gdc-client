@@ -9,7 +9,6 @@ from gdc_client.exceptions import ClientError
 
 from gdc_client import log as logger
 from gdc_client import auth
-from gdc_client import client
 from gdc_client import version
 
 
@@ -38,7 +37,7 @@ ERROR_MSG = ' '.join([
 
 
 def log_version_header(log):
-    log.info('gdc-client - {version}'.format(version=version.__version__))
+    log.debug('gdc-client - {version}'.format(version=version.__version__))
 
 
 if __name__ == '__main__':
@@ -61,7 +60,6 @@ if __name__ == '__main__':
 
     logger.parser.config(template)
     auth.parser.config(template)
-    client.parser.config(template)
 
     # Create and configure sub-command parsers.
     subparsers = parser.add_subparsers(
@@ -114,4 +112,4 @@ if __name__ == '__main__':
     else:
         # will hit this branch even if downloads fail
         # and debug is turned off
-        log.info('gdc-client exited normally')
+        log.debug('gdc-client exited normally')

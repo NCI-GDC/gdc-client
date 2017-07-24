@@ -7,11 +7,10 @@ from parcel import const
 from parcel import manifest
 import urlparse
 
-from .. import defaults
-import logging
-from .client import GDCUDTDownloadClient
-from .client import GDCHTTPDownloadClient
-from ..query.index import GDCIndexClient
+from gdc_client import defaults
+from gdc_client.download.client import GDCUDTDownloadClient
+from gdc_client.download.client import GDCHTTPDownloadClient
+from gdc_client.query.index import GDCIndexClient
 
 
 log = logging.getLogger('gdc-download')
@@ -33,10 +32,10 @@ def validate_args(parser, args):
         # We were asked to remove 'error' in the message
         parser.exit(status=1, message=UDT_SUPPORT)
 
-def get_client(args, token):
+def get_client(args, index_client):
     # args get converted into kwargs
     kwargs = {
-        'token': token,
+        'token': args.token_file,
         'n_procs': args.n_processes,
         'directory': args.dir,
         'segment_md5sums': args.segment_md5sums,
@@ -66,9 +65,9 @@ def get_client(args, token):
         )
     else:
     '''
-    server = args.server or defaults.tcp_url
     return GDCHTTPDownloadClient(
-            uri=server,
+            uri=args.server,
+            index_client=index_client,
             **kwargs
     )
 
@@ -81,8 +80,10 @@ def download(parser, args):
         download decreases the number of open connections we have to make
     """
 
-    files_not_downloaded = []
+    successful_download_count = 0
+    big_errors = []
     small_errors = []
+    total_download_count = 0
     validate_args(parser, args)
 
     # sets do not allow duplicates in a list
@@ -93,53 +94,56 @@ def download(parser, args):
             break
         ids.add(i['id'])
 
-    client = get_client(args, args.token_file)
+    index_client = GDCIndexClient(args.server)
+    client = get_client(args, index_client)
 
     # separate the smaller files from the larger files
-    md5_dict, bigs, smalls, errors = GDCIndexClient(client.base_uri)\
-            .separate_small_files(
-                    ids,
-                    args.http_chunk_size,
-                    client.related_files,
-                    client.annotations)
+    bigs, smalls, errors = index_client.separate_small_files(
+            ids, args.http_chunk_size, client.related_files, client.annotations)
 
     # the big files will be normal downloads
     # the small files will be joined together and tarfiled
-    index = 0
     if smalls:
         log.debug('Downloading smaller files...')
 
-        # download smallfile grouped in an uncompressed tarfile
-        small_errors = client.download_small_groups(smalls, md5_dict)
+        # download small file grouped in an uncompressed tarfile
+        small_errors, count = client.download_small_groups(smalls)
+        successful_download_count += count
 
-        while index < args.retry_amount and small_errors:
+        i = 0
+        while i < args.retry_amount and small_errors:
             time.sleep(args.wait_time)
             log.info('Retrying failed grouped downloads')
-            small_errors = client.download_small_groups(small_errors, md5_dict)
-            index += 1
+            small_errors, count = client.download_small_groups(small_errors)
+            successful_download_count += count
+            i += 1
 
     # client.download_files is located in parcel which calls
     # self.parallel_download, which goes back to to gdc-client's parallel_download
     if bigs:
-        log.debug('Downloading larger files...')
+        log.info('Downloading big files...')
 
         # create URLs to send to parcel for download
         bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
         downloaded_files, big_errors = client.download_files(bigs)
 
         if args.retry_amount > 0:
-
             for url in big_errors.keys():
                 not_downloaded_url = retry_download(client, url,
                         args.retry_amount, args.no_auto_retry, args.wait_time)
+
                 if not_downloaded_url:
-                    files_not_downloaded.append(not_downloaded_url)
+                    big_errors.append(not_downloaded_url)
 
-        if files_not_downloaded:
-            log.warning('Large files not able to be downloaded: {0}'
-                    .format(files_not_downloaded))
+        if big_errors:
+            log.warning('big files not able to be downloaded: {0}'
+                    .format(big_errors))
 
-    return small_errors or files_not_downloaded
+        successful_download_count += len(bigs) - len(big_errors)
+
+    log.info('Successfully downloaded {0} files'.format(successful_download_count))
+
+    return small_errors or big_errors
 
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
@@ -187,7 +191,7 @@ def config(parser):
                         help='Directory to download files to. '
                         'Defaults to current dir')
     parser.add_argument('-s', '--server', metavar='server', type=str,
-                        default=None,
+                        default=defaults.tcp_url,
                         help='The TCP server address server[:port]')
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
