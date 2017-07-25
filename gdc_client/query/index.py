@@ -123,7 +123,7 @@ class GDCIndexClient(object):
             # if uuid has no related or annotation files
             # then proceed to the small file sorting with them
             if not af and not rf:
-                potential_smalls |= set(uuid)
+                potential_smalls |= set([uuid])
 
         log.debug('Grouping ids by size')
 

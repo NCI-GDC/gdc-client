@@ -17,11 +17,14 @@ class GDCDownloadMixin(object):
 
     annotation_name = 'annotations.txt'
 
-    def download_related_files(self, file_id, directory):
+    def download_related_files(self, file_id):
+        # type: (str) -> None
         """Finds and downloads files related to the primary entity.
         :param str file_id: String containing the id of the primary entity
-        :param str directory: The primary entity's directory
         """
+
+        # The primary entity's directory
+        directory = os.path.join(self.base_directory, file_id)
 
         related_files = self.index.get_related_files(file_id)
         if related_files:
@@ -39,11 +42,14 @@ class GDCDownloadMixin(object):
         else:
             log.debug("No related files")
 
-    def download_annotations(self, file_id, directory):
+    def download_annotations(self, file_id):
+        # type: (str) -> None
         """Finds and downloads annotations related to the primary entity.
         :param str file_id: String containing the id of the primary entity
-        :param str directory: The primary entity's directory
         """
+
+        # The primary entity's directory
+        directory = os.path.join(self.base_directory, file_id)
 
         annotations = self.index.get_annotations(file_id)
         annotation_list = ','.join(annotations)
@@ -73,7 +79,7 @@ class GDCDownloadMixin(object):
 
         t = tarfile.open(tarfile_name)
         members = [ m for m in t.getmembers() if m.name != 'MANIFEST.txt' ]
-        t.extractall(members=members, path=self.directory)
+        t.extractall(members=members, path=self.base_directory)
         t.close()
 
         # cleanup
@@ -91,7 +97,7 @@ class GDCDownloadMixin(object):
             member_uuid = m.name.split('/')[0]
 
             md5sum = hashlib.md5()
-            filename = os.path.join(self.directory, m.name)
+            filename = os.path.join(self.base_directory, m.name)
             with open(filename, 'rb') as f:
                 md5sum.update(f.read())
 
@@ -167,11 +173,11 @@ class GDCDownloadMixin(object):
             return '', errors
 
         # {'content-disposition': 'filename=the_actual_filename.tar'}
-        tarfile_name = r.headers.get('content-disposition') or \
+        content_filename = r.headers.get('content-disposition') or \
                 r.headers.get('Content-Disposition')
 
-        if tarfile_name:
-            tarfile_name = os.path.join(self.directory, tarfile_name.split('=')[1])
+        if content_filename:
+            tarfile_name = os.path.join(self.base_directory, tarfile_name.split('=')[1])
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
@@ -186,15 +192,17 @@ class GDCDownloadMixin(object):
 
     def download_small_groups(self, smalls):
         # type: (List[str]) -> List[str], int
-        """ Smalls are predetermined groupings of smaller file size files.
-        They are grouped to reduce the number of open connections per download
+        """ Download small groups
 
+        Smalls are predetermined groupings of smaller file size files.
+        They are grouped to reduce the number of open connections per download.
         """
 
         successful_count = 0
         tarfile_name = None
         errors = []
         groupings_len = len(smalls)
+
         for i, s in enumerate(smalls):
             if len(s) == 0:
                 log.error('There are no files to download')
@@ -202,6 +210,7 @@ class GDCDownloadMixin(object):
 
             log.info('Saving grouping {0}/{1}'.format(i+1, groupings_len))
             tarfile_name, error = self._download_tarfile(s)
+
             if error:
                 errprs += error
                 time.sleep(0.5)
@@ -209,6 +218,7 @@ class GDCDownloadMixin(object):
 
             successful_count += len(s)
             members = self._untar_file(tarfile_name)
+
             if self.md5_check:
                 errors += self._md5_members(members)
 
@@ -218,27 +228,25 @@ class GDCDownloadMixin(object):
     def parallel_download(self, stream, download_related_files=None,
                           download_annotations=None, *args, **kwargs):
 
-        # This is a little confusing because gdc-client
-        # calls parcel's parallel_download, which is where
-        # most of the downloading takes place
+        # gdc-client calls parcel's parallel_download,
+        # which is where most of the downloading takes place
         file_id = stream.url.split('/')[-1]
-        directory = os.path.join(self.directory, file_id)
         super(GDCDownloadMixin, self).parallel_download(stream)
 
-        if download_related_files or\
+        if download_related_files or \
            download_related_files is None and self.related_files:
             try:
-                self.download_related_files(file_id, directory)
+                self.download_related_files(file_id)
             except Exception as e:
                 log.warn('Unable to download related files for {0}: {1}'.format(
                     file_id, e))
                 if self.debug:
                     raise
 
-        if download_annotations or\
+        if download_annotations or \
            download_annotations is None and self.annotations:
             try:
-                self.download_annotations(file_id, directory)
+                self.download_annotations(file_id)
             except Exception as e:
                 log.warn('Unable to download annotations for {0}: {1}'.format(
                     file_id, e))
@@ -273,9 +281,9 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
         self.md5_check = kwargs.get('file_md5sum')
         self.index = index_client
 
-        self.directory = os.path.abspath(time.strftime("gdc-client-%Y%m%d-%H%M%S"))
+        self.base_directory = os.path.abspath(time.strftime("gdc-client-%Y%m%d-%H%M%S"))
         if kwargs.get('directory'):
-            self.directory = kwargs.get('directory')
+            self.base_directory = kwargs.get('directory')
 
         super(GDCDownloadMixin, self).__init__(self.data_uri, *args, **kwargs)
 
