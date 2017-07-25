@@ -1,16 +1,16 @@
-import argparse
-import logging # needed for logging.DEBUG flag
-import time
-
-from functools import partial
-from parcel import const
-from parcel import manifest
-import urlparse
-
 from gdc_client import defaults
 from gdc_client.download.client import GDCUDTDownloadClient
 from gdc_client.download.client import GDCHTTPDownloadClient
 from gdc_client.query.index import GDCIndexClient
+from functools import partial
+from parcel import const
+from parcel import manifest
+
+import argparse
+import logging
+import time
+import urlparse
+
 
 
 log = logging.getLogger('gdc-download')
@@ -135,7 +135,7 @@ def download(parser, args):
                     big_errors.append(not_downloaded_url)
 
         if big_errors:
-            log.warning('big files not able to be downloaded: {0}'
+            log.warning('Big files not able to be downloaded: {0}'
                     .format(big_errors))
 
         successful_download_count += len(bigs) - len(big_errors)
@@ -147,7 +147,7 @@ def download(parser, args):
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
 
-    log.info('Retrying download {0}'.format(url))
+    log.debug('Retrying download {0}'.format(url))
 
     error = True
     while 0 < retry_amount and error:
@@ -157,21 +157,21 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
             should_retry = 'y'
 
         if should_retry.lower() == 'y':
-            log.info('{0} retries remaining...'.format(retry_amount))
-            log.info('Retrying download... {0} in {1} seconds'.format(url, wait_time))
+            log.debug('{0} retries remaining...'.format(retry_amount))
+            log.debug('Retrying download... {0} in {1} seconds'.format(url, wait_time))
             retry_amount -= 1
             time.sleep(wait_time)
-            # client.download_files accepts a list of uuids to download
+            # client.download_files accepts a list of urls to download
             # but we want to only try one at a time
             _, e = client.download_files([url])
             if not e:
-                log.info('Successfully downloaded {0}!'.format(url))
+                log.debug('Successfully downloaded {0}!'.format(url))
                 return
         else:
             error = False
             retry_amount = 0
 
-    log.warning('Unable to download file {0}'.format(url))
+    log.error('Unable to download file {0}'.format(url))
     return url
 
 
@@ -185,8 +185,7 @@ def config(parser):
     #                     General options
     #############################################################
 
-    parser.add_argument('-d', '--dir',
-                        default=None,
+    parser.add_argument('-d', '--dir', default='.',
                         help='Directory to download files to. '
                         'Defaults to current dir')
     parser.add_argument('-s', '--server', metavar='server', type=str,
@@ -194,10 +193,11 @@ def config(parser):
                         help='The TCP server address server[:port]')
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
-                        help="Don't calculate inbound segment md5sums and/or don't verify md5sums on restart")
+                        help='Do not calculate inbound segment md5sums'
+                        'and/or do not verify md5sums on restart')
     parser.add_argument('--no-file-md5sum', dest='file_md5sum',
                         action='store_false',
-                        help="Don't verify file md5sum after download")
+                        help='Do not verify file md5sum after download')
     parser.add_argument('-n', '--n-processes', type=int,
                         default=defaults.processes,
                         help='Number of client connections.')
@@ -206,7 +206,9 @@ def config(parser):
                         help='Size in bytes of standard HTTP block size.')
     parser.add_argument('--save-interval', type=int,
                         default=const.SAVE_INTERVAL,
-                        help='The number of chunks after which to flush state file. A lower save interval will result in more frequent printout but lower performance.')
+                        help='The number of chunks after which to flush state '
+                        'file. A lower save interval will result in more '
+                        'frequent printout but lower performance.')
     parser.add_argument('--no-verify', dest='no_verify', action='store_true',
                         help='Perform insecure SSL connection and transfer')
     parser.add_argument('--no-related-files', action='store_false',

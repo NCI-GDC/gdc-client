@@ -1,7 +1,9 @@
-import requests
 from urlparse import urljoin
 
 import logging
+import requests
+
+
 log = logging.getLogger('query')
 
 class GDCIndexClient(object):

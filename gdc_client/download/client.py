@@ -1,15 +1,15 @@
+from parcel import HTTPClient, UDTClient, utils
+from parcel.download_stream import DownloadStream
 from StringIO import StringIO
+
 import hashlib
+import logging
 import os
 import requests
 import tarfile
 import time
 import urlparse
 
-from parcel import HTTPClient, UDTClient, utils
-from parcel.download_stream import DownloadStream
-
-import logging
 
 log = logging.getLogger('gdc-download')
 
@@ -177,7 +177,7 @@ class GDCDownloadMixin(object):
                 r.headers.get('Content-Disposition')
 
         if content_filename:
-            tarfile_name = os.path.join(self.base_directory, tarfile_name.split('=')[1])
+            tarfile_name = os.path.join(self.base_directory, content_filename.split('=')[1])
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
@@ -273,17 +273,14 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
     def __init__(self, uri, index_client, download_related_files=True,
                  download_annotations=True, *args, **kwargs):
 
+        self.annotations = download_annotations
+        self.base_directory = kwargs.get('directory')
         self.base_uri = self.fix_url(uri)
         self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
-        self.related_files = download_related_files
-        self.annotations = download_annotations
-        self.verify = kwargs.get('verify')
-        self.md5_check = kwargs.get('file_md5sum')
         self.index = index_client
-
-        self.base_directory = os.path.abspath(time.strftime("gdc-client-%Y%m%d-%H%M%S"))
-        if kwargs.get('directory'):
-            self.base_directory = kwargs.get('directory')
+        self.md5_check = kwargs.get('file_md5sum')
+        self.related_files = download_related_files
+        self.verify = kwargs.get('verify')
 
         super(GDCDownloadMixin, self).__init__(self.data_uri, *args, **kwargs)
 
