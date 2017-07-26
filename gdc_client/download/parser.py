@@ -4,6 +4,7 @@ from gdc_client.download.client import GDCHTTPDownloadClient
 from gdc_client.query.index import GDCIndexClient
 from functools import partial
 from parcel import const
+from parcel import colored
 from parcel import manifest
 
 import argparse
@@ -112,7 +113,7 @@ def download(parser, args):
         i = 0
         while i < args.retry_amount and small_errors:
             time.sleep(args.wait_time)
-            log.info('Retrying failed grouped downloads')
+            log.debug('Retrying failed grouped downloads')
             small_errors, count = client.download_small_groups(small_errors)
             successful_download_count += count
             i += 1
@@ -120,7 +121,7 @@ def download(parser, args):
     # client.download_files is located in parcel which calls
     # self.parallel_download, which goes back to to gdc-client's parallel_download
     if bigs:
-        log.info('Downloading big files...')
+        log.debug('Downloading big files...')
 
         # create URLs to send to parcel for download
         bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
@@ -140,7 +141,9 @@ def download(parser, args):
 
         successful_download_count += len(bigs) - len(big_errors)
 
-    log.info('Successfully downloaded {0} files'.format(successful_download_count))
+    log.info('{0}: {1}'.format(
+        colored('Successfully downloaded', 'green'),
+        successful_download_count))
 
     return small_errors or big_errors
 

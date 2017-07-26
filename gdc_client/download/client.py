@@ -1,11 +1,13 @@
 from parcel import HTTPClient, UDTClient, utils
 from parcel.download_stream import DownloadStream
+from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from StringIO import StringIO
 
 import hashlib
 import logging
 import os
 import requests
+import sys
 import tarfile
 import time
 import urlparse
@@ -198,6 +200,7 @@ class GDCDownloadMixin(object):
         They are grouped to reduce the number of open connections per download.
         """
 
+
         successful_count = 0
         tarfile_name = None
         errors = []
@@ -208,7 +211,13 @@ class GDCDownloadMixin(object):
                 log.error('There are no files to download')
                 return
 
-            log.info('Saving grouping {0}/{1}'.format(i+1, groupings_len))
+            pbar = ProgressBar(widgets=[
+                Percentage(), ' ',
+                Bar(marker='#', left='[', right=']'), ' ',
+                ETA(), ' ', FileTransferSpeed(), ' '], maxval=1, fd=sys.stdout)
+            pbar.start()
+
+            log.debug('Saving grouping {0}/{1}'.format(i+1, groupings_len))
             tarfile_name, error = self._download_tarfile(s)
 
             if error:
@@ -221,6 +230,8 @@ class GDCDownloadMixin(object):
 
             if self.md5_check:
                 errors += self._md5_members(members)
+            pbar.update(1)
+            pbar.finish()
 
         return errors, successful_count
 

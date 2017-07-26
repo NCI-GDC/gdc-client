@@ -12,21 +12,27 @@ class GDCIndexClient(object):
         self.uri = uri
         self.metadata = dict()
 
-    def get_related_files(self, file_id):
+    def get_related_files(self, uuid):
         # type: str -> List[str]
-        return self.metadata[file_id]['related_files']
+        if uuid in self.metadata.keys():
+            return self.metadata[uuid]['related_files']
+        return []
 
-    def get_annotations(self, file_id):
+    def get_annotations(self, uuid):
         # type: str -> List[str]
-        return self.metadata[file_id]['annotations']
+        if uuid in self.metadata.keys():
+            return self.metadata[uuid]['annotations']
+        return []
 
-    def get_md5sum(self, file_id):
+    def get_md5sum(self, uuid):
         # type: str -> str
-        return self.metadata[file_id]['md5sum']
+        if uuid in self.metadata.keys():
+            return self.metadata[uuid]['md5sum']
 
-    def get_filesize(self, file_id):
-        # type: str -> int
-        return int(self.metadata[file_id]['file_size'])
+    def get_filesize(self, uuid):
+        # type: str -> long
+        if uuid in self.metadata.keys():
+            return long(self.metadata[uuid]['file_size'])
 
     def _get_metadata(self, uuids):
         # type: List[str] -> Dict[str]str
@@ -54,29 +60,35 @@ class GDCIndexClient(object):
             'size': str(len(uuids)), # one big request
         }
 
-        metadata_url = urljoin(self.uri, 'v0/files')
+        active_meta_url = urljoin(self.uri, 'v0/files')
+        legacy_meta_url = urljoin(self.uri, 'v0/legacy/files')
+
+        active_json_resp = dict()
+        legacy_json_resp = dict()
+
 
         # using a POST request lets us avoid the MAX URL character length limit
-        r = requests.post(metadata_url, json=metadata_query, verify=False)
-        json_resp = r.json()
-        json_count = json_resp['data']['pagination']['count']
+        r_active = requests.post(active_meta_url, json=metadata_query, verify=False)
+        r_legacy = requests.post(legacy_meta_url, json=metadata_query, verify=False)
 
-        if r.status_code != requests.codes.ok:
+        if r_active.status_code == requests.codes.ok:
+            active_json_resp = r_active.json()
 
-            metadata_url = urljoin(self.uri, 'v0/legacy/files')
-            r = requests.post(metadata_url, json=metadata_query, verify=False)
-            json_resp = r.json()
-            json_count = json_resp['data']['pagination']['count']
+        if r_legacy.status_code == requests.codes.ok:
+            legacy_json_resp = r_legacy.json()
 
-            if r.status_code != requests.codes.ok:
-                # will be handled by the outermost try block in gdc-client file
-                raise Exception('Unable to collect metadata information' \
-                        'Is this the correct url? {0}'.format(self.uri))
+        r_active.close()
+        r_legacy.close()
 
-        hits = r.json()['data']['hits']
-        r.close()
+        if not active_json_resp.get('data') and not legacy_json_resp.get('data'):
+            log.debug('Unable to retrieve file metadata information. '
+                        'continuing downloading as if they were large files')
+            return self.metadata
 
-        for h in hits:
+        active_hits = active_json_resp['data']['hits']
+        legacy_hits = legacy_json_resp['data']['hits']
+
+        for h in active_hits + legacy_hits:
             related_returns = h.get('index_files', []) + h.get('metadata_files', [])
             related_files = [ r['file_id'] for r in related_returns ]
 
@@ -85,12 +97,14 @@ class GDCIndexClient(object):
             # set the metadata as a class data member so that it can be
             # references as much as needed without needing to calculate
             # everything over again
-            self.metadata[h['id']] = {
-                'file_size':     h['file_size'],
-                'md5sum':        h['md5sum'],
-                'annotations':   annotations,
-                'related_files': related_files,
-            }
+            if h['id'] not in self.metadata.keys():
+                # don't want to overwrite
+                self.metadata[h['id']] = {
+                    'file_size':     h['file_size'],
+                    'md5sum':        h['md5sum'],
+                    'annotations':   annotations,
+                    'related_files': related_files,
+                }
 
         return self.metadata
 
@@ -108,8 +122,13 @@ class GDCIndexClient(object):
 
         # go through all the UUIDs and pick out the ones with
         # relate and annotation files so they can be handled by parcel
+        log.debug('Grouping ids by size')
+
         self._get_metadata(ids)
-        for uuid in self.metadata:
+        for uuid in ids:
+            if uuid not in self.metadata.keys():
+                bigs.append(uuid)
+                continue
 
             rf = self.get_related_files(uuid)
             af = self.get_annotations(uuid)
@@ -126,8 +145,6 @@ class GDCIndexClient(object):
             # then proceed to the small file sorting with them
             if not af and not rf:
                 potential_smalls |= set([uuid])
-
-        log.debug('Grouping ids by size')
 
         # the following line is to trigger the first if statement
         # to start the process off properly
@@ -157,7 +174,7 @@ class GDCIndexClient(object):
             log.warning('There are less files to download than originally given')
             log.warning('Number of files originally given: {0}'.format(len(potential_smalls)))
 
-        log.info('{0} total number of files to download'.format(total_count))
-        log.info('{0} groupings of files'.format(len(smalls)))
+        log.debug('{0} total number of files to download'.format(total_count))
+        log.debug('{0} groupings of files'.format(len(smalls)))
 
         return bigs, smalls, []
