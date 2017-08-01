@@ -243,10 +243,10 @@ class QueryIndexTest(TestCase):
                     related_files=True,
                     annotations=True)
 
-        assert index.get_filesize(small) == small_file_size
-        assert index.get_md5sum(small) == small_md5
-        assert index.get_related_files(small) == []
-        assert index.get_annotations(small) == []
+        assert index.get_filesize(invalid) == None
+        assert index.get_md5sum(invalid) == None
+        assert index.get_related_files(invalid) == []
+        assert index.get_annotations(invalid) == []
 
         assert bigs == [invalid]
         assert smalls == []
