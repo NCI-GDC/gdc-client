@@ -35,8 +35,13 @@ class GDCDownloadMixin(object):
             for related_file in related_files:
 
                 log.debug("related file {0}".format(related_file))
-                stream = DownloadStream(
-                    related_file, self.data_uri, directory, self.token)
+                related_file_url = urlparse.urljoin(self.data_uri, related_file)
+                stream = DownloadStream(related_file_url, directory, self.token)
+
+                # TODO: un-set this when parcel is moved to dtt
+                # hacky way to get it working like the old dtt
+                stream.directory = directory
+
                 self._download(self.n_procs, stream)
 
                 if os.path.isfile(stream.temp_path):
