@@ -98,7 +98,7 @@ def download(parser, args):
     client = get_client(args, index_client)
 
     # separate the smaller files from the larger files
-    bigs, smalls, errors = index_client.separate_small_files(
+    bigs, smalls = index_client.separate_small_files(
             ids, args.http_chunk_size, client.related_files, client.annotations)
 
     # the big files will be normal downloads

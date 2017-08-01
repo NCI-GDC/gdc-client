@@ -177,4 +177,4 @@ class GDCIndexClient(object):
         log.debug('{0} total number of files to download'.format(total_count))
         log.debug('{0} groupings of files'.format(len(smalls)))
 
-        return bigs, smalls, []
+        return bigs, smalls
