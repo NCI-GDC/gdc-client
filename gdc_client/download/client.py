@@ -167,16 +167,17 @@ class GDCDownloadMixin(object):
         # POST request avoids the MAX LEN character limit for URLs
         r = self._post(path='data?tarfile', headers=headers, json=ids)
 
-        if not r:
+        if r.status_code == requests.codes.bad:
             log.error('Unable to connect to the API')
             log.error('Is this the correct URL? {0}'.format(self.base_uri))
-            errors.append(small_files)
+
+        elif r.status_code == requests.codes.forbidden:
+            log.error('[{0}] Please provide your token to' \
+                'download some of these files'.format(r.status_code))
 
         if r.status_code != requests.codes.ok:
-            log.warning('[{0}] unable to download group {1} '\
-                    .format(r.status_code, i+1))
+            log.warning('[{0}] Unable to download group'.format(r.status_code))
             errors.append(ids['ids'])
-
             return '', errors
 
         # {'content-disposition': 'filename=the_actual_filename.tar'}
@@ -226,7 +227,7 @@ class GDCDownloadMixin(object):
             tarfile_name, error = self._download_tarfile(s)
 
             if error:
-                errprs += error
+                errors += error
                 time.sleep(0.5)
                 continue
 

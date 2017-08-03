@@ -110,7 +110,7 @@ class GDCIndexClient(object):
 
 
     def separate_small_files(self, ids, chunk_size, related_files=False, annotations=False):
-        # type: (Set[str], int, bool, bool) -> (List[str], List[List[str]], List[str])
+        # type: (Set[str], int, bool, bool) -> (List[str], List[List[str]])
         """Separate the small files from the larger files in
         order to combine them into single downloads. This will reduce
         the number of open connections needed to be made for many small files
