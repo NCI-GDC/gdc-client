@@ -102,6 +102,7 @@ class GDCDownloadMixin(object):
         errors = []
         for m in members:
             member_uuid = m.name.split('/')[0]
+            log.debug('Validating checksum for {0}...'.format(member_uuid))
 
             md5sum = hashlib.md5()
             filename = os.path.join(self.base_directory, m.name)
