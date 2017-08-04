@@ -1,0 +1,2 @@
+httmock==1.2.6
+pytest==2.7.2
