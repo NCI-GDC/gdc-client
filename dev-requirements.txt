@@ -1,2 +1,2 @@
-httmock==1.2.6
+flask==0.12.2
 pytest==2.7.2

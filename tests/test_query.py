@@ -1,14 +1,29 @@
-from conftest import md5, meta_mock, uuids
+from conftest import md5, uuids
 from gdc_client.query.index import GDCIndexClient
-from httmock import HTTMock
+from multiprocessing import Process
 from parcel.const import HTTP_CHUNK_SIZE
 from unittest import TestCase
 
-base_url = 'https://api.gdc.cancer.gov/'
+import mock_server
+import time
+
+# default values for flask
+server_host = 'http://127.0.0.1'
+server_port = '5000'
+
+# same as --server flag for gdc-client
+base_url = server_host + ':' + server_port
 
 class QueryIndexTest(TestCase):
-    def setup(self):
-        pass
+    def setUp(self):
+        self.server = Process(target=mock_server.app.run)
+        self.server.start()
+
+        # give the server time to start
+        time.sleep(0.5)
+
+    def tearDown(self):
+        self.server.terminate()
 
     ############ not set ############
     def test_no_metadata_get_related_files(self):
@@ -29,42 +44,54 @@ class QueryIndexTest(TestCase):
         results = index.get_md5sum(uuids['small'])
         assert results == None
 
+    def test_no_metadata_get_filesize(self):
+        index = GDCIndexClient(uri=base_url)
+
+        results = index.get_filesize(uuids['small'])
+        assert results == None
+
+    def test_no_metadata_get_filesize(self):
+        index = GDCIndexClient(uri=base_url)
+
+        results = index.get_access(uuids['small'])
+        assert results == None
+
     ############ mock metadata ############
     def test_full_mock_get_metadata(self):
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            index._get_metadata(['small'])
+        index = GDCIndexClient(uri=base_url)
+        index._get_metadata(['small'])
 
+        assert index.get_access('small') == uuids['small']['access']
         assert index.get_filesize('small') == uuids['small']['file_size']
         assert index.get_md5sum('small') == uuids['small']['md5sum']
         assert index.get_related_files('small') == uuids['small']['related_files']
         assert index.get_annotations('small') == uuids['small']['annotations']
 
     def test_no_rel_no_ann_mock_get_metadata(self):
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            index._get_metadata(['small_no_friends'])
+        index = GDCIndexClient(uri=base_url)
+        index._get_metadata(['small_no_friends'])
 
+        assert index.get_access('small_no_friends') == uuids['small_no_friends']['access']
         assert index.get_filesize('small_no_friends') == uuids['small_no_friends']['file_size']
         assert index.get_md5sum('small_no_friends') == uuids['small_no_friends']['md5sum']
         assert index.get_related_files('small_no_friends') == []
         assert index.get_annotations('small_no_friends') == []
 
     def test_ann_mock_get_metadata(self):
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            index._get_metadata(['small_ann'])
+        index = GDCIndexClient(uri=base_url)
+        index._get_metadata(['small_ann'])
 
+        assert index.get_access('small_ann') == uuids['small_ann']['access']
         assert index.get_filesize('small_ann') == uuids['small_ann']['file_size']
         assert index.get_md5sum('small_ann') == uuids['small_ann']['md5sum']
         assert index.get_related_files('small_ann') == []
         assert index.get_annotations('small_ann') == uuids['small_ann']['annotations']
 
     def test_rel_mock_get_metadata(self):
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            index._get_metadata(['small_rel'])
+        index = GDCIndexClient(uri=base_url)
+        index._get_metadata(['small_rel'])
 
+        assert index.get_access('small_rel') == uuids['small_rel']['access']
         assert index.get_filesize('small_rel') == uuids['small_rel']['file_size']
         assert index.get_md5sum('small_rel') == uuids['small_rel']['md5sum']
         assert index.get_related_files('small_rel') == uuids['small_rel']['related_files']
@@ -81,14 +108,14 @@ class QueryIndexTest(TestCase):
         NOTE: This will probably change in the future.
         """
 
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            bigs, smalls = index.separate_small_files(
-                    ['small'],
-                    HTTP_CHUNK_SIZE,
-                    related_files=True,
-                    annotations=True)
+        index = GDCIndexClient(uri=base_url)
+        bigs, smalls = index.separate_small_files(
+                ['small'],
+                HTTP_CHUNK_SIZE,
+                related_files=True,
+                annotations=True)
 
+        assert index.get_access('small') == uuids['small']['access']
         assert index.get_filesize('small') == uuids['small']['file_size']
         assert index.get_md5sum('small') == uuids['small']['md5sum']
         assert index.get_related_files('small') == uuids['small']['related_files']
@@ -98,14 +125,14 @@ class QueryIndexTest(TestCase):
         assert smalls == []
 
     def test_small_no_rel_no_ann_separate_small_files(self):
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            bigs, smalls = index.separate_small_files(
-                    ['small_no_friends'],
-                    HTTP_CHUNK_SIZE,
-                    related_files=True,
-                    annotations=True)
+        index = GDCIndexClient(uri=base_url)
+        bigs, smalls = index.separate_small_files(
+                ['small_no_friends'],
+                HTTP_CHUNK_SIZE,
+                related_files=True,
+                annotations=True)
 
+        assert index.get_access('small_no_friends') == uuids['small_no_friends']['access']
         assert index.get_filesize('small_no_friends') == uuids['small_no_friends']['file_size']
         assert index.get_md5sum('small_no_friends') == uuids['small_no_friends']['md5sum']
         assert index.get_related_files('small_no_friends') == []
@@ -121,14 +148,14 @@ class QueryIndexTest(TestCase):
 
         invalid = 'invalid uuid'
 
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            bigs, smalls = index.separate_small_files(
-                    [invalid],
-                    HTTP_CHUNK_SIZE,
-                    related_files=True,
-                    annotations=True)
+        index = GDCIndexClient(uri=base_url)
+        bigs, smalls = index.separate_small_files(
+                [invalid],
+                HTTP_CHUNK_SIZE,
+                related_files=True,
+                annotations=True)
 
+        assert index.get_access(invalid) == None
         assert index.get_filesize(invalid) == None
         assert index.get_md5sum(invalid) == None
         assert index.get_related_files(invalid) == []
@@ -140,14 +167,14 @@ class QueryIndexTest(TestCase):
 
     ############ mock separate small files (bigs) ############
     def test_big_full_separate_small_files(self):
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            bigs, smalls = index.separate_small_files(
-                    ['big'],
-                    HTTP_CHUNK_SIZE,
-                    related_files=True,
-                    annotations=True)
+        index = GDCIndexClient(uri=base_url)
+        bigs, smalls = index.separate_small_files(
+                ['big'],
+                HTTP_CHUNK_SIZE,
+                related_files=True,
+                annotations=True)
 
+        assert index.get_access('big') == uuids['big']['access']
         assert index.get_filesize('big') == uuids['big']['file_size']
         assert index.get_md5sum('big') == uuids['big']['md5sum']
         assert index.get_related_files('big') == uuids['big']['related_files']
@@ -158,19 +185,20 @@ class QueryIndexTest(TestCase):
 
     ############ mock separate small files (bigs) ############
     def test_big_and_small_full_separate_small_files(self):
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            bigs, smalls = index.separate_small_files(
-                    ['big', 'small'],
-                    HTTP_CHUNK_SIZE,
-                    related_files=True,
-                    annotations=True)
+        index = GDCIndexClient(uri=base_url)
+        bigs, smalls = index.separate_small_files(
+                ['big', 'small'],
+                HTTP_CHUNK_SIZE,
+                related_files=True,
+                annotations=True)
 
+        assert index.get_access('big') == uuids['big']['access']
         assert index.get_filesize('big') == uuids['big']['file_size']
         assert index.get_md5sum('big') == uuids['big']['md5sum']
         assert index.get_related_files('big') == uuids['big']['related_files']
         assert index.get_annotations('big') == uuids['big']['annotations']
 
+        assert index.get_access('small') == uuids['small']['access']
         assert index.get_filesize('small') == uuids['small']['file_size']
         assert index.get_md5sum('small') == uuids['small']['md5sum']
         assert index.get_related_files('small') == uuids['small']['related_files']
@@ -182,19 +210,20 @@ class QueryIndexTest(TestCase):
         assert smalls == []
 
     def test_big_and_small_no_rel_no_ann_separate_small_files(self):
-        with HTTMock(meta_mock):
-            index = GDCIndexClient(uri=base_url)
-            bigs, smalls = index.separate_small_files(
-                    ['big_no_friends', 'small_no_friends'],
-                    HTTP_CHUNK_SIZE,
-                    related_files=True,
-                    annotations=True)
+        index = GDCIndexClient(uri=base_url)
+        bigs, smalls = index.separate_small_files(
+                ['big_no_friends', 'small_no_friends'],
+                HTTP_CHUNK_SIZE,
+                related_files=True,
+                annotations=True)
 
+        assert index.get_access('big_no_friends') == uuids['big_no_friends']['access']
         assert index.get_filesize('big_no_friends') == uuids['big_no_friends']['file_size']
         assert index.get_md5sum('big_no_friends') == uuids['big_no_friends']['md5sum']
         assert index.get_related_files('big_no_friends') == []
         assert index.get_annotations('big_no_friends') == []
 
+        assert index.get_access('small_no_friends') == uuids['small_no_friends']['access']
         assert index.get_filesize('small_no_friends') == uuids['small_no_friends']['file_size']
         assert index.get_md5sum('small_no_friends') == uuids['small_no_friends']['md5sum']
         assert index.get_related_files('small_no_friends') == []

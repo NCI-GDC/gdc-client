@@ -92,7 +92,7 @@ class GDCDownloadMixin(object):
         # cleanup
         os.remove(tarfile_name)
 
-        return members
+        return [ m.name for m in members ]
 
 
     def _md5_members(self, members):
@@ -101,11 +101,11 @@ class GDCDownloadMixin(object):
 
         errors = []
         for m in members:
-            member_uuid = m.name.split('/')[0]
+            member_uuid = m.split('/')[0]
             log.debug('Validating checksum for {0}...'.format(member_uuid))
 
             md5sum = hashlib.md5()
-            filename = os.path.join(self.base_directory, m.name)
+            filename = os.path.join(self.base_directory, m)
             with open(filename, 'rb') as f:
                 md5sum.update(f.read())
 
@@ -173,8 +173,12 @@ class GDCDownloadMixin(object):
             log.error('Is this the correct URL? {0}'.format(self.base_uri))
 
         elif r.status_code == requests.codes.forbidden:
-            log.error('[{0}] Please provide your token to' \
-                'download some of these files'.format(r.status_code))
+            # since the files are grouped by access control, that means
+            # a group is entirely controlled or open access.
+            # If it fails to download because you don't have access then
+            # don't bother trying again
+            log.error(r.text)
+            return '', []
 
         if r.status_code != requests.codes.ok:
             log.warning('[{0}] Unable to download group'.format(r.status_code))
@@ -186,7 +190,9 @@ class GDCDownloadMixin(object):
                 r.headers.get('Content-Disposition')
 
         if content_filename:
-            tarfile_name = os.path.join(self.base_directory, content_filename.split('=')[1])
+            tarfile_name = os.path.join(
+                    self.base_directory,
+                    content_filename.split('=')[1])
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
@@ -214,9 +220,9 @@ class GDCDownloadMixin(object):
         groupings_len = len(smalls)
 
         for i, s in enumerate(smalls):
-            if len(s) == 0:
+            if len(s) == 0 or s == []:
                 log.error('There are no files to download')
-                return
+                return [], 0
 
             pbar = ProgressBar(widgets=[
                 Percentage(), ' ',
@@ -226,6 +232,11 @@ class GDCDownloadMixin(object):
 
             log.debug('Saving grouping {0}/{1}'.format(i+1, groupings_len))
             tarfile_name, error = self._download_tarfile(s)
+
+            # this will happen in the result of an
+            # error that shouldn't be retried
+            if tarfile_name == '':
+                continue
 
             if error:
                 errors += error

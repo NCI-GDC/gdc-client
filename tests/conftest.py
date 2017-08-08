@@ -1,7 +1,8 @@
 from parcel.const import HTTP_CHUNK_SIZE
-from httmock import urlmatch
+from StringIO import StringIO
 
 import hashlib
+import tarfile
 import pytest
 
 def md5(iterable):
@@ -9,6 +10,27 @@ def md5(iterable):
     for chunk in iterable:
         md5.update(chunk)
     return md5.hexdigest()
+
+def make_tarfile(ids, tarfile_name='temp.tar', write_mode='w'):
+    """Make a tarfile for the purposes of testing tarfile methods"""
+
+    # normally small files don't get grouped together if they have
+    # related or annotation files, but for this test it's ok
+
+    with tarfile.open(tarfile_name, write_mode) as t:
+        for i in ids:
+            s = StringIO()
+            s.write(uuids[i]['contents'])
+            s.seek(0)
+
+            info = tarfile.TarInfo(name=i)
+            info.size = len(s.buf)
+
+            t.addfile(fileobj=s, tarinfo=info)
+            s.close()
+
+    return tarfile_name
+
 
 small_content_1 = 'small content 1'
 small_content_2 = 'small content 2'
@@ -26,23 +48,27 @@ uuids = {
         'md5sum': md5(small_content_1),
         'annotations': ['annotation 1'],
         'related_files': ['related 1'],
+        'access': 'controlled',
     },
     'small_ann': {
         'contents': small_content_2,
         'file_size': len(small_content_2),
         'md5sum': md5(small_content_2),
         'annotations': ['annotation 2'],
+        'access': 'open',
     },
     'small_rel': {
         'contents': small_content_3,
         'file_size': len(small_content_3),
         'md5sum': md5(small_content_3),
         'related_files': ['related 3'],
+        'access': 'open',
     },
     'small_no_friends': { # :'(
         'contents': small_content_4,
         'file_size': len(small_content_4),
         'md5sum': md5(small_content_4),
+        'access': 'controlled',
     },
     'big': {
         'contents': big_content_1,
@@ -50,62 +76,26 @@ uuids = {
         'md5sum': md5(big_content_1),
         'annotations': ['annotation 1'],
         'related_files': ['related 1'],
+        'access': 'controlled',
     },
     'big_ann': {
         'contents': big_content_2,
         'file_size': len(big_content_2),
         'md5sum': md5(big_content_2),
         'annotations': ['annotation 2'],
+        'access': 'controlled',
     },
     'big_rel': {
         'contents': big_content_3,
         'file_size': len(big_content_3),
         'md5sum': md5(big_content_3),
         'related_files': ['related 3'],
+        'access': 'open',
     },
     'big_no_friends': { # :'(
         'contents': big_content_4,
         'file_size': len(big_content_4),
         'md5sum': md5(big_content_4),
+        'access': 'open',
     },
 }
-
-
-def _meta_json_success(hits):
-    """ boilerplate http request header values """
-
-    return {
-        'status_code': 200,
-        'headers': {
-            'content-type': 'application/json',
-        },
-        'content': {
-            'data': {
-                'hits': hits
-            },
-        },
-    }
-
-
-@urlmatch(netloc=r'api\.gdc\.cancer\.gov', path=r'\/v0\/(legacy\/)?files$')
-def meta_mock(url, request):
-    """ contains file metadata, annotations, and related files """
-
-    hits = []
-    for uuid, val in uuids.iteritems():
-        tmp_dict = {
-            'file_size': val['file_size'],
-            'id': uuid,
-            'md5sum': val['md5sum'],
-        }
-
-        if val.get('related_files'):
-            tmp_dict['index_files'] = [ {'file_id': r for r in val['related_files']} ]
-        if val.get('annotations'):
-            tmp_dict['annotations'] = [ {'annotation_id': a for a in val['annotations']} ]
-
-        hits.append(tmp_dict)
-
-    return _meta_json_success(hits)
-
-

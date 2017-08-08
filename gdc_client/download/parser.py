@@ -80,7 +80,7 @@ def download(parser, args):
         download decreases the number of open connections we have to make
     """
 
-    successful_download_count = 0
+    successful_count = 0
     big_errors = []
     small_errors = []
     total_download_count = 0
@@ -108,14 +108,14 @@ def download(parser, args):
 
         # download small file grouped in an uncompressed tarfile
         small_errors, count = client.download_small_groups(smalls)
-        successful_download_count += count
+        successful_count += count
 
         i = 0
         while i < args.retry_amount and small_errors:
             time.sleep(args.wait_time)
             log.debug('Retrying failed grouped downloads')
             small_errors, count = client.download_small_groups(small_errors)
-            successful_download_count += count
+            successful_count += count
             i += 1
 
     # client.download_files is located in parcel which calls
@@ -125,25 +125,43 @@ def download(parser, args):
 
         # create URLs to send to parcel for download
         bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
-        downloaded_files, big_errors = client.download_files(bigs)
+        downloaded_files, big_error_dict = client.download_files(bigs)
+        not_downloaded_url = ''
+        big_errors_count = 0
 
         if args.retry_amount > 0:
-            for url in big_errors.keys():
-                not_downloaded_url = retry_download(client, url,
-                        args.retry_amount, args.no_auto_retry, args.wait_time)
+            for url, reason in big_error_dict.iteritems():
+                # only retry the download if it wasn't a controlled access error
+                if '403' not in reason:
+                    not_downloaded_url = retry_download(
+                            client,
+                            url,
+                            args.retry_amount,
+                            args.no_auto_retry,
+                            args.wait_time)
+                else:
+                    big_errors.append(url)
+                    not_downloaded_url = ''
 
                 if not_downloaded_url:
-                    big_errors.append(not_downloaded_url)
+                    for b in big_error_dict:
+                        big_errors.append(url)
 
         if big_errors:
-            log.warning('Big files not able to be downloaded: {0}'
-                    .format(big_errors))
+            log.debug('Big files not downloaded: {0}'
+                    .format(', '.join([ b.split('/')[-1] for b in big_errors ])))
 
-        successful_download_count += len(bigs) - len(big_errors)
+        successful_count += len(bigs) - len(big_errors)
+        unsuccessful_count = len(ids) - successful_count
 
     log.info('{0}: {1}'.format(
         colored('Successfully downloaded', 'green'),
-        successful_download_count))
+        successful_count))
+
+    if unsuccessful_count > 0:
+        log.info('{0}: {1}'.format(
+            colored('Failed downloads', 'red'),
+            unsuccessful_count))
 
     return small_errors or big_errors
 
