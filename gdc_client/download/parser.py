@@ -81,6 +81,7 @@ def download(parser, args):
     """
 
     successful_count = 0
+    unsuccessful_count = 0
     big_errors = []
     small_errors = []
     total_download_count = 0
@@ -152,7 +153,8 @@ def download(parser, args):
                     .format(', '.join([ b.split('/')[-1] for b in big_errors ])))
 
         successful_count += len(bigs) - len(big_errors)
-        unsuccessful_count = len(ids) - successful_count
+
+    unsuccessful_count = len(ids) - successful_count
 
     log.info('{0}: {1}'.format(
         colored('Successfully downloaded', 'green'),
@@ -214,7 +216,7 @@ def config(parser):
                         help='The TCP server address server[:port]')
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
-                        help='Do not calculate inbound segment md5sums'
+                        help='Do not calculate inbound segment md5sums '
                         'and/or do not verify md5sums on restart')
     parser.add_argument('--no-file-md5sum', dest='file_md5sum',
                         action='store_false',

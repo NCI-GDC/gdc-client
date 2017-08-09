@@ -148,7 +148,7 @@ def download(ids=''):
 
     resp = Response(data)
     resp.headers['Content-Disposition'] = \
-        'attachment; filename="{}"'.format(filename)
+        'attachment; filename={}'.format(filename)
 
     resp.headers['Content-Type'] = 'application/octet-stream'
     return resp
