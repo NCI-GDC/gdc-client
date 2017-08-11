@@ -119,7 +119,7 @@ def download(ids=''):
 
     for i in ids:
         if i not in uuids.keys():
-            return '{} does not exist in {}'.format(i, uuids.keys())
+            return '{0} does not exist in {1}'.format(i, uuids.keys())
 
     is_tarfile  = request.args.get('tarfile') is not None
     is_compress = request.args.get('compress') is not None or len(ids) > 1
@@ -148,7 +148,7 @@ def download(ids=''):
 
     resp = Response(data)
     resp.headers['Content-Disposition'] = \
-        'attachment; filename={}'.format(filename)
+        'attachment; filename={0}'.format(filename)
 
     resp.headers['Content-Type'] = 'application/octet-stream'
     return resp
