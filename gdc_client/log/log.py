@@ -6,9 +6,9 @@ from parcel import colored
 class LogFormatter(logging.Formatter):
 
     err_format  = colored('ERROR: ', 'red') + '%(msg)s'
-    warn_format  = colored('WARNING: ', 'yellow') + '%(msg)s'
+    warn_format = colored('WARNING: ', 'yellow') + '%(msg)s'
     dbg_format  = colored('%(asctime)s - DEBUG: %(module)s: %(lineno)d: ', 'blue') + '%(msg)s'
-    info_format = '%(asctime)s - INFO: %(msg)s'
+    info_format = '%(msg)s'
 
 
     def __init__(self, fmt='%(asctime)s - %(levelname)s: %(msg)s'):

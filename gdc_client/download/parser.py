@@ -1,17 +1,17 @@
-import argparse
-import logging # needed for logging.DEBUG flag
-import time
-
+from gdc_client import defaults
+from gdc_client.download.client import GDCUDTDownloadClient
+from gdc_client.download.client import GDCHTTPDownloadClient
+from gdc_client.query.index import GDCIndexClient
 from functools import partial
 from parcel import const
+from parcel import colored
 from parcel import manifest
+
+import argparse
+import logging
+import time
 import urlparse
 
-from .. import defaults
-import logging
-from .client import GDCUDTDownloadClient
-from .client import GDCHTTPDownloadClient
-from ..query.index import GDCIndexClient
 
 
 log = logging.getLogger('gdc-download')
@@ -33,15 +33,14 @@ def validate_args(parser, args):
         # We were asked to remove 'error' in the message
         parser.exit(status=1, message=UDT_SUPPORT)
 
-def get_client(args, token):
+def get_client(args, index_client):
     # args get converted into kwargs
     kwargs = {
-        'token': token,
+        'token': args.token_file,
         'n_procs': args.n_processes,
         'directory': args.dir,
         'segment_md5sums': args.segment_md5sums,
         'file_md5sum': args.file_md5sum,
-        # TODO remove debug argument - handled by logger
         'debug': logging.DEBUG in args.log_levels,
         'http_chunk_size': args.http_chunk_size,
         'save_interval': args.save_interval,
@@ -66,9 +65,9 @@ def get_client(args, token):
         )
     else:
     '''
-    server = args.server or defaults.tcp_url
     return GDCHTTPDownloadClient(
-            uri=server,
+            uri=args.server,
+            index_client=index_client,
             **kwargs
     )
 
@@ -78,11 +77,14 @@ def download(parser, args):
         Combine the smaller files (~KB range) into a grouped download.
         The API now supports combining UUID's into one uncompressed tarfile
         using the ?tarfile url parameter. Combining many smaller files into one
-        download drecreases the number of open connections we have to make
+        download decreases the number of open connections we have to make
     """
 
-    files_not_downloaded = []
+    successful_count = 0
+    unsuccessful_count = 0
+    big_errors = []
     small_errors = []
+    total_download_count = 0
     validate_args(parser, args)
 
     # sets do not allow duplicates in a list
@@ -93,58 +95,82 @@ def download(parser, args):
             break
         ids.add(i['id'])
 
-    client = get_client(args, args.token_file)
+    index_client = GDCIndexClient(args.server)
+    client = get_client(args, index_client)
 
     # separate the smaller files from the larger files
-    md5_dict, bigs, smalls, errors = GDCIndexClient(client.base_uri)\
-            .separate_small_files(
-                    ids,
-                    args.http_chunk_size,
-                    client.related_files,
-                    client.annotations)
+    bigs, smalls = index_client.separate_small_files(
+            ids, args.http_chunk_size, client.related_files, client.annotations)
 
     # the big files will be normal downloads
     # the small files will be joined together and tarfiled
-    index = 0
     if smalls:
-        log.info('Downlading smaller files...')
+        log.debug('Downloading smaller files...')
 
-        # download smallfile grouped in an uncompressed tarfile
-        small_errors = client.download_small_groups(smalls, md5_dict)
+        # download small file grouped in an uncompressed tarfile
+        small_errors, count = client.download_small_groups(smalls)
+        successful_count += count
 
-        while index < args.retry_amount and small_errors:
+        i = 0
+        while i < args.retry_amount and small_errors:
             time.sleep(args.wait_time)
-            log.info('Retrying failed grouped downloads')
-            small_errors = client.download_small_groups(small_errors, md5_dict)
-            index += 1
+            log.debug('Retrying failed grouped downloads')
+            small_errors, count = client.download_small_groups(small_errors)
+            successful_count += count
+            i += 1
 
     # client.download_files is located in parcel which calls
     # self.parallel_download, which goes back to to gdc-client's parallel_download
     if bigs:
-        log.info('Downloading larger files...')
+        log.debug('Downloading big files...')
 
         # create URLs to send to parcel for download
         bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
-        downloaded_files, big_errors = client.download_files(bigs)
+        downloaded_files, big_error_dict = client.download_files(bigs)
+        not_downloaded_url = ''
+        big_errors_count = 0
 
         if args.retry_amount > 0:
+            for url, reason in big_error_dict.iteritems():
+                # only retry the download if it wasn't a controlled access error
+                if '403' not in reason:
+                    not_downloaded_url = retry_download(
+                            client,
+                            url,
+                            args.retry_amount,
+                            args.no_auto_retry,
+                            args.wait_time)
+                else:
+                    big_errors.append(url)
+                    not_downloaded_url = ''
 
-            for url in big_errors.keys():
-                not_downloaded_url = retry_download(client, url,
-                        args.retry_amount, args.no_auto_retry, args.wait_time)
                 if not_downloaded_url:
-                    files_not_downloaded.append(not_downloaded_url)
+                    for b in big_error_dict:
+                        big_errors.append(url)
 
-        if files_not_downloaded:
-            log.warning('Large files not able to be downloaded: {0}'
-                    .format(files_not_downloaded))
+        if big_errors:
+            log.debug('Big files not downloaded: {0}'
+                    .format(', '.join([ b.split('/')[-1] for b in big_errors ])))
 
-    return small_errors or files_not_downloaded
+        successful_count += len(bigs) - len(big_errors)
+
+    unsuccessful_count = len(ids) - successful_count
+
+    log.info('{0}: {1}'.format(
+        colored('Successfully downloaded', 'green'),
+        successful_count))
+
+    if unsuccessful_count > 0:
+        log.info('{0}: {1}'.format(
+            colored('Failed downloads', 'red'),
+            unsuccessful_count))
+
+    return small_errors or big_errors
 
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
 
-    log.info('Retrying download {0}'.format(url))
+    log.debug('Retrying download {0}'.format(url))
 
     error = True
     while 0 < retry_amount and error:
@@ -154,21 +180,21 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
             should_retry = 'y'
 
         if should_retry.lower() == 'y':
-            log.info('{0} retries remaning...'.format(retry_amount))
-            log.info('Retrying download... {0} in {1} seconds'.format(url, wait_time))
+            log.debug('{0} retries remaining...'.format(retry_amount))
+            log.debug('Retrying download... {0} in {1} seconds'.format(url, wait_time))
             retry_amount -= 1
             time.sleep(wait_time)
-            # client.download_files accepts a list of uuids to download
+            # client.download_files accepts a list of urls to download
             # but we want to only try one at a time
             _, e = client.download_files([url])
             if not e:
-                log.info('Successfully downloaded {0}!'.format(url))
+                log.debug('Successfully downloaded {0}!'.format(url))
                 return
         else:
             error = False
             retry_amount = 0
 
-    log.warning('Unable to download file {0}'.format(url))
+    log.error('Unable to download file {0}'.format(url))
     return url
 
 
@@ -182,19 +208,19 @@ def config(parser):
     #                     General options
     #############################################################
 
-    parser.add_argument('-d', '--dir',
-                        default=None,
+    parser.add_argument('-d', '--dir', default='.',
                         help='Directory to download files to. '
                         'Defaults to current dir')
     parser.add_argument('-s', '--server', metavar='server', type=str,
-                        default=None,
+                        default=defaults.tcp_url,
                         help='The TCP server address server[:port]')
     parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
                         action='store_false',
-                        help="Don't calculate inbound segment md5sums and/or don't verify md5sums on restart")
+                        help='Do not calculate inbound segment md5sums '
+                        'and/or do not verify md5sums on restart')
     parser.add_argument('--no-file-md5sum', dest='file_md5sum',
                         action='store_false',
-                        help="Don't verify file md5sum after download")
+                        help='Do not verify file md5sum after download')
     parser.add_argument('-n', '--n-processes', type=int,
                         default=defaults.processes,
                         help='Number of client connections.')
@@ -203,7 +229,9 @@ def config(parser):
                         help='Size in bytes of standard HTTP block size.')
     parser.add_argument('--save-interval', type=int,
                         default=const.SAVE_INTERVAL,
-                        help='The number of chunks after which to flush state file. A lower save interval will result in more frequent printout but lower performance.')
+                        help='The number of chunks after which to flush state '
+                        'file. A lower save interval will result in more '
+                        'frequent printout but lower performance.')
     parser.add_argument('--no-verify', dest='no_verify', action='store_true',
                         help='Perform insecure SSL connection and transfer')
     parser.add_argument('--no-related-files', action='store_false',
