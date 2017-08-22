@@ -1,10 +1,13 @@
-import os
-import stat
-import logging
 import argparse
+import logging
+import os
 import platform
+import stat
+import sys
 
 from contextlib import closing
+from gdc_client.log.log import LogFormatter
+
 
 
 PLATFORM_HELP = {
@@ -24,7 +27,14 @@ PERMISSIONS_MSG = ' '.join([
 def read_token_file(path):
     """ Safely open, read and close a token file.
     """
-    log = logging.getLogger('gdc-client')
+
+    # there's a circular dependency on setting up logging to process this arg
+    # but also needing the logs to be set up before you can process args
+    log = logging.getLogger('auth')
+    log.setLevel(logging.WARNING)
+    s_handler = logging.StreamHandler(sys.stdout)
+    s_handler.setFormatter(LogFormatter())
+    log.addHandler(s_handler)
 
     # TODO review best way to check file security on various platforms
 

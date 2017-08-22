@@ -1,47 +1,216 @@
-import requests
 from urlparse import urljoin
 
-from ..log import get_logger
+import logging
+import requests
 
-# Logging
-log = get_logger('query')
 
+log = logging.getLogger('query')
 
 class GDCIndexClient(object):
 
     def __init__(self, uri):
-        self.uri = uri if uri.endswith('/') else uri + '/'
+        self.uri = uri
+        self.metadata = dict()
 
-    def get_related_files(self, file_id):
-        """Query the GDC api for related files.
+    def get_related_files(self, uuid):
+        # type: str -> List[str]
+        if uuid in self.metadata.keys():
+            return self.metadata[uuid]['related_files']
+        return []
 
-        :params str file_id: String containing the id of the primary entity
-        :returns: A list of related file ids
+    def get_annotations(self, uuid):
+        # type: str -> List[str]
+        if uuid in self.metadata.keys():
+            return self.metadata[uuid]['annotations']
+        return []
 
+    def get_md5sum(self, uuid):
+        # type: str -> str
+        if uuid in self.metadata.keys():
+            return self.metadata[uuid]['md5sum']
+
+    def get_filesize(self, uuid):
+        # type: str -> long
+        if uuid in self.metadata.keys():
+            return long(self.metadata[uuid]['file_size'])
+
+    def get_access(self, uuid):
+        # type: str -> long
+        if uuid in self.metadata.keys():
+            return self.metadata[uuid]['access']
+
+    def _get_metadata(self, uuids):
+        # type: List[str] -> Dict[str]str
+        """ Capture the metadata of all the UUIDs while making
+            as little open connections as possible.
+
+            self.metadata = {
+                str file_id: {
+                    str       access
+                    str       file_size
+                    str       md5sum
+                    List[str] annotations
+                    List[str] related files
+                }
+            }
         """
 
-        r = self.get('files', file_id, fields=['metadata_files.file_id', 'index_files.file_id'])
-        related_files = [rf['file_id'] for rf in r['data'].get('metadata_files', [])]
-        related_files.extend([rf['file_id'] for rf in r['data'].get('index_files', [])])
-        return related_files
+        metadata_query = {
+            'fields': 'file_id,file_size,md5sum,annotations.annotation_id,' \
+                    'metadata_files.file_id,index_files.file_id,access',
+            'filters': '{"op":"and","content":['
+                       '{"op":"in","content":{'
+                       '"field":"files.file_id","value":'
+                       '["' + '","'.join(uuids) + '"]}}]}',
+            'from': '0',
+            'size': str(len(uuids)), # one big request
+        }
 
-    def get_annotations(self, file_id):
-        """Query the GDC api for annotations and download them to a file.
+        active_meta_url = urljoin(self.uri, 'v0/files')
+        legacy_meta_url = urljoin(self.uri, 'v0/legacy/files')
 
-        :params str file_id: String containing the id of the primary entity
-        :returns: A list of related file ids
+        active_json_resp = dict()
+        legacy_json_resp = dict()
 
+        # using a POST request lets us avoid the MAX URL character length limit
+        r_active = requests.post(active_meta_url, json=metadata_query, verify=False)
+        r_legacy = requests.post(legacy_meta_url, json=metadata_query, verify=False)
+
+        if r_active.status_code == requests.codes.ok:
+            active_json_resp = r_active.json()
+
+        if r_legacy.status_code == requests.codes.ok:
+            legacy_json_resp = r_legacy.json()
+
+        r_active.close()
+        r_legacy.close()
+
+        if not active_json_resp.get('data') and not legacy_json_resp.get('data'):
+            log.debug('Unable to retrieve file metadata information. '
+                        'continuing downloading as if they were large files')
+            return self.metadata
+
+        active_hits = active_json_resp['data']['hits']
+        legacy_hits = legacy_json_resp['data']['hits']
+
+        for h in active_hits + legacy_hits:
+            related_returns = h.get('index_files', []) + h.get('metadata_files', [])
+            related_files = [ r['file_id'] for r in related_returns ]
+
+            annotations = [ a['annotation_id'] for a in h.get('annotations', []) ]
+
+            # set the metadata as a class data member so that it can be
+            # references as much as needed without needing to calculate
+            # everything over again
+            if h['id'] not in self.metadata.keys():
+                # don't want to overwrite
+                self.metadata[h['id']] = {
+                    'access':        h['access'],
+                    'file_size':     h['file_size'],
+                    'md5sum':        h['md5sum'],
+                    'annotations':   annotations,
+                    'related_files': related_files,
+                }
+
+        return self.metadata
+
+
+    def separate_small_files(self,
+            ids,                    # type: Set[str]
+            chunk_size,             # type: int
+            related_files=False,    # type: bool
+            annotations=False,      # type: bool
+            ):
+        # type: (...) -> (List[str], List[List[str]])
+        """ Separate big and small files
+
+        Separate the small files from the larger files in
+        order to combine them into single grouped downloads. This will reduce
+        the number of open connections needed to be made for many small files.
+
+        On top of that, separate the small files by open and controlled access
+        so that if a controlled grouping failed, you can handle it as the same
+        edge case.
         """
 
-        r = self.get('files', file_id, fields=['annotations.annotation_id'])
-        return [a['annotation_id'] for a in r['data'].get('annotations', [])]
+        bigs = []
+        smalls_open = []
+        smalls_control = []
+        potential_smalls = set()
 
-    def get(self, path, ID, fields=[]):
-        url = urljoin(self.uri, 'v0/{}/{}'.format(path, ID))
-        params = {'fields': ','.join(fields)} if fields else {}
-        r = requests.get(url, verify=False, params=params)
-        if r.status_code != requests.codes.ok:
-            url = urljoin(self.uri, 'v0/legacy/{}/{}'.format(path, ID))
-            r = requests.get(url, verify=False, params=params)
-            r.raise_for_status()
-        return r.json()
+        # go through all the UUIDs and pick out the ones with
+        # relate and annotation files so they can be handled by parcel
+        log.debug('Grouping ids by size')
+
+        self._get_metadata(ids)
+        for uuid in ids:
+            if uuid not in self.metadata.keys():
+                bigs.append(uuid)
+                continue
+
+            rf = self.get_related_files(uuid)
+            af = self.get_annotations(uuid)
+
+            # check for related files
+            if related_files and rf and uuid not in bigs:
+                bigs.append(uuid)
+
+            # check for annotation files
+            if annotations and af and uuid not in bigs:
+                bigs.append(uuid)
+
+            # if uuid has no related or annotation files
+            # then proceed to the small file sorting with them
+            if not af and not rf:
+                potential_smalls |= set([uuid])
+
+        # the following line is to trigger the first if statement
+        # to start the process off properly
+        bundle_open_size = chunk_size + 1
+        bundle_control_size = chunk_size + 1
+
+        i_open = -1
+        i_control = -1
+
+        for uuid in potential_smalls:
+            # grouping of file exceeds chunk_size, create a new grouping
+            if bundle_open_size > chunk_size:
+                smalls_open.append([])
+                i_open += 1
+                bundle_open_size = 0
+
+            if bundle_control_size > chunk_size:
+                smalls_control.append([])
+                i_control += 1
+                bundle_control_size = 0
+
+            # individual file is more than chunk_size, big file download
+            if self.get_filesize(uuid) > chunk_size:
+                bigs.append(uuid)
+
+            # file size is less than chunk_size then group and tarfile it
+            else:
+                if self.get_access(uuid) == 'open':
+                    smalls_open[i_open].append(uuid)
+                    bundle_open_size += self.get_filesize(uuid)
+
+                elif self.get_access(uuid) == 'controlled':
+                    smalls_control[i_control].append(uuid)
+                    bundle_control_size += self.get_filesize(uuid)
+
+        # they are still small files to be downloaded in a group
+        smalls = smalls_open + smalls_control
+
+        # for logging/reporting purposes
+        total_count = len(bigs) + sum([ len(s) for s in smalls ])
+        if len(potential_smalls) > total_count:
+            log.warning('There are less files to download than originally given')
+            log.warning('Number of files originally given: {0}'\
+                    .format(len(potential_smalls)))
+
+        log.debug('{0} total number of files to download'.format(total_count))
+        log.debug('{0} groupings of files'.format(len(smalls)))
+
+        smalls = [ s for s in smalls if s != [] ]
+
+        return bigs, smalls

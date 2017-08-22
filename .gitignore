@@ -65,3 +65,9 @@ package.json
 
 # vim
 *.swp
+
+*.spec
+*.zip
+*.tar
+*.tsv
+*.DS_Store

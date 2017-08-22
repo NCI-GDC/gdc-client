@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+set -e
+
+function cleanup() {
+    # get rid of the virtualenv
+    echo "Cleaning up"
+    deactivate
+    rm -rf $VENV_NAME/ build/ dist/ include/ local/ share/  gdc-client.spec
+}
+
+function compress() {
+    # this way it's cross platform
+    local zip_name=$1
+    local binary_name=$2
+
+    # python will complain about new indentation
+    # if you line it up with the function
+    python -c "
+from zipfile import ZipFile
+with ZipFile('${zip_name}', 'w') as z:
+    z.write('${binary_name}')"
+}
+
+while getopts ":d" opt; do
+    case $opt in
+        d)
+            DATE=`date "+%m_%d_%Y"`
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            ;;
+	esac
+done
+
+VENV_NAME="venv"
+BINARY_NAME="gdc-client"
+VENV_PATH=$VENV_NAME/bin/activate
+
+case `uname -s` in
+    *NT*)
+        # for use in git bash with all the nice unix utilities
+        TARGET_ENVIRONMENT="Windows"
+        BINARY_NAME="gdc-client.exe"
+
+        #  this works in git bash
+        alias python="winpty python"
+
+        # why does windows have to be so different?
+        VENV_PATH=$VENV_NAME/Scripts/activate
+        ;;
+    *Linux*)
+        TARGET_ENVIRONMENT="Ubuntu"
+        ;;
+    *Darwin*)
+        TARGET_ENVIRONMENT="OSX"
+        ;;
+esac
+
+python -m virtualenv $VENV_NAME
+source $VENV_PATH
+
+# setup.py is in previous dir
+cd ..
+
+# only way to enforce install order
+# installing the cryptography library from the dependency resolution
+# always breaks because it does not install the wheel
+# this separate install step forces a wheel install
+python -m pip install -r requirements.txt
+python setup.py install
+
+# go back go the ./gdc_client/bin dir
+cd bin
+
+echo "Building for ${TARGET_ENVIRONMENT}..."
+
+# Make sure the correct version of pyinstaller and setuptools are installed
+pip install -U "PyInstaller==3.2.1"
+
+# Get version
+VERSION=$(python -c "
+import gdc_client.version
+print gdc_client.version.__version__")
+
+echo "Creating ${TARGET_ENVIRONMENT} package for version ${VERSION}..."
+
+# Create binary
+pyinstaller --clean --additional-hooks-dir=. --noconfirm --onefile -c gdc-client
+
+echo "Testing produced binary..."
+./dist/$BINARY_NAME --help
+
+# Zip dist
+echo "Zipping binary..."
+cd dist
+
+ZIP_NAME="gdc-client_${VERSION}_${TARGET_ENVIRONMENT}_x64.zip"
+if [ -n "${DATE}" ]; then
+    ZIP_NAME="gdc-client_${VERSION}_${DATE}_${TARGET_ENVIRONMENT}_x64.zip"
+fi
+
+echo "The output zip file will be called ${ZIP_NAME}"
+compress $ZIP_NAME $BINARY_NAME
+mv $ZIP_NAME ..
+cd ..
+
+cleanup
+

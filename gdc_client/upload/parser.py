@@ -1,4 +1,5 @@
 import argparse
+# needed for logging.DEBUG flag
 import logging
 
 from functools import partial
@@ -9,16 +10,16 @@ from . import manifest
 from . import exceptions
 
 from .client import GDCUploadClient
-from .. import log
+import logging
 
 
-logger = log.get_logger('upload-client')
+log = logging.getLogger('gdc-upload')
 
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
     if args.identifier:
-        logger.warn('The use of the -i/--identifier flag has been deprecated.')
+        log.warn('The use of the -i/--identifier flag has been deprecated.')
 
     if not args.token_file:
         parser.error('A token is required in order to upload.')
@@ -35,6 +36,10 @@ def upload(parser, args):
     validate_args(parser, args)
 
     files = manifest.load(args.manifest)['files'] if args.manifest else []
+
+    for f in files:
+        # empty string if nothing else
+        f['path'] = args.path
 
     if not args.manifest:
         for uuid in args.file_ids:
@@ -71,7 +76,7 @@ def config(parser):
 
     parser.add_argument('--project-id', '-p', type=str,
                         help='The project ID that owns the file')
-    parser.add_argument('--path', '-f', metavar='path',
+    parser.add_argument('--path', '-f', metavar='path', default='',
                         help='directory path to find file')
     parser.add_argument('--upload-id', '-u',
                         help='Multipart upload id')

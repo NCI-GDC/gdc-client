@@ -10,11 +10,13 @@ setup(
         'parcel',
         'lxml==3.5.0b1',
         'PyYAML==3.11',
-        'setuptools==19.2',
         'jsonschema==2.5.1',
+        'pyOpenSSL==17.1.0',
+        'ndg-httpsclient==0.4.2',
+        'pyasn1==0.2.3',
     ],
     dependency_links=[
-        'git+https://github.com/LabAdvComp/parcel.git@fddae5c09283ee5058fb9f43727a97a253de31fb#egg=parcel',
+        'git+https://github.com/LabAdvComp/parcel.git@50d6124a3e3fcd2a234b3373831075390b886a15#egg=parcel',
     ],
     scripts=[
         'bin/gdc-client',
