@@ -9,7 +9,8 @@ install:
   - pip install -r requirements.txt
   - pip install -r dev-requirements.txt
   - python setup.py install
+  - pip freeze
 
 script:
-  - py.test -vv --cov=gdc_client --cov-branch  --cov-report xml tests/
+  - py.test -vv --cov=gdc_client --cov-report term tests/
   - python-codacy-coverage -r coverage.xml
