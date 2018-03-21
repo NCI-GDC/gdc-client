@@ -73,8 +73,8 @@ class GDCIndexClient(object):
         legacy_json_resp = dict()
 
         # using a POST request lets us avoid the MAX URL character length limit
-        r_active = requests.post(active_meta_url, json=metadata_query, verify=False)
-        r_legacy = requests.post(legacy_meta_url, json=metadata_query, verify=False)
+        r_active = requests.post(active_meta_url, json=metadata_query, verify=True)
+        r_legacy = requests.post(legacy_meta_url, json=metadata_query, verify=True)
 
         if r_active.status_code == requests.codes.ok:
             active_json_resp = r_active.json()
