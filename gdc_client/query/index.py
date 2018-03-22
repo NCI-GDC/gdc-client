@@ -2,6 +2,7 @@ from urlparse import urljoin
 
 import logging
 import requests
+from json import dumps
 
 
 log = logging.getLogger('query')
@@ -10,6 +11,8 @@ class GDCIndexClient(object):
 
     def __init__(self, uri):
         self.uri = uri
+        self.active_meta_endpoint = '/v0/files'
+        self.legacy_meta_endpoint = '/v0/legacy/files'
         self.metadata = dict()
 
     def get_related_files(self, uuid):
@@ -39,6 +42,35 @@ class GDCIndexClient(object):
         if uuid in self.metadata.keys():
             return self.metadata[uuid]['access']
 
+    def _get_hits(self, url, metadata_query):
+        """
+        Get hits metadata from a given API endpoint
+
+        Args:
+            url (str): Endpoint URL
+            metadata_query (dict): Metadata query dictionary
+
+        Returns:
+            list: hits from the response data
+        """
+        json_response = {}
+        # using a POST request lets us avoid the MAX URL character length limit
+        r = requests.post(url, json=metadata_query, verify=False)
+
+        if r is None:
+            return []
+
+        if r.status_code == requests.codes.ok:
+            json_response = r.json()
+
+        r.close()
+
+        if (json_response.get('data') is None or
+                json_response['data'].get('hits') is None):
+            return []
+
+        return json_response['data']['hits']
+
     def _get_metadata(self, uuids):
         # type: List[str] -> Dict[str]str
         """ Capture the metadata of all the UUIDs while making
@@ -55,43 +87,35 @@ class GDCIndexClient(object):
             }
         """
 
+        filters = {
+            'op': 'and',
+            'content': [{
+                'op': 'in',
+                'content': {
+                    'field': 'files.file_id',
+                    'value': uuids
+                }
+            }]
+        }
+
         metadata_query = {
             'fields': 'file_id,file_size,md5sum,annotations.annotation_id,' \
-                    'metadata_files.file_id,index_files.file_id,access',
-            'filters': '{"op":"and","content":['
-                       '{"op":"in","content":{'
-                       '"field":"files.file_id","value":'
-                       '["' + '","'.join(uuids) + '"]}}]}',
+                      'metadata_files.file_id,index_files.file_id,access',
+            'filters': dumps(filters),
             'from': '0',
             'size': str(len(uuids)), # one big request
         }
 
-        active_meta_url = urljoin(self.uri, 'v0/files')
-        legacy_meta_url = urljoin(self.uri, 'v0/legacy/files')
+        active_meta_url = urljoin(self.uri, self.active_meta_endpoint)
+        legacy_meta_url = urljoin(self.uri, self.legacy_meta_endpoint)
 
-        active_json_resp = dict()
-        legacy_json_resp = dict()
+        active_hits = self._get_hits(active_meta_url, metadata_query)
+        legacy_hits = self._get_hits(legacy_meta_url, metadata_query)
 
-        # using a POST request lets us avoid the MAX URL character length limit
-        r_active = requests.post(active_meta_url, json=metadata_query, verify=True)
-        r_legacy = requests.post(legacy_meta_url, json=metadata_query, verify=True)
-
-        if r_active.status_code == requests.codes.ok:
-            active_json_resp = r_active.json()
-
-        if r_legacy.status_code == requests.codes.ok:
-            legacy_json_resp = r_legacy.json()
-
-        r_active.close()
-        r_legacy.close()
-
-        if not active_json_resp.get('data') and not legacy_json_resp.get('data'):
+        if not active_hits and not legacy_hits:
             log.debug('Unable to retrieve file metadata information. '
                         'continuing downloading as if they were large files')
             return self.metadata
-
-        active_hits = active_json_resp['data']['hits']
-        legacy_hits = legacy_json_resp['data']['hits']
 
         for h in active_hits + legacy_hits:
             related_returns = h.get('index_files', []) + h.get('metadata_files', [])
@@ -113,7 +137,6 @@ class GDCIndexClient(object):
                 }
 
         return self.metadata
-
 
     def separate_small_files(self,
             ids,                    # type: Set[str]
