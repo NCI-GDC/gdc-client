@@ -248,4 +248,4 @@ class GDCIndexClient(object):
 
         smalls = [ s for s in smalls if s != [] ]
 
-        return list(bigs), smalls
+        return bigs, smalls
