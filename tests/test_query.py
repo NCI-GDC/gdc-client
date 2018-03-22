@@ -111,9 +111,7 @@ class QueryIndexTest(TestCase):
         index = GDCIndexClient(uri=base_url)
         bigs, smalls = index.separate_small_files(
                 ['small'],
-                HTTP_CHUNK_SIZE,
-                related_files=True,
-                annotations=True)
+                HTTP_CHUNK_SIZE)
 
         assert index.get_access('small') == uuids['small']['access']
         assert index.get_filesize('small') == uuids['small']['file_size']
@@ -128,9 +126,7 @@ class QueryIndexTest(TestCase):
         index = GDCIndexClient(uri=base_url)
         bigs, smalls = index.separate_small_files(
                 ['small_no_friends'],
-                HTTP_CHUNK_SIZE,
-                related_files=True,
-                annotations=True)
+                HTTP_CHUNK_SIZE)
 
         assert index.get_access('small_no_friends') == uuids['small_no_friends']['access']
         assert index.get_filesize('small_no_friends') == uuids['small_no_friends']['file_size']
@@ -151,9 +147,7 @@ class QueryIndexTest(TestCase):
         index = GDCIndexClient(uri=base_url)
         bigs, smalls = index.separate_small_files(
                 [invalid],
-                HTTP_CHUNK_SIZE,
-                related_files=True,
-                annotations=True)
+                HTTP_CHUNK_SIZE)
 
         assert index.get_access(invalid) == None
         assert index.get_filesize(invalid) == None
@@ -170,9 +164,7 @@ class QueryIndexTest(TestCase):
         index = GDCIndexClient(uri=base_url)
         bigs, smalls = index.separate_small_files(
                 ['big'],
-                HTTP_CHUNK_SIZE,
-                related_files=True,
-                annotations=True)
+                HTTP_CHUNK_SIZE)
 
         assert index.get_access('big') == uuids['big']['access']
         assert index.get_filesize('big') == uuids['big']['file_size']
@@ -188,9 +180,7 @@ class QueryIndexTest(TestCase):
         index = GDCIndexClient(uri=base_url)
         bigs, smalls = index.separate_small_files(
                 ['big', 'small'],
-                HTTP_CHUNK_SIZE,
-                related_files=True,
-                annotations=True)
+                HTTP_CHUNK_SIZE)
 
         assert index.get_access('big') == uuids['big']['access']
         assert index.get_filesize('big') == uuids['big']['file_size']
@@ -206,16 +196,14 @@ class QueryIndexTest(TestCase):
 
         # if a uuid has related files or annotations then they
         # are downloaded as big files
-        assert bigs == ['big', 'small']
+        assert set(bigs) == set(['big', 'small'])
         assert smalls == []
 
     def test_big_and_small_no_rel_no_ann_separate_small_files(self):
         index = GDCIndexClient(uri=base_url)
         bigs, smalls = index.separate_small_files(
                 ['big_no_friends', 'small_no_friends'],
-                HTTP_CHUNK_SIZE,
-                related_files=True,
-                annotations=True)
+                HTTP_CHUNK_SIZE)
 
         assert index.get_access('big_no_friends') == uuids['big_no_friends']['access']
         assert index.get_filesize('big_no_friends') == uuids['big_no_friends']['file_size']

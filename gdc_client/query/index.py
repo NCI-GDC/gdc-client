@@ -72,9 +72,15 @@ class GDCIndexClient(object):
         return json_response['data']['hits']
 
     def _get_metadata(self, uuids):
-        # type: List[str] -> Dict[str]str
-        """ Capture the metadata of all the UUIDs while making
-            as little open connections as possible.
+        """
+        Capture the metadata of all the UUIDs while making as little open
+        connections as possible.
+
+        Args:
+            uuids (:obj: `list` of :obj: `str`): A list of UUIDs of the files
+
+        Returns:
+            :obj: `dict` of :obj: `dict`: metadata information
 
             self.metadata = {
                 str file_id: {
@@ -93,7 +99,8 @@ class GDCIndexClient(object):
                 'op': 'in',
                 'content': {
                     'field': 'files.file_id',
-                    'value': uuids
+                    # Sometimes a <type 'set'> is passed
+                    'value': list(uuids)
                 }
             }]
         }
@@ -138,13 +145,7 @@ class GDCIndexClient(object):
 
         return self.metadata
 
-    def separate_small_files(self,
-            ids,                    # type: Set[str]
-            chunk_size,             # type: int
-            related_files=False,    # type: bool
-            annotations=False,      # type: bool
-            ):
-        # type: (...) -> (List[str], List[List[str]])
+    def separate_small_files(self, ids, chunk_size):
         """ Separate big and small files
 
         Separate the small files from the larger files in
@@ -154,9 +155,18 @@ class GDCIndexClient(object):
         On top of that, separate the small files by open and controlled access
         so that if a controlled grouping failed, you can handle it as the same
         edge case.
+
+        Args:
+            ids (:obj: `set` of :obj: `str`): a set of file UUIDs
+            chunk_size (int): the maximum allowed combined size of small files
+
+        Return:
+            :obj: `list` of :obj: `str`: a list of big file UUIDs
+            :obj: `list` of :obj: `list` of :obj: `str`: a list of lists of
+                UUIDs. Each inner list representing a group of small file
         """
 
-        bigs = []
+        bigs = set()
         smalls_open = []
         smalls_control = []
         potential_smalls = set()
@@ -168,24 +178,26 @@ class GDCIndexClient(object):
         self._get_metadata(ids)
         for uuid in ids:
             if uuid not in self.metadata.keys():
-                bigs.append(uuid)
+                bigs.add(uuid)
                 continue
 
             rf = self.get_related_files(uuid)
             af = self.get_annotations(uuid)
 
-            # check for related files
-            if related_files and rf and uuid not in bigs:
-                bigs.append(uuid)
+            # if there are any related files, add file to a regular/big file
+            # download list
+            if rf:
+                bigs.add(uuid)
 
-            # check for annotation files
-            if annotations and af and uuid not in bigs:
-                bigs.append(uuid)
+            # if there are any annotations, add file to a regular/big file
+            # download list
+            if af:
+                bigs.add(uuid)
 
             # if uuid has no related or annotation files
             # then proceed to the small file sorting with them
             if not af and not rf:
-                potential_smalls |= set([uuid])
+                potential_smalls.add(uuid)
 
         # the following line is to trigger the first if statement
         # to start the process off properly
@@ -209,7 +221,7 @@ class GDCIndexClient(object):
 
             # individual file is more than chunk_size, big file download
             if self.get_filesize(uuid) > chunk_size:
-                bigs.append(uuid)
+                bigs.add(uuid)
 
             # file size is less than chunk_size then group and tarfile it
             else:
@@ -222,7 +234,7 @@ class GDCIndexClient(object):
                     bundle_control_size += self.get_filesize(uuid)
 
         # they are still small files to be downloaded in a group
-        smalls = smalls_open + smalls_control
+        smalls = list(smalls_open) + list(smalls_control)
 
         # for logging/reporting purposes
         total_count = len(bigs) + sum([ len(s) for s in smalls ])
@@ -236,4 +248,4 @@ class GDCIndexClient(object):
 
         smalls = [ s for s in smalls if s != [] ]
 
-        return bigs, smalls
+        return list(bigs), smalls
