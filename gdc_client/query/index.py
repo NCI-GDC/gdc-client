@@ -43,10 +43,15 @@ class GDCIndexClient(object):
             return self.metadata[uuid]['access']
 
     def _get_hits(self, url, metadata_query):
-        """Get hits metadata from a given API endpoint
+        """
+        Get hits metadata from a given API endpoint
 
-        :param str url: Endpoint URL
-        :param dict metadata_query: Metadata query dictionary
+        Args:
+            url (str): Endpoint URL
+            metadata_query (dict): Metadata query dictionary
+
+        Returns:
+            list: hits from the response data
         """
         json_response = {}
         # using a POST request lets us avoid the MAX URL character length limit
@@ -60,10 +65,8 @@ class GDCIndexClient(object):
 
         r.close()
 
-        if json_response.get('data') is None:
-            return []
-
-        if json_response['data'].get('hits') is None:
+        if (json_response.get('data') is None or
+                json_response['data'].get('hits') is None):
             return []
 
         return json_response['data']['hits']
