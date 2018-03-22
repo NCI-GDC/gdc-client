@@ -1,2 +1,9 @@
+cmd2==0.6.8
+cryptography==2.2.1
+jsonschema==2.5.1
+lxml==3.5.0b1
+ndg-httpsclient==0.4.2
+pyasn1==0.2.3
 pyOpenSSL==17.1.0
-cryptography
+PyYAML==3.11
+-e git+https://github.com/LabAdvComp/parcel.git@23befb223504ab0c7ac06b30e6a1a781cb153e2b#egg=parcel
