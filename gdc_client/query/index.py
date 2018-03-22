@@ -234,7 +234,7 @@ class GDCIndexClient(object):
                     bundle_control_size += self.get_filesize(uuid)
 
         # they are still small files to be downloaded in a group
-        smalls = list(smalls_open) + list(smalls_control)
+        smalls = smalls_open + smalls_control
 
         # for logging/reporting purposes
         total_count = len(bigs) + sum([ len(s) for s in smalls ])
