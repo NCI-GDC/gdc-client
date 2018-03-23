@@ -41,7 +41,6 @@ def get_client(args, index_client):
         'directory': args.dir,
         'segment_md5sums': args.segment_md5sums,
         'file_md5sum': args.file_md5sum,
-        'debug': logging.DEBUG in args.log_levels,
         'http_chunk_size': args.http_chunk_size,
         'save_interval': args.save_interval,
         'download_related_files': args.download_related_files,
@@ -224,7 +223,7 @@ def config(parser):
     parser.add_argument('-n', '--n-processes', type=int,
                         default=defaults.processes,
                         help='Number of client connections.')
-    parser.add_argument('--http-chunk-size', type=int,
+    parser.add_argument('--http-chunk-size', '-cs', type=int,
                         default=const.HTTP_CHUNK_SIZE,
                         help='Size in bytes of standard HTTP block size.')
     parser.add_argument('--save-interval', type=int,
