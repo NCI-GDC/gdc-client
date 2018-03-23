@@ -87,7 +87,7 @@ def config(parser):
     parser.add_argument('--server', '-s',
                         default=defaults.tcp_url,
                         help='GDC API server address')
-    parser.add_argument('--http-chunk-size', '-cs',
+    parser.add_argument('--http-chunk-size', '-c',
                         default=defaults.HTTP_CHUNK_SIZE,
                         type=int,
                         help='Part size for multipart upload')

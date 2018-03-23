@@ -223,7 +223,7 @@ def config(parser):
     parser.add_argument('-n', '--n-processes', type=int,
                         default=defaults.processes,
                         help='Number of client connections.')
-    parser.add_argument('--http-chunk-size', '-cs', type=int,
+    parser.add_argument('--http-chunk-size', '-c', type=int,
                         default=const.HTTP_CHUNK_SIZE,
                         help='Size in bytes of standard HTTP block size.')
     parser.add_argument('--save-interval', type=int,
