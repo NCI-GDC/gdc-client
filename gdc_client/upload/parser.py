@@ -1,6 +1,4 @@
 import argparse
-# needed for logging.DEBUG flag
-import logging
 
 from functools import partial
 
@@ -50,16 +48,17 @@ def upload(parser, args):
                 'upload_id': args.upload_id,
             })
 
-    # TODO remove debug - handled by logger
-    debug = logging.DEBUG in args.log_levels
-
     manifest_name = args.manifest.name if args.manifest else args.file_ids[0]
 
     client = GDCUploadClient(
-        token=args.token_file, processes=args.n_processes,
+        token=args.token_file,
+        processes=args.n_processes,
         multipart=args.disable_multipart,
-        part_size=args.part_size, server=args.server,
-        files=files, verify=args.insecure, debug=debug, manifest_name=manifest_name)
+        http_chunk_size=args.http_chunk_size,
+        server=args.server,
+        files=files,
+        verify=args.insecure,
+        manifest_name=manifest_name)
 
     if args.abort:
         client.abort()
@@ -88,8 +87,8 @@ def config(parser):
     parser.add_argument('--server', '-s',
                         default=defaults.tcp_url,
                         help='GDC API server address')
-    parser.add_argument('--part-size', '-ps',
-                        default=defaults.part_size,
+    parser.add_argument('--http-chunk-size', '-c',
+                        default=defaults.HTTP_CHUNK_SIZE,
                         type=int,
                         help='Part size for multipart upload')
     parser.add_argument('-n', '--n-processes', type=int,
