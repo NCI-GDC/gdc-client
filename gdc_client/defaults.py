@@ -33,8 +33,4 @@ proxy_host = 'localhost'
 # proxy (on `proxy_host`) to traffic on the GDC api host
 proxy_port = 9000
 
-
-MB = 1024 * 1024
-GB = 1024 * MB
-
-HTTP_CHUNK_SIZE = 1 * GB
+HTTP_CHUNK_SIZE = 1024 * 1024 * 1024  # 1 GiB
