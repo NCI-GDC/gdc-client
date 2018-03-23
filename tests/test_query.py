@@ -119,7 +119,7 @@ class QueryIndexTest(TestCase):
         assert index.get_related_files('small') == uuids['small']['related_files']
         assert index.get_annotations('small') == uuids['small']['annotations']
 
-        assert bigs == set(['small'])
+        assert bigs == ['small']
         assert smalls == []
 
     def test_small_no_rel_no_ann_separate_small_files(self):
@@ -134,7 +134,7 @@ class QueryIndexTest(TestCase):
         assert index.get_related_files('small_no_friends') == []
         assert index.get_annotations('small_no_friends') == []
 
-        assert bigs == set()
+        assert bigs == []
         assert smalls == [['small_no_friends']]
 
     def test_small_invalid_separate_small_files(self):
@@ -155,7 +155,7 @@ class QueryIndexTest(TestCase):
         assert index.get_related_files(invalid) == []
         assert index.get_annotations(invalid) == []
 
-        assert bigs == set([invalid])
+        assert bigs == [invalid]
         assert smalls == []
 
 
@@ -172,7 +172,7 @@ class QueryIndexTest(TestCase):
         assert index.get_related_files('big') == uuids['big']['related_files']
         assert index.get_annotations('big') == uuids['big']['annotations']
 
-        assert bigs == set(['big'])
+        assert bigs == ['big']
         assert smalls == []
 
     ############ mock separate small files (bigs) ############
@@ -196,7 +196,7 @@ class QueryIndexTest(TestCase):
 
         # if a uuid has related files or annotations then they
         # are downloaded as big files
-        assert bigs == set(['big', 'small'])
+        assert set(bigs) == set(['big', 'small'])
         assert smalls == []
 
     def test_big_and_small_no_rel_no_ann_separate_small_files(self):
@@ -217,5 +217,5 @@ class QueryIndexTest(TestCase):
         assert index.get_related_files('small_no_friends') == []
         assert index.get_annotations('small_no_friends') == []
 
-        assert bigs == set(['big_no_friends'])
+        assert bigs == ['big_no_friends']
         assert smalls == [['small_no_friends']]
