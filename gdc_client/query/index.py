@@ -77,10 +77,10 @@ class GDCIndexClient(object):
         connections as possible.
 
         Args:
-            uuids (:obj: `list` of :obj: `str`): A list of UUIDs of the files
+            uuids (list): A list of UUIDs of the files
 
-        Returns:
-            :obj: `dict` of :obj: `dict`: metadata information
+        Return:
+            dict: metadata information
 
             self.metadata = {
                 str file_id: {
@@ -157,13 +157,13 @@ class GDCIndexClient(object):
         edge case.
 
         Args:
-            ids (:obj: `set` of :obj: `str`): a set of file UUIDs
+            ids (list): a set of file UUIDs
             chunk_size (int): the maximum allowed combined size of small files
 
         Return:
-            :obj: `list` of :obj: `str`: a list of big file UUIDs
-            :obj: `list` of :obj: `list` of :obj: `str`: a list of lists of
-                UUIDs. Each inner list representing a group of small file
+            list: a list of big file UUIDs
+            list: a list of lists of UUIDs. Each inner list representing a
+                group of small files
         """
 
         bigs = set()
