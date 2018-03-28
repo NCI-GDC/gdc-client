@@ -54,7 +54,7 @@ def upload(parser, args):
         token=args.token_file,
         processes=args.n_processes,
         multipart=args.disable_multipart,
-        http_chunk_size=args.http_chunk_size,
+        part_size=args.http_chunk_size,
         server=args.server,
         files=files,
         verify=args.insecure,
