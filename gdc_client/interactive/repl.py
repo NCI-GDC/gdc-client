@@ -161,7 +161,7 @@ class GDCREPL(Cmd):
         """Load your token from a file. This token will be used to
         authenticate you when downloading protected data.  You can
         download a token after logging into the GDC Portal at
-        https://gdc-portal.nci.nih.gov/
+        https://portal.gdc.cancer.gov/
 
         You can clear the token with the 'clear_token' command.
 
