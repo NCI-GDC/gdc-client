@@ -34,6 +34,3 @@ proxy_host = 'localhost'
 proxy_port = 9000
 
 HTTP_CHUNK_SIZE = 1024 * 1024 * 1024  # 1 GiB
-
-# Bringing this back to avoid errors in other modules
-part_size = HTTP_CHUNK_SIZE
