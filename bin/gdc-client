@@ -27,7 +27,6 @@ The Genomic Data Commons Command Line Client
 '''
 
 
-# TODO FIXME replace w/ updated email @ go live
 SUPPORT_EMAIL = 'support@nci-gdc.datacommons.io'
 
 ERROR_MSG = ' '.join([

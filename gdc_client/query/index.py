@@ -1,69 +1,124 @@
-from urlparse import urljoin
+"""gdc_client.query
+
+GDCIndexClient - Metadata query class
+"""
 
 import logging
+import json
+import urlparse
+
 import requests
-from json import dumps
 
-
-log = logging.getLogger('query')
 
 class GDCIndexClient(object):
+    """Metadata query class"""
 
     def __init__(self, uri):
+        """Metadata query init
+
+        Args:
+            uri (str): base uri of the gdcapi
+        """
+
         self.uri = uri
-        self.active_meta_endpoint = '/v0/files'
-        self.legacy_meta_endpoint = '/v0/legacy/files'
         self.metadata = dict()
+        self.logger = logging.getLogger('query')
 
     def get_related_files(self, uuid):
-        # type: str -> List[str]
+        """Get the related files for a particular UUID
+
+        Args:
+            uuid (str): UUID of a file staged for download
+
+        Returns:
+            list: files related to the UUID requested
+        """
+
         if uuid in self.metadata.keys():
             return self.metadata[uuid]['related_files']
         return []
 
     def get_annotations(self, uuid):
-        # type: str -> List[str]
+        """Get the annotations for a particular UUID
+
+        Args:
+            uuid (str): UUID of a file staged for download
+
+        Returns:
+            list: annotations of the UUID requested
+        """
+
         if uuid in self.metadata.keys():
             return self.metadata[uuid]['annotations']
         return []
 
     def get_md5sum(self, uuid):
-        # type: str -> str
+        """Get the related files for a particular UUID
+
+        Args:
+            uuid (str): UUID of a file staged for download
+
+        Returns:
+            str: md5 hash of a particular UUID
+        """
+
         if uuid in self.metadata.keys():
             return self.metadata[uuid]['md5sum']
+        return None
 
     def get_filesize(self, uuid):
-        # type: str -> long
+        """Get the file size for a particular UUID
+
+        Args:
+            uuid (str): UUID of a file staged for download
+
+        Returns:
+            long: file size of UUID
+        """
+
         if uuid in self.metadata.keys():
             return long(self.metadata[uuid]['file_size'])
+        return None
 
     def get_access(self, uuid):
-        # type: str -> long
+        """Get the access level for a particular UUID
+
+        Args:
+            uuid (str): uuid of a file to download
+
+        Returns:
+            string: the word "open" or "controlled"
+        """
+
         if uuid in self.metadata.keys():
             return self.metadata[uuid]['access']
+        return None
 
-    def _get_hits(self, url, metadata_query):
+    def _get_hits(self, path, metadata_query):
         """
         Get hits metadata from a given API endpoint
 
         Args:
-            url (str): Endpoint URL
+            path (str): specific api endpoint
             metadata_query (dict): Metadata query dictionary
 
         Returns:
             list: hits from the response data
         """
-        json_response = {}
-        # using a POST request lets us avoid the MAX URL character length limit
-        r = requests.post(url, json=metadata_query, verify=False)
 
-        if r is None:
+        metadata_url = urlparse.urljoin(self.uri, path)
+        json_response = {}
+
+        # using a POST request lets us avoid the MAX URL character length limit
+        resp = requests.post(metadata_url, json=metadata_query, verify=True)
+
+        if resp is None:
             return []
 
-        if r.status_code == requests.codes.ok:
-            json_response = r.json()
+        if resp.status_code == 200:
+            json_response = resp.json()
 
-        r.close()
+        resp.close()
 
         if (json_response.get('data') is None or
                 json_response['data'].get('hits') is None):
@@ -108,37 +163,38 @@ class GDCIndexClient(object):
         metadata_query = {
             'fields': 'file_id,file_size,md5sum,annotations.annotation_id,' \
                       'metadata_files.file_id,index_files.file_id,access',
-            'filters': dumps(filters),
+            'filters': json.dumps(filters),
             'from': '0',
             'size': str(len(uuids)), # one big request
         }
 
-        active_meta_url = urljoin(self.uri, self.active_meta_endpoint)
-        legacy_meta_url = urljoin(self.uri, self.legacy_meta_endpoint)
+        # active api
+        active_hits = self._get_hits('/v0/files', metadata_query)
 
-        active_hits = self._get_hits(active_meta_url, metadata_query)
-        legacy_hits = self._get_hits(legacy_meta_url, metadata_query)
+        # legacy api
+        legacy_hits = self._get_hits('/v0/legacy/files', metadata_query)
 
         if not active_hits and not legacy_hits:
-            log.debug('Unable to retrieve file metadata information. '
-                        'continuing downloading as if they were large files')
+            self.logger.debug('Unable to retrieve file metadata information. '
+                              'Continuing downloading as if they were big files')
             return self.metadata
 
-        for h in active_hits + legacy_hits:
-            related_returns = h.get('index_files', []) + h.get('metadata_files', [])
-            related_files = [ r['file_id'] for r in related_returns ]
+        for hit in active_hits + legacy_hits:
+            related_returns = hit.get('index_files', []) \
+                    + hit.get('metadata_files', [])
+            related_files = [r['file_id'] for r in related_returns]
 
-            annotations = [ a['annotation_id'] for a in h.get('annotations', []) ]
+            annotations = [a['annotation_id'] for a in hit.get('annotations', [])]
 
             # set the metadata as a class data member so that it can be
             # references as much as needed without needing to calculate
             # everything over again
-            if h['id'] not in self.metadata.keys():
+            if hit['id'] not in self.metadata.keys():
                 # don't want to overwrite
-                self.metadata[h['id']] = {
-                    'access':        h['access'],
-                    'file_size':     h['file_size'],
-                    'md5sum':        h['md5sum'],
+                self.metadata[hit['id']] = {
+                    'access':        hit['access'],
+                    'file_size':     hit['file_size'],
+                    'md5sum':        hit['md5sum'],
                     'annotations':   annotations,
                     'related_files': related_files,
                 }
@@ -146,7 +202,7 @@ class GDCIndexClient(object):
         return self.metadata
 
     def separate_small_files(self, ids, chunk_size):
-        """ Separate big and small files
+        """Separate big and small files
 
         Separate the small files from the larger files in
         order to combine them into single grouped downloads. This will reduce
@@ -173,7 +229,7 @@ class GDCIndexClient(object):
 
         # go through all the UUIDs and pick out the ones with
         # relate and annotation files so they can be handled by parcel
-        log.debug('Grouping ids by size')
+        self.logger.debug('Grouping ids by size')
 
         self._get_metadata(ids)
         for uuid in ids:
@@ -181,22 +237,22 @@ class GDCIndexClient(object):
                 bigs.add(uuid)
                 continue
 
-            rf = self.get_related_files(uuid)
-            af = self.get_annotations(uuid)
+            rf_uuids = self.get_related_files(uuid)
+            af_uuids = self.get_annotations(uuid)
 
             # if there are any related files, add file to a regular/big file
             # download list
-            if rf:
+            if rf_uuids:
                 bigs.add(uuid)
 
             # if there are any annotations, add file to a regular/big file
             # download list
-            if af:
+            if af_uuids:
                 bigs.add(uuid)
 
             # if uuid has no related or annotation files
             # then proceed to the small file sorting with them
-            if not af and not rf:
+            if not af_uuids and not rf_uuids:
                 potential_smalls.add(uuid)
 
         # the following line is to trigger the first if statement
@@ -237,15 +293,16 @@ class GDCIndexClient(object):
         smalls = smalls_open + smalls_control
 
         # for logging/reporting purposes
-        total_count = len(bigs) + sum([ len(s) for s in smalls ])
+        total_count = len(bigs) + sum([len(s) for s in smalls])
         if len(potential_smalls) > total_count:
-            log.warning('There are less files to download than originally given')
-            log.warning('Number of files originally given: {0}'\
-                    .format(len(potential_smalls)))
+            self.logger.warning('There are less files to download than '\
+                                'originally given')
+            self.logger.warning('Number of files originally given: %d',\
+                                len(potential_smalls))
 
-        log.debug('{0} total number of files to download'.format(total_count))
-        log.debug('{0} groupings of files'.format(len(smalls)))
+        self.logger.debug('%d total number of files to download', total_count)
+        self.logger.debug('%d groupings of files', len(smalls))
 
-        smalls = [ s for s in smalls if s != [] ]
+        smalls = [s for s in smalls if s != []]
 
         return list(bigs), smalls

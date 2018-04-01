@@ -6,10 +6,10 @@ import tarfile
 import pytest
 
 def md5(iterable):
-    md5 = hashlib.md5()
+    md5sum = hashlib.md5()
     for chunk in iterable:
-        md5.update(chunk)
-    return md5.hexdigest()
+        md5sum.update(chunk)
+    return md5sum.hexdigest()
 
 def make_tarfile(ids, tarfile_name='temp.tar', write_mode='w'):
     """Make a tarfile for the purposes of testing tarfile methods"""

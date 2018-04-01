@@ -1,20 +1,17 @@
-from gdc_client import defaults
-from gdc_client.download.client import GDCUDTDownloadClient
-from gdc_client.download.client import GDCHTTPDownloadClient
-from gdc_client.query.index import GDCIndexClient
+import logging
+import time
+import urlparse
+
 from functools import partial
 from parcel import const
 from parcel import colored
 from parcel import manifest
 
-import argparse
-import logging
-import time
-import urlparse
+from gdc_client import defaults
+from gdc_client.download import GDCHTTPDownloadClient
+from gdc_client.query import GDCIndexClient
 
-
-
-log = logging.getLogger('gdc-download')
+LOG = logging.getLogger('gdc-download')
 
 UDT_SUPPORT = ' '.join([
     'UDT is supported through the use of the Parcel UDT proxy.',
@@ -23,8 +20,7 @@ UDT_SUPPORT = ' '.join([
 ])
 
 def validate_args(parser, args):
-    """ Validate argparse namespace.
-    """
+    """Validate argparse namespace."""
     if not args.file_ids and not args.manifest:
         msg = 'must specify either --manifest or file_id'
         parser.error(msg)
@@ -36,6 +32,8 @@ def validate_args(parser, args):
 def get_client(args, index_client):
     # args get converted into kwargs
     kwargs = {
+        'uri': args.server,
+        'index_client': index_client,
         'token': args.token_file,
         'n_procs': args.n_processes,
         'directory': args.dir,
@@ -52,31 +50,25 @@ def get_client(args, index_client):
     # The option to use UDT should be hidden until
     # (1) the external library is packaged into the binary and
     # (2) the GDC supports Parcel servers in production
-    '''
-    if args.udt:
-        server = args.server or defaults.udt_url
-        return GDCUDTDownloadClient(
-            remote_uri=server,
-            proxy_host=args.proxy_host,
-            proxy_port=args.proxy_port,
-            external_proxy=args.external_proxy,
-            **kwargs
-        )
-    else:
-    '''
-    return GDCHTTPDownloadClient(
-            uri=args.server,
-            index_client=index_client,
-            **kwargs
-    )
+    # if args.udt:
+    #     server = args.server or defaults.udt_url
+    #     return GDCUDTDownloadClient(
+    #         remote_uri=server,
+    #         proxy_host=args.proxy_host,
+    #         proxy_port=args.proxy_port,
+    #         external_proxy=args.external_proxy,
+    #         **kwargs
+    #     )
+    # else:
+    return GDCHTTPDownloadClient(**kwargs)
 
 def download(parser, args):
-    """ Downloads data from the GDC.
+    """Downloads data from the GDC.
 
-        Combine the smaller files (~KB range) into a grouped download.
-        The API now supports combining UUID's into one uncompressed tarfile
-        using the ?tarfile url parameter. Combining many smaller files into one
-        download decreases the number of open connections we have to make
+    Combine the smaller files (~KB range) into a grouped download.
+    The API now supports combining UUID's into one uncompressed tarfile
+    using the ?tarfile url parameter. Combining many smaller files into one
+    download decreases the number of open connections we have to make
     """
 
     successful_count = 0
@@ -90,7 +82,7 @@ def download(parser, args):
     ids = set(args.file_ids)
     for i in args.manifest:
         if not i.get('id'):
-            log.error('Invalid manifest')
+            LOG.error('Invalid manifest')
             break
         ids.add(i['id'])
 
@@ -103,7 +95,7 @@ def download(parser, args):
     # the big files will be normal downloads
     # the small files will be joined together and tarfiled
     if smalls:
-        log.debug('Downloading smaller files...')
+        LOG.debug('Downloading smaller files...')
 
         # download small file grouped in an uncompressed tarfile
         small_errors, count = client.download_small_groups(smalls)
@@ -112,7 +104,7 @@ def download(parser, args):
         i = 0
         while i < args.retry_amount and small_errors:
             time.sleep(args.wait_time)
-            log.debug('Retrying failed grouped downloads')
+            LOG.debug('Retrying failed grouped downloads')
             small_errors, count = client.download_small_groups(small_errors)
             successful_count += count
             i += 1
@@ -120,10 +112,10 @@ def download(parser, args):
     # client.download_files is located in parcel which calls
     # self.parallel_download, which goes back to to gdc-client's parallel_download
     if bigs:
-        log.debug('Downloading big files...')
+        LOG.debug('Downloading big files...')
 
         # create URLs to send to parcel for download
-        bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
+        bigs = [urlparse.urljoin(client.data_uri, b) for b in bigs]
         downloaded_files, big_error_dict = client.download_files(bigs)
         not_downloaded_url = ''
         big_errors_count = 0
@@ -133,11 +125,12 @@ def download(parser, args):
                 # only retry the download if it wasn't a controlled access error
                 if '403' not in reason:
                     not_downloaded_url = retry_download(
-                            client,
-                            url,
-                            args.retry_amount,
-                            args.no_auto_retry,
-                            args.wait_time)
+                        client,
+                        url,
+                        args.retry_amount,
+                        args.no_auto_retry,
+                        args.wait_time,
+                    )
                 else:
                     big_errors.append(url)
                     not_downloaded_url = ''
@@ -147,58 +140,57 @@ def download(parser, args):
                         big_errors.append(url)
 
         if big_errors:
-            log.debug('Big files not downloaded: {0}'
-                    .format(', '.join([ b.split('/')[-1] for b in big_errors ])))
+            big_error_string = ', '.join([b.split('/')[-1] for b in big_errors])
+            LOG.debug('Big files not downloaded: %s', big_error_string)
 
         successful_count += len(bigs) - len(big_errors)
 
     unsuccessful_count = len(ids) - successful_count
 
-    log.info('{0}: {1}'.format(
-        colored('Successfully downloaded', 'green'),
-        successful_count))
+    LOG.info('%s: %d',
+             colored('Successfully downloaded', 'green'),
+             successful_count)
 
     if unsuccessful_count > 0:
-        log.info('{0}: {1}'.format(
-            colored('Failed downloads', 'red'),
-            unsuccessful_count))
+        LOG.info('%s: %d',
+                 colored('Failed downloads', 'red'),
+                 unsuccessful_count)
 
     return small_errors or big_errors
 
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
 
-    log.debug('Retrying download {0}'.format(url))
+    LOG.debug('Retrying download %s', url)
 
     error = True
-    while 0 < retry_amount and error:
+    while retry_amount > 0 and error:
         if no_auto_retry:
             should_retry = raw_input('Retry download for {0}? (y/N): '.format(url))
         else:
             should_retry = 'y'
 
         if should_retry.lower() == 'y':
-            log.debug('{0} retries remaining...'.format(retry_amount))
-            log.debug('Retrying download... {0} in {1} seconds'.format(url, wait_time))
+            LOG.debug('%d retries remaining...', retry_amount)
+            LOG.debug('Retrying download... %s in %d seconds', url, wait_time)
             retry_amount -= 1
             time.sleep(wait_time)
             # client.download_files accepts a list of urls to download
             # but we want to only try one at a time
             _, e = client.download_files([url])
             if not e:
-                log.debug('Successfully downloaded {0}!'.format(url))
+                LOG.debug('Successfully downloaded %s!', url)
                 return
         else:
             error = False
             retry_amount = 0
 
-    log.error('Unable to download file {0}'.format(url))
+    LOG.error('Unable to download file %s', url)
     return url
 
 
 def config(parser):
-    """ Configure a parser for download.
-    """
+    """Configure a parser for download."""
     func = partial(download, parser)
     parser.set_defaults(func=func)
 
@@ -257,25 +249,26 @@ def config(parser):
     # (2) the GDC supports Parcel servers in production
     parser.add_argument('-u', '--udt', action='store_true',
                         help='Use the UDT protocol.')
-    '''
-    parser.add_argument('--proxy-host', default=defaults.proxy_host,
-                        type=str, dest='proxy_host',
-                        help='The port to bind the local proxy to')
-    parser.add_argument('--proxy-port', default=defaults.proxy_port,
-                        type=str, dest='proxy_port',
-                        help='The port to bind the local proxy to')
-    parser.add_argument('-e', '--external-proxy', action='store_true',
-                        dest='external_proxy',
-                        help='Do not create a local proxy but bind to an external one')
-    '''
-    parser.add_argument('-m', '--manifest',
+
+    # parser.add_argument('--proxy-host', default=defaults.proxy_host,
+    #                     type=str, dest='proxy_host',
+    #                     help='The port to bind the local proxy to')
+    # parser.add_argument('--proxy-port', default=defaults.proxy_port,
+    #                     type=str, dest='proxy_port',
+    #                     help='The port to bind the local proxy to')
+    # parser.add_argument('-e', '--external-proxy', action='store_true',
+    #                     dest='external_proxy',
+    #                     help='Do not create a local proxy but bind to an external one')
+    parser.add_argument(
+        '-m',
+        '--manifest',
         type=manifest.argparse_type,
         default=[],
         help='GDC download manifest file',
     )
-    parser.add_argument('file_ids',
+    parser.add_argument(
+        'file_ids',
         metavar='file_id',
         nargs='*',
         help='The GDC UUID of the file(s) to download',
     )
-

@@ -1,5 +1,5 @@
-from conftest import md5, uuids
-from gdc_client.query.index import GDCIndexClient
+from .utils import md5, uuids
+from gdc_client.query import GDCIndexClient
 from multiprocessing import Process
 from parcel.const import HTTP_CHUNK_SIZE
 from unittest import TestCase

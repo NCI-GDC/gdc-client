@@ -1,6 +1,6 @@
 from flask import Flask, Response, jsonify, request
 from StringIO import StringIO
-from conftest import uuids, make_tarfile
+from .utils import uuids, make_tarfile
 
 import json
 import os

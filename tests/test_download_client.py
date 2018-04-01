@@ -1,17 +1,18 @@
-from conftest import md5, uuids, make_tarfile
-from gdc_client.download.client import GDCHTTPDownloadClient
-from gdc_client.query.index import GDCIndexClient
-from multiprocessing import Process, cpu_count
-from parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
-from unittest import TestCase
-
-import logging
-import mock_server
 import os
-import os.path
-import StringIO
 import tarfile
 import time
+from multiprocessing import Process, cpu_count
+from unittest import TestCase
+
+import pytest
+from parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
+
+from gdc_client.download import GDCHTTPDownloadClient
+from gdc_client.download.client import fix_url
+from gdc_client.query import GDCIndexClient
+from .mock_server import app
+from .utils import make_tarfile, uuids
+
 
 # default values for flask
 server_host = 'http://127.0.0.1'
@@ -38,7 +39,7 @@ client_kwargs = {
 
 class DownloadClientTest(TestCase):
     def setUp(self):
-        self.server = Process(target=mock_server.app.run)
+        self.server = Process(target=app.run)
         self.server.start()
 
         # give the server time to start
@@ -46,20 +47,6 @@ class DownloadClientTest(TestCase):
 
     def tearDown(self):
         self.server.terminate()
-
-    def test_fix_url(self):
-        index_client = GDCIndexClient(base_url)
-        client = GDCHTTPDownloadClient(
-                uri=base_url,
-                index_client=index_client,
-                **client_kwargs)
-
-        assert client.fix_url('api.gdc.cancer.gov') == \
-                'https://api.gdc.cancer.gov/'
-        assert client.fix_url('http://api.gdc.cancer.gov/') == \
-                'http://api.gdc.cancer.gov/'
-        assert client.fix_url('api.gdc.cancer.gov/') == \
-                'https://api.gdc.cancer.gov/'
 
     def test_untar_file(self):
 
@@ -74,9 +61,9 @@ class DownloadClientTest(TestCase):
         index_client = GDCIndexClient(base_url)
 
         client = GDCHTTPDownloadClient(
-                uri=base_url,
-                index_client=index_client,
-                **client_kwargs)
+            uri=base_url,
+            index_client=index_client,
+            **client_kwargs)
 
         client._untar_file(tarfile_name)
 
@@ -100,9 +87,9 @@ class DownloadClientTest(TestCase):
         index_client._get_metadata(files_to_tar)
 
         client = GDCHTTPDownloadClient(
-                uri=base_url,
-                index_client=index_client,
-                **client_kwargs)
+            uri=base_url,
+            index_client=index_client,
+            **client_kwargs)
 
         client._untar_file(tarfile_name)
         errors = client._md5_members(files_to_tar)
@@ -122,9 +109,9 @@ class DownloadClientTest(TestCase):
         index_client._get_metadata(files_to_dl)
 
         client = GDCHTTPDownloadClient(
-                uri=base_url,
-                index_client=index_client,
-                **client_kwargs)
+            uri=base_url,
+            index_client=index_client,
+            **client_kwargs)
 
         # it will remove redundant uuids
         tarfile_name, errors = client._download_tarfile(files_to_dl)
@@ -139,3 +126,11 @@ class DownloadClientTest(TestCase):
                 contents = m.read()
                 assert contents == uuids[m.name]['contents']
                 os.remove(tarfile_name)
+
+@pytest.mark.parametrize("given, expected", [
+    ('api.gdc.cancer.gov', 'https://api.gdc.cancer.gov/'),
+    ('http://api.gdc.cancer.gov/', 'http://api.gdc.cancer.gov/'),
+    ('api.gdc.cancer.gov/', 'https://api.gdc.cancer.gov/'),
+])
+def test_fix_url(given, expected):
+    assert fix_url(given) == expected
