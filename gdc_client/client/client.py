@@ -7,7 +7,7 @@ from .. import auth
 from .. import version
 
 
-GDC_API_HOST = 'gdc-api.nci.nih.gov'
+GDC_API_HOST = 'api.gdc.cancer.gov'
 GDC_API_PORT = 443
 
 class GDCClient(object):
