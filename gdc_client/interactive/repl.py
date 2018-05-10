@@ -88,7 +88,7 @@ class GDCREPL(Cmd):
             http_chunk_size=const.HTTP_CHUNK_SIZE,
             download_related_files=True,
             download_annotations=True,
-            part_size=defaults.part_size,
+            part_size=defaults.HTTP_CHUNK_SIZE,
             multipart=True,
             verify=True,
         )
