@@ -1,6 +1,6 @@
 # GDC Data Transfer Tool (gdc-client)
 
-[Overview of the GDC Data Transfer Tool](https://gdc.nci.nih.gov/access-data/gdc-data-transfer-tool)
+[Overview of the GDC Data Transfer Tool](https://gdc.cancer.gov/access-data/gdc-data-transfer-tool)
 
 The gdc-client provides several convenience functions over the GDC API which provides general download/upload via HTTPS.
 
