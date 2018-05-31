@@ -154,13 +154,15 @@ def download(parser, args):
 
     unsuccessful_count = len(ids) - successful_count
 
+    msg = 'Successfully downloaded'
     log.info('{0}: {1}'.format(
-        colored('Successfully downloaded', 'green'),
+        colored(msg, 'green') if not args.color_off else msg,
         successful_count))
 
     if unsuccessful_count > 0:
+        msg = 'Failed downloads'
         log.info('{0}: {1}'.format(
-            colored('Failed downloads', 'red'),
+            colored(msg, 'red') if not args.color_off else msg,
             unsuccessful_count))
 
     return small_errors or big_errors
