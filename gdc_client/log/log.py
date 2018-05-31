@@ -11,11 +11,16 @@ class LogFormatter(logging.Formatter):
     info_format = '%(msg)s'
 
 
-    def __init__(self, fmt='%(asctime)s - %(levelname)s: %(msg)s'):
+    def __init__(self, fmt='%(asctime)s - %(levelname)s: %(msg)s',
+                 color_off=False):
         logging.Formatter.__init__(self, fmt)
+        self.color_off = color_off
 
 
     def format(self, record):
+        # Skip colored output if the flag is set
+        if self.color_off:
+            return logging.Formatter.format(self, record)
 
         # Save the original format
         format_orig = self._fmt

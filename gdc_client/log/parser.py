@@ -21,7 +21,7 @@ def setup_logging(args):
     root.setLevel(min(args.log_levels))
 
     s_handler = logging.StreamHandler(sys.stdout)
-    s_handler.setFormatter(LogFormatter())
+    s_handler.setFormatter(LogFormatter(color_off=args.color_off))
     root.addHandler(s_handler)
 
     if args.log_file:
@@ -61,4 +61,10 @@ def config(parser):
         type=argparse.FileType('a'),
         default=None,
         help='Save logs to file. Amount logged affected by --debug',
+    )
+
+    parser.add_argument('--color_off',
+        dest='color_off',
+        action='store_true',
+        help='Disable colored output',
     )
