@@ -2,7 +2,8 @@ import types
 import os
 import shlex
 
-from cmd2 import Cmd, options, make_option
+from optparse import make_option
+from cmd2 import Cmd, options
 from parcel import const, manifest
 
 from ..download.client import GDCHTTPDownloadClient
