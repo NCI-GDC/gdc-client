@@ -2,6 +2,7 @@ from parcel import HTTPClient, UDTClient, utils
 from parcel.download_stream import DownloadStream
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from StringIO import StringIO
+from gdc_client.utils import url_with_params
 
 import hashlib
 import logging
@@ -79,7 +80,6 @@ class GDCDownloadMixin(object):
 
             log.debug('Wrote annotations to {0}.'.format(path))
 
-
     def _untar_file(self, tarfile_name):
         # type: (str) -> List[str]
         """ untar the file and return all the file names inside the tarfile """
@@ -93,7 +93,6 @@ class GDCDownloadMixin(object):
         os.remove(tarfile_name)
 
         return [ m.name for m in members ]
-
 
     def _md5_members(self, members):
         # type: (List[str]) -> List[str]
@@ -114,7 +113,6 @@ class GDCDownloadMixin(object):
                 errors.append(member_uuid)
 
         return errors
-
 
     def _post(self, path, headers={}, json={}, stream=True):
         # type: (str, Dict[str]str, Dict[str]str, bool) -> requests.models.Response
@@ -151,8 +149,7 @@ class GDCDownloadMixin(object):
 
         return r
 
-
-    def _download_tarfile(self, small_files):
+    def _download_tarfile(self, small_files, latest):
         # type: (List[str]) -> str, List[str]
         """ Make the request to the API for the tarfile downloads """
 
@@ -166,7 +163,9 @@ class GDCDownloadMixin(object):
         ids = {"ids": small_files}
 
         # POST request avoids the MAX LEN character limit for URLs
-        r = self._post(path='data?tarfile', headers=headers, json=ids)
+        params = ('tarfile', 'latest') if latest else ('tarfile',)
+        path = url_with_params('data', *params)
+        r = self._post(path=path, headers=headers, json=ids)
 
         if r.status_code == requests.codes.bad:
             log.error('Unable to connect to the API')
@@ -204,15 +203,13 @@ class GDCDownloadMixin(object):
 
         return tarfile_name, errors
 
-
-    def download_small_groups(self, smalls):
+    def download_small_groups(self, smalls, latest=False):
         # type: (List[str]) -> List[str], int
         """ Download small groups
 
         Smalls are predetermined groupings of smaller file size files.
         They are grouped to reduce the number of open connections per download.
         """
-
 
         successful_count = 0
         tarfile_name = None
@@ -231,7 +228,7 @@ class GDCDownloadMixin(object):
             pbar.start()
 
             log.debug('Saving grouping {0}/{1}'.format(i+1, groupings_len))
-            tarfile_name, error = self._download_tarfile(s)
+            tarfile_name, error = self._download_tarfile(s, latest)
 
             # this will happen in the result of an
             # error that shouldn't be retried
@@ -252,7 +249,6 @@ class GDCDownloadMixin(object):
             pbar.finish()
 
         return errors, successful_count
-
 
     def parallel_download(self, stream, download_related_files=None,
                           download_annotations=None, *args, **kwargs):

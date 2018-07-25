@@ -2,6 +2,7 @@ from gdc_client import defaults
 from gdc_client.download.client import GDCUDTDownloadClient
 from gdc_client.download.client import GDCHTTPDownloadClient
 from gdc_client.query.index import GDCIndexClient
+from gdc_client.utils import url_with_params
 from functools import partial
 from parcel import const
 from parcel import colored
@@ -13,7 +14,6 @@ import time
 import urlparse
 
 
-
 log = logging.getLogger('gdc-download')
 
 UDT_SUPPORT = ' '.join([
@@ -21,6 +21,7 @@ UDT_SUPPORT = ' '.join([
     'To set up a Parcel UDT proxy for use with the GDC client,',
     'please contact the GDC Help Desk at support@nci-gdc.datacommons.io.',
 ])
+
 
 def validate_args(parser, args):
     """ Validate argparse namespace.
@@ -83,7 +84,6 @@ def download(parser, args):
     unsuccessful_count = 0
     big_errors = []
     small_errors = []
-    total_download_count = 0
     validate_args(parser, args)
 
     # sets do not allow duplicates in a list
@@ -106,14 +106,15 @@ def download(parser, args):
         log.debug('Downloading smaller files...')
 
         # download small file grouped in an uncompressed tarfile
-        small_errors, count = client.download_small_groups(smalls)
+        small_errors, count = client.download_small_groups(smalls, args.latest)
         successful_count += count
 
         i = 0
         while i < args.retry_amount and small_errors:
             time.sleep(args.wait_time)
             log.debug('Retrying failed grouped downloads')
-            small_errors, count = client.download_small_groups(small_errors)
+            small_errors, count = client.download_small_groups(small_errors,
+                                                               args.latest)
             successful_count += count
             i += 1
 
@@ -123,10 +124,13 @@ def download(parser, args):
         log.debug('Downloading big files...')
 
         # create URLs to send to parcel for download
-        bigs = [ urlparse.urljoin(client.data_uri, b) for b in bigs ]
-        downloaded_files, big_error_dict = client.download_files(bigs)
+        params = ('latest',) if args.latest else ()
+        bigs = [
+            urlparse.urljoin(client.data_uri, url_with_params(b, *params))
+            for b in bigs
+        ]
+        _, big_error_dict = client.download_files(bigs)
         not_downloaded_url = ''
-        big_errors_count = 0
 
         if args.retry_amount > 0:
             for url, reason in big_error_dict.iteritems():
@@ -147,8 +151,9 @@ def download(parser, args):
                         big_errors.append(url)
 
         if big_errors:
-            log.debug('Big files not downloaded: {0}'
-                    .format(', '.join([ b.split('/')[-1] for b in big_errors ])))
+            log.debug(
+                'Big files not downloaded: {0}'
+                .format(', '.join([ b.split('/')[-1] for b in big_errors ])))
 
         successful_count += len(bigs) - len(big_errors)
 
@@ -249,6 +254,8 @@ def config(parser):
     parser.add_argument('--wait-time', default=5.0,
                         dest='wait_time', type=float,
                         help='Amount of seconds to wait before retrying')
+    parser.add_argument('--latest', action='store_true',
+                        help='Download latest version of a file if it exists')
 
     #############################################################
     #                       UDT options
