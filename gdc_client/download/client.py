@@ -65,12 +65,20 @@ class GDCDownloadMixin(object):
         annotation_list = ','.join(annotations)
 
         if annotations:
-            log.debug('Found {0} annotations for {1}.'.format(
-                len(annotations), file_id))
+            log.debug('Found {0} annotations for {1}.'.format(len(annotations), file_id))
+            
+            # TODO: Refactor this with the _post method for a generic function for calling active/legacy api
             r = requests.get(
                 urlparse.urljoin(self.data_uri, annotation_list),
                 params={'compress': True},
                 verify=self.verify)
+            if r.status_code != requests.codes.ok:
+                # try legacy if active doesn't return OK
+                r = requests.get(
+                    urlparse.urljoin(self.legacy_data_uri, annotation_list),
+                    params={'compress': True},
+                    verify=self.verify
+                )
             r.raise_for_status()
             tar = tarfile.open(mode="r:gz", fileobj=StringIO(r.content))
             if self.annotation_name in tar.getnames():
@@ -309,6 +317,7 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
         self.base_directory = kwargs.get('directory')
         self.base_uri = self.fix_url(uri)
         self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
+        self.legacy_data_uri = urlparse.urljoin(self.base_uri, 'legacy/data/')
         self.index = index_client
         self.md5_check = kwargs.get('file_md5sum')
         self.related_files = download_related_files
