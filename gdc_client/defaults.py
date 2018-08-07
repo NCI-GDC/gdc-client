@@ -34,3 +34,6 @@ proxy_host = 'localhost'
 proxy_port = 9000
 
 HTTP_CHUNK_SIZE = 1024 * 1024 * 1024  # 1 GiB
+
+# The following file will contain superseded files information
+SUPERSEDED_INFO_FILENAME_TEMPLATE = 'superseded_files[0-9._]+.txt'

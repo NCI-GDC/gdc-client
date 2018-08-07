@@ -3,11 +3,13 @@ from parcel.download_stream import DownloadStream
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from StringIO import StringIO
 from gdc_client.utils import url_with_params
+from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 
 import hashlib
 import logging
 import os
 import requests
+import re
 import sys
 import tarfile
 import time
@@ -99,7 +101,14 @@ class GDCDownloadMixin(object):
         """ Calculate md5 hash and compare them with values given by the API """
 
         errors = []
+        import pdb; pdb.set_trace()
         for m in members:
+            res = re.findall(re.compile(SUPERSEDED_INFO_FILENAME_TEMPLATE), m)
+            if re.findall(re.compile(SUPERSEDED_INFO_FILENAME_TEMPLATE), m):
+                log.info(
+                    'Some of the files have been superseded. See {} '
+                    'for reference.'.format(m))
+                continue
             member_uuid = m.split('/')[0]
             log.debug('Validating checksum for {0}...'.format(member_uuid))
 
@@ -134,7 +143,7 @@ class GDCDownloadMixin(object):
                 json=json,
                 headers=headers,
             )
-            if r.status_code != requests.codes.ok:
+            if r.status_code not in [requests.codes.ok, 203]:
                 # try legacy if active doesn't return OK
                 r = requests.post(
                    legacy,
@@ -166,6 +175,7 @@ class GDCDownloadMixin(object):
         params = ('tarfile', 'latest') if latest else ('tarfile',)
         path = url_with_params('data', *params)
         r = self._post(path=path, headers=headers, json=ids)
+        import pdb; pdb.set_trace()
 
         if r.status_code == requests.codes.bad:
             log.error('Unable to connect to the API')
@@ -179,7 +189,7 @@ class GDCDownloadMixin(object):
             log.error(r.text)
             return '', []
 
-        if r.status_code != requests.codes.ok:
+        if r.status_code not in [requests.codes.ok, 203]:
             log.warning('[{0}] Unable to download group'.format(r.status_code))
             errors.append(ids['ids'])
             return '', errors
