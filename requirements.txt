@@ -6,4 +6,4 @@ ndg-httpsclient==0.4.2
 pyasn1==0.2.3
 pyOpenSSL==17.1.0
 PyYAML==3.11
--e git+https://github.com/LabAdvComp/parcel.git@23befb223504ab0c7ac06b30e6a1a781cb153e2b#egg=parcel
+-e git+https://github.com/LabAdvComp/parcel.git@f37e1a0fe43432eabaac592775c0752a53ce53dd#egg=parcel

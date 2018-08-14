@@ -101,11 +101,9 @@ class GDCDownloadMixin(object):
         """ Calculate md5 hash and compare them with values given by the API """
 
         errors = []
-        import pdb; pdb.set_trace()
         for m in members:
-            res = re.findall(re.compile(SUPERSEDED_INFO_FILENAME_TEMPLATE), m)
             if re.findall(re.compile(SUPERSEDED_INFO_FILENAME_TEMPLATE), m):
-                log.info(
+                log.warn(
                     'Some of the files have been superseded. See {} '
                     'for reference.'.format(m))
                 continue
@@ -175,7 +173,6 @@ class GDCDownloadMixin(object):
         params = ('tarfile', 'latest') if latest else ('tarfile',)
         path = url_with_params('data', *params)
         r = self._post(path=path, headers=headers, json=ids)
-        import pdb; pdb.set_trace()
 
         if r.status_code == requests.codes.bad:
             log.error('Unable to connect to the API')

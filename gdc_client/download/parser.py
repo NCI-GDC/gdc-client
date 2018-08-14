@@ -100,6 +100,9 @@ def download(parser, args):
     # separate the smaller files from the larger files
     bigs, smalls = index_client.separate_small_files(ids, args.http_chunk_size)
 
+    if args.latest:
+        log.info('Downloading LATEST versions of files')
+
     # the big files will be normal downloads
     # the small files will be joined together and tarfiled
     if smalls:
