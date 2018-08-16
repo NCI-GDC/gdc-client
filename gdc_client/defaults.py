@@ -2,6 +2,7 @@
 # Default settings for gdc-client
 ###############################################################################
 
+import re
 from multiprocessing import cpu_count
 
 ####################
@@ -36,4 +37,4 @@ proxy_port = 9000
 HTTP_CHUNK_SIZE = 1024 * 1024 * 1024  # 1 GiB
 
 # The following file will contain superseded files information
-SUPERSEDED_INFO_FILENAME_TEMPLATE = 'superseded_files[0-9._]+.txt'
+SUPERSEDED_INFO_FILENAME_TEMPLATE = re.compile(r'superseded_files[\d._]+.txt')

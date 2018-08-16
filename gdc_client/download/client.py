@@ -2,7 +2,7 @@ from parcel import HTTPClient, UDTClient, utils
 from parcel.download_stream import DownloadStream
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from StringIO import StringIO
-from gdc_client.utils import url_with_params
+from gdc_client.utils import build_url
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 
 import hashlib
@@ -102,7 +102,7 @@ class GDCDownloadMixin(object):
 
         errors = []
         for m in members:
-            if re.findall(re.compile(SUPERSEDED_INFO_FILENAME_TEMPLATE), m):
+            if re.findall(SUPERSEDED_INFO_FILENAME_TEMPLATE, m):
                 log.warn(
                     'Some of the files have been superseded. See {} '
                     'for reference.'.format(m))
@@ -121,7 +121,7 @@ class GDCDownloadMixin(object):
 
         return errors
 
-    def _post(self, path, headers={}, json={}, stream=True):
+    def _post(self, path, headers=None, json=None, stream=True):
         # type: (str, Dict[str]str, Dict[str]str, bool) -> requests.models.Response
         """ custom post request that will query both active and legacy api
 
@@ -138,17 +138,17 @@ class GDCDownloadMixin(object):
                 active,
                 stream=stream,
                 verify=self.verify,
-                json=json,
-                headers=headers,
+                json=json or {},
+                headers=headers or {},
             )
-            if r.status_code not in [requests.codes.ok, 203]:
+            if r.status_code not in [200, 203]:
                 # try legacy if active doesn't return OK
                 r = requests.post(
                    legacy,
                    stream=stream,
                    verify=self.verify,
-                   json=json,
-                   headers=headers,
+                   json=json or {},
+                   headers=headers or {},
                )
 
         except Exception as e:
@@ -171,7 +171,7 @@ class GDCDownloadMixin(object):
 
         # POST request avoids the MAX LEN character limit for URLs
         params = ('tarfile', 'latest') if latest else ('tarfile',)
-        path = url_with_params('data', *params)
+        path = build_url('data', *params)
         r = self._post(path=path, headers=headers, json=ids)
 
         if r.status_code == requests.codes.bad:
@@ -186,7 +186,7 @@ class GDCDownloadMixin(object):
             log.error(r.text)
             return '', []
 
-        if r.status_code not in [requests.codes.ok, 203]:
+        if r.status_code not in [200, 203]:
             log.warning('[{0}] Unable to download group'.format(r.status_code))
             errors.append(ids['ids'])
             return '', errors

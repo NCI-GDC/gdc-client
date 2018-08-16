@@ -1,7 +1,12 @@
-from urllib import urlencode
+try:
+    # Python3
+    from urllib.parse import urlencode
+except ImportError:
+    # Python2
+    from urllib import urlencode
 
 
-def url_with_params(path, *params, **kwparams):
+def build_url(path, *params, **kwparams):
     final_params = []
     if params:
         final_params.append('&'.join(params))

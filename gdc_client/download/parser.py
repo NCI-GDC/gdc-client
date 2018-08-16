@@ -2,7 +2,7 @@ from gdc_client import defaults
 from gdc_client.download.client import GDCUDTDownloadClient
 from gdc_client.download.client import GDCHTTPDownloadClient
 from gdc_client.query.index import GDCIndexClient
-from gdc_client.utils import url_with_params
+from gdc_client.utils import build_url
 from functools import partial
 from parcel import const
 from parcel import colored
@@ -129,7 +129,7 @@ def download(parser, args):
         # create URLs to send to parcel for download
         params = ('latest',) if args.latest else ()
         bigs = [
-            urlparse.urljoin(client.data_uri, url_with_params(b, *params))
+            urlparse.urljoin(client.data_uri, build_url(b, *params))
             for b in bigs
         ]
         _, big_error_dict = client.download_files(bigs)
