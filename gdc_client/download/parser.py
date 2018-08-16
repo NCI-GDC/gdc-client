@@ -1,17 +1,19 @@
+import argparse
+import logging
+import time
+import urlparse
+from configparser import ConfigParser
+from functools import partial
+
 from gdc_client import defaults
 from gdc_client.download.client import GDCUDTDownloadClient
 from gdc_client.download.client import GDCHTTPDownloadClient
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.utils import build_url
-from functools import partial
+from gdc_client.common.config import GDCClientConfig
 from parcel import const
 from parcel import colored
 from parcel import manifest
-
-import argparse
-import logging
-import time
-import urlparse
 
 
 log = logging.getLogger('gdc-download')
@@ -21,6 +23,25 @@ UDT_SUPPORT = ' '.join([
     'To set up a Parcel UDT proxy for use with the GDC client,',
     'please contact the GDC Help Desk at support@nci-gdc.datacommons.io.',
 ])
+
+
+class GDCClientDownloadConfig(GDCClientConfig):
+    def __init__(self, config_path=defaults.CONFIG_DEFAULTS_LOCATION):
+        super(GDCClientDownloadConfig, self).__init__(config_path)
+        self.sections.append('DOWNLOAD')
+        self.flag_getters.update({
+            'dir': 'get',
+            'server': 'get',
+            'n_processes': 'getint',
+            'retry_amount': 'getint',
+            'wait_time': 'getfloat',
+            'no_segment_md5sums': 'getboolean',
+            'no_file_md5sum': 'getboolean',
+            'no_verify': 'getboolean',
+            'no_related_files': 'getboolean',
+            'no_annotations': 'getboolean',
+            'no_auto_retry': 'getboolean'
+        })
 
 
 def validate_args(parser, args):
@@ -34,18 +55,19 @@ def validate_args(parser, args):
         # We were asked to remove 'error' in the message
         parser.exit(status=1, message=UDT_SUPPORT)
 
+
 def get_client(args, index_client):
     # args get converted into kwargs
     kwargs = {
         'token': args.token_file,
         'n_procs': args.n_processes,
         'directory': args.dir,
-        'segment_md5sums': args.segment_md5sums,
-        'file_md5sum': args.file_md5sum,
+        'segment_md5sums': not args.no_segment_md5sums,
+        'file_md5sum': not args.no_file_md5sum,
         'http_chunk_size': args.http_chunk_size,
         'save_interval': args.save_interval,
-        'download_related_files': args.download_related_files,
-        'download_annotations': args.download_annotations,
+        'download_related_files': not args.no_related_files,
+        'download_annotations': not args.no_annotations,
         'no_auto_retry': args.no_auto_retry,
         'retry_amount': args.retry_amount,
         'verify': not args.no_verify,
@@ -71,6 +93,7 @@ def get_client(args, index_client):
             **kwargs
     )
 
+
 def download(parser, args):
     """ Downloads data from the GDC.
 
@@ -79,6 +102,10 @@ def download(parser, args):
         using the ?tarfile url parameter. Combining many smaller files into one
         download decreases the number of open connections we have to make
     """
+
+    if args.display_defaults:
+        log.info(GDCClientDownloadConfig().display_string)
+        return
 
     successful_count = 0
     unsuccessful_count = 0
@@ -210,55 +237,58 @@ def config(parser):
     """ Configure a parser for download.
     """
     func = partial(download, parser)
-    parser.set_defaults(func=func)
+
+    conf = GDCClientDownloadConfig()
+    print conf.display_string
+    download_defaults = conf.to_dict()
+    download_defaults['func'] = func
+    download_defaults['n_processes'] = defaults.processes
+
+    parser.set_defaults(**download_defaults)
 
     #############################################################
     #                     General options
     #############################################################
 
-    parser.add_argument('-d', '--dir', default='.',
+    parser.add_argument('-d', '--dir', type=str,
                         help='Directory to download files to. '
                         'Defaults to current dir')
     parser.add_argument('-s', '--server', metavar='server', type=str,
-                        default=defaults.tcp_url,
                         help='The TCP server address server[:port]')
-    parser.add_argument('--no-segment-md5sums', dest='segment_md5sums',
-                        action='store_false',
+    parser.add_argument('--no-segment-md5sums', dest='no_segment_md5sums',
+                        action='store_true',
                         help='Do not calculate inbound segment md5sums '
                         'and/or do not verify md5sums on restart')
-    parser.add_argument('--no-file-md5sum', dest='file_md5sum',
-                        action='store_false',
+    parser.add_argument('--no-file-md5sum', dest='no_file_md5sum',
+                        action='store_true',
                         help='Do not verify file md5sum after download')
     parser.add_argument('-n', '--n-processes', type=int,
-                        default=defaults.processes,
                         help='Number of client connections.')
     parser.add_argument('--http-chunk-size', '-c', type=int,
-                        default=const.HTTP_CHUNK_SIZE,
                         help='Size in bytes of standard HTTP block size.')
     parser.add_argument('--save-interval', type=int,
-                        default=const.SAVE_INTERVAL,
                         help='The number of chunks after which to flush state '
                         'file. A lower save interval will result in more '
                         'frequent printout but lower performance.')
     parser.add_argument('--no-verify', dest='no_verify', action='store_true',
                         help='Perform insecure SSL connection and transfer')
-    parser.add_argument('--no-related-files', action='store_false',
-                        dest='download_related_files',
+    parser.add_argument('--no-related-files', action='store_true',
+                        dest='no_related_files',
                         help='Do not download related files.')
-    parser.add_argument('--no-annotations', action='store_false',
-                        dest='download_annotations',
+    parser.add_argument('--no-annotations', action='store_true',
+                        dest='no_annotations',
                         help='Do not download annotations.')
     parser.add_argument('--no-auto-retry', action='store_true',
                         dest='no_auto_retry',
                         help='Ask before retrying to download a file')
-    parser.add_argument('--retry-amount', default=1,
-                        dest='retry_amount',
+    parser.add_argument('--retry-amount', type=int, dest='retry_amount',
                         help='Number of times to retry a download')
-    parser.add_argument('--wait-time', default=5.0,
-                        dest='wait_time', type=float,
+    parser.add_argument('--wait-time', dest='wait_time', type=float,
                         help='Amount of seconds to wait before retrying')
     parser.add_argument('--latest', action='store_true',
                         help='Download latest version of a file if it exists')
+    parser.add_argument('--defaults', dest='display_defaults',
+                        help='List the default download settings')
 
     #############################################################
     #                       UDT options
@@ -282,7 +312,6 @@ def config(parser):
     '''
     parser.add_argument('-m', '--manifest',
         type=manifest.argparse_type,
-        default=[],
         help='GDC download manifest file',
     )
     parser.add_argument('file_ids',
