@@ -127,7 +127,7 @@ class DownloadClientTest(TestCase):
                 **client_kwargs)
 
         # it will remove redundant uuids
-        tarfile_name, errors = client._download_tarfile(files_to_dl)
+        tarfile_name, errors = client._download_tarfile(files_to_dl, False)
 
         assert tarfile_name != None
         assert os.path.exists(tarfile_name)
