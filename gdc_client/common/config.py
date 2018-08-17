@@ -10,7 +10,7 @@ class GDCClientConfig(object):
         'save_interval': 'getint'
     }
 
-    def __init__(self, config_path=defaults.CONFIG_DEFAULTS_LOCATION):
+    def __init__(self, config_path=defaults.DEFAULT_CONFIG_LOCATION):
         self.sections = ['COMMON']
         self.config = ConfigParser.ConfigParser()
         self.config.read(config_path)
@@ -39,7 +39,7 @@ class GDCClientConfig(object):
 
 
 class GDCClientDownloadConfig(GDCClientConfig):
-    def __init__(self, config_path=defaults.CONFIG_DEFAULTS_LOCATION):
+    def __init__(self, config_path=defaults.DEFAULT_CONFIG_LOCATION):
         super(GDCClientDownloadConfig, self).__init__(config_path)
         self.sections.append('DOWNLOAD')
         self.setting_getters.update({
@@ -65,7 +65,7 @@ class GDCClientDownloadConfig(GDCClientConfig):
 
 
 class GDCClientUploadConfig(GDCClientConfig):
-    def __init__(self, config_path=defaults.CONFIG_DEFAULTS_LOCATION):
+    def __init__(self, config_path=defaults.DEFAULT_CONFIG_LOCATION):
         super(GDCClientUploadConfig, self).__init__(config_path)
 
         self.sections.append('UPLOAD')

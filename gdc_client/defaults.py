@@ -1,14 +1,16 @@
 import os
+import re
 from multiprocessing import cpu_count
 
 ###############################################################################
 # Default settings for gdc-client
 ###############################################################################
 
-import re
-from multiprocessing import cpu_count
-CONFIG_DEFAULTS_LOCATION = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), 'config.ini')
+DEFAULT_CONFIG_LOCATION = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'config.dtt')
+
+USER_DEFAULT_CONFIG_LOCATION = os.path.expanduser(
+    os.path.join('~', '.config.dtt'))
 
 ####################
 # API defaults
