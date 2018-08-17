@@ -2,15 +2,14 @@ import argparse
 import logging
 import time
 import urlparse
-from configparser import ConfigParser
 from functools import partial
 
 from gdc_client import defaults
+from gdc_client.common.config import GDCClientDownloadConfig
 from gdc_client.download.client import GDCUDTDownloadClient
 from gdc_client.download.client import GDCHTTPDownloadClient
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.utils import build_url
-from gdc_client.common.config import GDCClientConfig
 from parcel import const
 from parcel import colored
 from parcel import manifest
@@ -23,25 +22,6 @@ UDT_SUPPORT = ' '.join([
     'To set up a Parcel UDT proxy for use with the GDC client,',
     'please contact the GDC Help Desk at support@nci-gdc.datacommons.io.',
 ])
-
-
-class GDCClientDownloadConfig(GDCClientConfig):
-    def __init__(self, config_path=defaults.CONFIG_DEFAULTS_LOCATION):
-        super(GDCClientDownloadConfig, self).__init__(config_path)
-        self.sections.append('DOWNLOAD')
-        self.flag_getters.update({
-            'dir': 'get',
-            'server': 'get',
-            'n_processes': 'getint',
-            'retry_amount': 'getint',
-            'wait_time': 'getfloat',
-            'no_segment_md5sums': 'getboolean',
-            'no_file_md5sum': 'getboolean',
-            'no_verify': 'getboolean',
-            'no_related_files': 'getboolean',
-            'no_annotations': 'getboolean',
-            'no_auto_retry': 'getboolean'
-        })
 
 
 def validate_args(parser, args):
@@ -103,6 +83,7 @@ def download(parser, args):
         download decreases the number of open connections we have to make
     """
 
+    import pdb; pdb.set_trace()
     if args.display_defaults:
         log.info(GDCClientDownloadConfig().display_string)
         return
@@ -239,10 +220,8 @@ def config(parser):
     func = partial(download, parser)
 
     conf = GDCClientDownloadConfig()
-    print conf.display_string
     download_defaults = conf.to_dict()
     download_defaults['func'] = func
-    download_defaults['n_processes'] = defaults.processes
 
     parser.set_defaults(**download_defaults)
 
@@ -287,8 +266,6 @@ def config(parser):
                         help='Amount of seconds to wait before retrying')
     parser.add_argument('--latest', action='store_true',
                         help='Download latest version of a file if it exists')
-    parser.add_argument('--defaults', dest='display_defaults',
-                        help='List the default download settings')
 
     #############################################################
     #                       UDT options

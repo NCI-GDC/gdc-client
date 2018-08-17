@@ -1,9 +1,8 @@
 import argparse
 import logging
-from configparser import RawConfigParser, ConfigParser
 from functools import partial
 
-from gdc_client.common.config import GDCClientConfig
+from gdc_client.common.config import GDCClientUploadConfig
 from .. import defaults
 from . import manifest
 from . import exceptions
@@ -11,18 +10,6 @@ from .client import GDCUploadClient
 
 
 log = logging.getLogger('gdc-upload')
-
-
-class GDCClientUploadConfig(GDCClientConfig):
-    def __init__(self, config_path=defaults.CONFIG_DEFAULTS_LOCATION):
-        super(GDCClientUploadConfig, self).__init__(config_path)
-
-        self.sections.append('UPLOAD')
-        self.flag_getters.update({
-            'insecure': 'getboolean',
-            'disable_multipart': 'getboolean',
-            'path': 'get'
-        })
 
 
 def validate_args(parser, args):
@@ -43,10 +30,6 @@ def validate_args(parser, args):
 def upload(parser, args):
     """ Upload data to the GDC.
     """
-
-    if args.display_defaults:
-        log.info(GDCClientUploadConfig().display_string)
-        return
 
     validate_args(parser, args)
 
@@ -92,7 +75,6 @@ def config(parser):
     conf = GDCClientUploadConfig()
     upload_defaults = conf.to_dict()
     upload_defaults['func'] = func
-    upload_defaults['n_processes'] = defaults.processes
 
     parser.set_defaults(**upload_defaults)
 
@@ -133,4 +115,3 @@ def config(parser):
                         metavar='file_id', type=str,
                         nargs='*',
                         help='The GDC UUID of the file(s) to upload')
-    parser.add_argument('--defaults', dest='display_defaults')

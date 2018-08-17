@@ -4,7 +4,10 @@ import argparse
 import logging
 import sys
 
-from gdc_client import download, upload, interactive
+from gdc_client import (
+    download, upload, settings,
+    # interactive
+)
 from gdc_client.exceptions import ClientError
 
 from gdc_client import log as logger
@@ -80,11 +83,16 @@ if __name__ == '__main__':
     )
     upload.parser.config(upload_subparser)
 
-    interactive_subparser = subparsers.add_parser('interactive',
-        parents=[template],
-        help='run in interactive mode',
+    # interactive_subparser = subparsers.add_parser('interactive',
+    #     parents=[template],
+    #     help='run in interactive mode',
+    # )
+    # interactive.parser.config(interactive_subparser)
+
+    settings_subparser = subparsers.add_parser('settings',
+        parents=[template], help='display default settings'
     )
-    interactive.parser.config(interactive_subparser)
+    settings.parser.config(settings_subparser)
 
     # Parse and run.
     args = parser.parse_args()
