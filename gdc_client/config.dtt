@@ -1,14 +1,14 @@
-[COMMON]
+[common]
 server = https://api.gdc.cancer.gov/
 http_chunk_size = 1073741824
 save_interval = 1073741824
 
-[UPLOAD]
+[upload]
 path = ""
 insecure = no
 disable_multipart = no
 
-[DOWNLOAD]
+[download]
 dir = .
 no_segment_md5sums = no
 no_file_md5sum = no

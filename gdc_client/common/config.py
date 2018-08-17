@@ -10,10 +10,20 @@ class GDCClientConfig(object):
         'save_interval': 'getint'
     }
 
-    def __init__(self, config_path=defaults.DEFAULT_CONFIG_LOCATION):
-        self.sections = ['COMMON']
+    def __init__(self, config_path=None):
+        # The order of configs determine their priority
+        # DEFAULT < USER DEFAULT < CUSTOM
+        configs = [
+            defaults.DEFAULT_CONFIG_LOCATION,
+            defaults.USER_DEFAULT_CONFIG_LOCATION
+        ]
+
+        if config_path is not None:
+            configs.append(config_path)
+
+        self.sections = ['common']
         self.config = ConfigParser.ConfigParser()
-        self.config.read(config_path)
+        self.config.read(configs)
 
     def to_dict(self):
         return {
@@ -34,14 +44,14 @@ class GDCClientConfig(object):
     def display_string(self):
         _config = self.to_dict()
 
-        return '\n'.join(' = '.join([str(key), str(val)])
+        return '\n'.join(' = '.join([key, str(val)])
                          for key, val in _config.items())
 
 
 class GDCClientDownloadConfig(GDCClientConfig):
-    def __init__(self, config_path=defaults.DEFAULT_CONFIG_LOCATION):
+    def __init__(self, config_path=None):
         super(GDCClientDownloadConfig, self).__init__(config_path)
-        self.sections.append('DOWNLOAD')
+        self.sections.append('download')
         self.setting_getters.update({
             'dir': 'get',
             'server': 'get',
@@ -65,10 +75,10 @@ class GDCClientDownloadConfig(GDCClientConfig):
 
 
 class GDCClientUploadConfig(GDCClientConfig):
-    def __init__(self, config_path=defaults.DEFAULT_CONFIG_LOCATION):
+    def __init__(self, config_path=None):
         super(GDCClientUploadConfig, self).__init__(config_path)
 
-        self.sections.append('UPLOAD')
+        self.sections.append('upload')
         self.setting_getters.update({
             'insecure': 'getboolean',
             'disable_multipart': 'getboolean',
