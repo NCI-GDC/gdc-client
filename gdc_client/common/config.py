@@ -1,4 +1,4 @@
-from configparser import ConfigParser, NoOptionError, NoSectionError
+import ConfigParser
 
 from gdc_client import defaults
 
@@ -12,7 +12,7 @@ class GDCClientConfig(object):
 
     def __init__(self, config_path=defaults.CONFIG_DEFAULTS_LOCATION):
         self.sections = ['COMMON']
-        self.config = ConfigParser()
+        self.config = ConfigParser.ConfigParser()
         self.config.read(config_path)
 
     def to_dict(self):
@@ -26,7 +26,8 @@ class GDCClientConfig(object):
         try:
             getter = getattr(self.config, self.setting_getters[option])
             return getter(section, option)
-        except (NoOptionError, NoSectionError, KeyError):
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError,
+                KeyError):
             return None
 
     @property

@@ -3,7 +3,6 @@ import logging
 from functools import partial
 
 from gdc_client.common.config import GDCClientUploadConfig
-from .. import defaults
 from . import manifest
 from . import exceptions
 from .client import GDCUploadClient

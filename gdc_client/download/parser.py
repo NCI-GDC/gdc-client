@@ -4,13 +4,11 @@ import time
 import urlparse
 from functools import partial
 
-from gdc_client import defaults
 from gdc_client.common.config import GDCClientDownloadConfig
 from gdc_client.download.client import GDCUDTDownloadClient
 from gdc_client.download.client import GDCHTTPDownloadClient
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.utils import build_url
-from parcel import const
 from parcel import colored
 from parcel import manifest
 
@@ -82,12 +80,6 @@ def download(parser, args):
         using the ?tarfile url parameter. Combining many smaller files into one
         download decreases the number of open connections we have to make
     """
-
-    import pdb; pdb.set_trace()
-    if args.display_defaults:
-        log.info(GDCClientDownloadConfig().display_string)
-        return
-
     successful_count = 0
     unsuccessful_count = 0
     big_errors = []
