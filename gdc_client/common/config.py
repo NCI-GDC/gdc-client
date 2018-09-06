@@ -1,13 +1,17 @@
-import ConfigParser
+import logging
+from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 
 from gdc_client import defaults
 
 
+log = logging.getLogger('gdc-client-config')
+
+
 class GDCClientConfig(object):
     setting_getters = {
-        'server': 'get',
-        'http_chunk_size': 'getint',
-        'save_interval': 'getint'
+        'server': ConfigParser.get,
+        'http_chunk_size': ConfigParser.getint,
+        'save_interval': ConfigParser.getint,
     }
 
     def __init__(self, config_path=None):
@@ -22,7 +26,7 @@ class GDCClientConfig(object):
             configs.append(config_path)
 
         self.sections = ['common']
-        self.config = ConfigParser.ConfigParser()
+        self.config = ConfigParser()
         self.config.read(configs)
 
     def to_dict(self):
@@ -34,11 +38,15 @@ class GDCClientConfig(object):
 
     def get_setting(self, section, option):
         try:
-            getter = getattr(self.config, self.setting_getters[option])
-            return getter(section, option)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError,
-                KeyError):
-            return None
+            return self.setting_getters[option](self.config, section, option)
+        except NoOptionError:
+            log.debug('Setting named "{}" not found in section "{}"'.format(
+                option, section))
+        except NoSectionError:
+            log.debug('No section named "{}" found'.format(section))
+        except KeyError:
+            log.debug('Invalid setting "{}"'.format(option))
+        return None
 
     @property
     def display_string(self):
@@ -53,17 +61,17 @@ class GDCClientDownloadConfig(GDCClientConfig):
         super(GDCClientDownloadConfig, self).__init__(config_path)
         self.sections.append('download')
         self.setting_getters.update({
-            'dir': 'get',
-            'server': 'get',
-            'n_processes': 'getint',
-            'retry_amount': 'getint',
-            'wait_time': 'getfloat',
-            'no_segment_md5sums': 'getboolean',
-            'no_file_md5sum': 'getboolean',
-            'no_verify': 'getboolean',
-            'no_related_files': 'getboolean',
-            'no_annotations': 'getboolean',
-            'no_auto_retry': 'getboolean'
+            'dir': ConfigParser.get,
+            'server': ConfigParser.get,
+            'n_processes': ConfigParser.getint,
+            'retry_amount': ConfigParser.getint,
+            'wait_time': ConfigParser.getfloat,
+            'no_segment_md5sums': ConfigParser.getboolean,
+            'no_file_md5sum': ConfigParser.getboolean,
+            'no_verify': ConfigParser.getboolean,
+            'no_related_files': ConfigParser.getboolean,
+            'no_annotations': ConfigParser.getboolean,
+            'no_auto_retry': ConfigParser.getboolean,
         })
 
     def to_dict(self):
@@ -80,9 +88,9 @@ class GDCClientUploadConfig(GDCClientConfig):
 
         self.sections.append('upload')
         self.setting_getters.update({
-            'insecure': 'getboolean',
-            'disable_multipart': 'getboolean',
-            'path': 'get'
+            'insecure': ConfigParser.getboolean,
+            'disable_multipart': ConfigParser.getboolean,
+            'path': ConfigParser.get,
         })
 
     def to_dict(self):

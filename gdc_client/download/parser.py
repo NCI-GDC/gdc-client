@@ -258,6 +258,8 @@ def config(parser):
                         help='Amount of seconds to wait before retrying')
     parser.add_argument('--latest', action='store_true',
                         help='Download latest version of a file if it exists')
+    parser.add_argument('--config-file', metavar='FILE',
+                        help='Provide configuration file')
 
     #############################################################
     #                       UDT options
