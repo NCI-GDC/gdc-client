@@ -6,6 +6,8 @@ from gdc_client import defaults
 
 log = logging.getLogger('gdc-client-config')
 
+GB = 1024 * 1024 * 1024
+
 
 class GDCClientConfig(object):
     setting_getters = {
@@ -17,8 +19,8 @@ class GDCClientConfig(object):
     def __init__(self, config_path=None):
         # The order of configs determine their priority
         # DEFAULT < USER DEFAULT < CUSTOM
+        log.info('user defaults: {}'.format(defaults.USER_DEFAULT_CONFIG_LOCATION))
         configs = [
-            defaults.DEFAULT_CONFIG_LOCATION,
             defaults.USER_DEFAULT_CONFIG_LOCATION
         ]
 
@@ -30,10 +32,22 @@ class GDCClientConfig(object):
         self.config.read(configs)
 
     def to_dict(self):
-        return {
+        config_settings = {
             option: self.get_setting(section, option)
             for section in self.sections for option in self.setting_getters
             if self.get_setting(section, option) is not None
+        }
+        defaults = self.defaults
+        defaults.update(config_settings)
+
+        return defaults
+
+    @property
+    def defaults(self):
+        return {
+            'server': 'https://api.gdc.cancer.gov',
+            'http_chunk_size': 1 * GB,
+            'save_interval': 1 * GB,
         }
 
     def get_setting(self, section, option):
@@ -81,6 +95,25 @@ class GDCClientDownloadConfig(GDCClientConfig):
 
         return _config
 
+    @property
+    def defaults(self):
+        defaults = super(GDCClientDownloadConfig, self).defaults
+
+        download_defaults = {
+            'dir': '.',
+            'no_segment_md5sums': False,
+            'no_file_md5sum': False,
+            'no_verify': False,
+            'no_related_files': False,
+            'no_annotations': False,
+            'no_auto_retry': False,
+            'retry_amount': 1,
+            'wait_time': 5.0,
+        }
+        defaults.update(download_defaults)
+
+        return defaults
+
 
 class GDCClientUploadConfig(GDCClientConfig):
     def __init__(self, config_path=None):
@@ -98,3 +131,16 @@ class GDCClientUploadConfig(GDCClientConfig):
         _config['n_processes'] = defaults.processes
 
         return _config
+
+    @property
+    def defaults(self):
+        defaults = super(GDCClientUploadConfig, self).defaults
+
+        upload_defaults = {
+            'path': ".",
+            'insecure': False,
+            'disable_multipart': False,
+        }
+        defaults.update(upload_defaults)
+
+        return defaults
