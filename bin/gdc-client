@@ -4,12 +4,8 @@ import argparse
 import logging
 import sys
 
-from gdc_client import (
-    download, upload, settings,
-    # interactive
-)
+from gdc_client import download, upload, settings
 from gdc_client.exceptions import ClientError
-
 from gdc_client import log as logger
 from gdc_client import auth
 from gdc_client import version
