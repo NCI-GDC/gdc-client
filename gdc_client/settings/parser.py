@@ -1,31 +1,29 @@
 import logging
 from functools import partial
 
-from gdc_client.common.config import (
-    GDCClientUploadConfig, GDCClientDownloadConfig, GDCClientConfig
-)
+from gdc_client.common.config import GDCClientConfigShared
 
 
 log = logging.getLogger('gdc-settings')
 
 
 class SettingsResolver(object):
-    def __init__(self, setting_cls=GDCClientConfig):
-        self.config = setting_cls()
+    def __init__(self):
+        self.config = GDCClientConfigShared()
 
-    def ls(self, args):
-        log.info(self.config.display_string)
-        return self.config.display_string
+    def ls(self, section, args):
+        log.info(self.config.to_display_string(section))
+        return self.config.to_display_string(section)
 
-    def list(self, args):
-        return self.ls(args)
+    def list(self, section, args):
+        return self.ls(section, args)
 
 
-def resolve(setting_cls, args):
-    resolver = SettingsResolver(setting_cls)
+def resolve(section, args):
+    resolver = SettingsResolver()
     command = args.command
     func = getattr(resolver, command)
-    return func(args)
+    return func(section, args)
 
 
 def config(parser):
@@ -33,12 +31,12 @@ def config(parser):
         title='sub commands', dest='sub'
     )
 
-    upload_resolver = partial(resolve, GDCClientUploadConfig)
+    upload_resolver = partial(resolve, 'upload')
     upload = sub_parsers.add_parser('upload')
     upload.add_argument('command', choices=['list', 'ls'])
     upload.set_defaults(func=upload_resolver)
 
-    download_resolver = partial(resolve, GDCClientDownloadConfig)
+    download_resolver = partial(resolve, 'download')
     download = sub_parsers.add_parser('download')
     download.set_defaults(func=download_resolver)
     download.add_argument('command', choices=['list', 'ls'])

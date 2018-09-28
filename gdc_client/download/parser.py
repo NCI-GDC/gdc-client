@@ -4,7 +4,6 @@ import time
 import urlparse
 from functools import partial
 
-from gdc_client.common.config import GDCClientDownloadConfig
 from gdc_client.download.client import GDCUDTDownloadClient
 from gdc_client.download.client import GDCHTTPDownloadClient
 from gdc_client.query.index import GDCIndexClient
@@ -206,13 +205,10 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
     return url
 
 
-def config(parser):
+def config(parser, download_defaults):
     """ Configure a parser for download.
     """
     func = partial(download, parser)
-
-    conf = GDCClientDownloadConfig()
-    download_defaults = conf.to_dict()
     download_defaults['func'] = func
 
     parser.set_defaults(**download_defaults)
@@ -258,8 +254,8 @@ def config(parser):
                         help='Amount of seconds to wait before retrying')
     parser.add_argument('--latest', action='store_true',
                         help='Download latest version of a file if it exists')
-    parser.add_argument('--config-file', metavar='FILE',
-                        help='Provide configuration file')
+    parser.add_argument('--config', help='Path to INI-type config file',
+                        metavar='FILE')
 
     #############################################################
     #                       UDT options

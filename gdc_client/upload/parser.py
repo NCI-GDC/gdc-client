@@ -2,7 +2,6 @@ import argparse
 import logging
 from functools import partial
 
-from gdc_client.common.config import GDCClientUploadConfig
 from . import manifest
 from . import exceptions
 from .client import GDCUploadClient
@@ -66,13 +65,10 @@ def upload(parser, args):
     else:
         client.upload()
 
-def config(parser):
+def config(parser, upload_defaults):
     """ Configure a parser for upload.
     """
     func = partial(upload, parser)
-
-    conf = GDCClientUploadConfig()
-    upload_defaults = conf.to_dict()
     upload_defaults['func'] = func
 
     parser.set_defaults(**upload_defaults)
@@ -114,3 +110,5 @@ def config(parser):
                         metavar='file_id', type=str,
                         nargs='*',
                         help='The GDC UUID of the file(s) to upload')
+    parser.add_argument('--config', help='Path to INI-type config file',
+                        metavar='FILE')
