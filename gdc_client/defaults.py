@@ -6,9 +6,6 @@ from multiprocessing import cpu_count
 # Default settings for gdc-client
 ###############################################################################
 
-DEFAULT_CONFIG_LOCATION = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), 'config.dtt')
-
 USER_DEFAULT_CONFIG_LOCATION = os.path.expanduser(
     os.path.join('~', '.config.dtt'))
 
