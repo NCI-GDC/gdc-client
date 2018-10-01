@@ -54,9 +54,9 @@ if __name__ == '__main__':
     conf_parser = argparse.ArgumentParser(add_help=False)
     conf_parser.add_argument('--config')
 
-    args, remaining_args = conf_parser.parse_known_args()
+    conf_parser_args, remaining_args = conf_parser.parse_known_args()
 
-    config_loader = GDCClientConfigShared(args.config)
+    config_loader = GDCClientConfigShared(conf_parser_args.config)
 
     # Generate template parser for use by all sub-commands. This will
     # contain any shared, top-level arguments and flags that will be
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     settings_subparser = subparsers.add_parser(
         'settings', parents=[template], help='display default settings')
-    settings.parser.config(settings_subparser)
+    settings.parser.config(settings_subparser, conf_parser_args.config)
 
     # Parse and run.
     args = parser.parse_args(remaining_args)
