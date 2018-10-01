@@ -20,7 +20,7 @@ class SettingsResolver(object):
         log.info(self.config.to_display_string(section))
         return self.config.to_display_string(section)
 
-    def list(self, section, args):
+    def show(self, section, args):
         return self.ls(section, args)
 
 
@@ -38,12 +38,12 @@ def config(parser, config_file=None):
 
     upload_resolver = partial(resolve, 'upload', config_file)
     upload = sub_parsers.add_parser('upload')
-    upload.add_argument('command', choices=['list', 'ls'])
+    upload.add_argument('command', choices=['show', 'ls'])
     upload.add_argument('--config', help=HELP)
     upload.set_defaults(func=upload_resolver)
 
     download_resolver = partial(resolve, 'download', config_file)
     download = sub_parsers.add_parser('download')
-    download.add_argument('command', choices=['list', 'ls'])
+    download.add_argument('command', choices=['show', 'ls'])
     download.add_argument('--config', help=HELP)
     download.set_defaults(func=download_resolver)
