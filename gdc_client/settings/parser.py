@@ -6,6 +6,11 @@ from gdc_client.common.config import GDCClientConfigShared
 
 log = logging.getLogger('gdc-settings')
 
+HELP = (
+    'Path to INI-type config file. See what settings will look like if a custom'
+    ' config file is used'
+)
+
 
 class SettingsResolver(object):
     def __init__(self, config_file):
@@ -34,9 +39,11 @@ def config(parser, config_file=None):
     upload_resolver = partial(resolve, 'upload', config_file)
     upload = sub_parsers.add_parser('upload')
     upload.add_argument('command', choices=['list', 'ls'])
+    upload.add_argument('--config', help=HELP)
     upload.set_defaults(func=upload_resolver)
 
     download_resolver = partial(resolve, 'download', config_file)
     download = sub_parsers.add_parser('download')
-    download.set_defaults(func=download_resolver)
     download.add_argument('command', choices=['list', 'ls'])
+    download.add_argument('--config', help=HELP)
+    download.set_defaults(func=download_resolver)
