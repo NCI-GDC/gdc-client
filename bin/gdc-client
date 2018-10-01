@@ -4,12 +4,12 @@ import argparse
 import logging
 import sys
 
-from gdc_client import download, upload, interactive
+from gdc_client import download, upload, settings
 from gdc_client.exceptions import ClientError
-
 from gdc_client import log as logger
 from gdc_client import auth
 from gdc_client import version
+from gdc_client.common.config import GDCClientConfigShared
 
 
 ####################################################
@@ -51,6 +51,13 @@ if __name__ == '__main__':
         version=version.__version__,
     )
 
+    conf_parser = argparse.ArgumentParser(add_help=False)
+    conf_parser.add_argument('--config')
+
+    conf_parser_args, remaining_args = conf_parser.parse_known_args()
+
+    config_loader = GDCClientConfigShared(conf_parser_args.config)
+
     # Generate template parser for use by all sub-commands. This will
     # contain any shared, top-level arguments and flags that will be
     # needed by most, if not all, subcommands.
@@ -72,22 +79,21 @@ if __name__ == '__main__':
         parents=[template],
         help='download data from the GDC',
     )
-    download.parser.config(download_subparser)
+    download.parser.config(download_subparser,
+                           config_loader.to_dict('download'))
 
     upload_subparser = subparsers.add_parser('upload',
         parents=[template],
         help='upload data to the GDC',
     )
-    upload.parser.config(upload_subparser)
+    upload.parser.config(upload_subparser, config_loader.to_dict('upload'))
 
-    interactive_subparser = subparsers.add_parser('interactive',
-        parents=[template],
-        help='run in interactive mode',
-    )
-    interactive.parser.config(interactive_subparser)
+    settings_subparser = subparsers.add_parser(
+        'settings', parents=[template], help='display default settings')
+    settings.parser.config(settings_subparser, conf_parser_args.config)
 
     # Parse and run.
-    args = parser.parse_args()
+    args = parser.parse_args(remaining_args)
 
     logger.setup_logging(args)
 

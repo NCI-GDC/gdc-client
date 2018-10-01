@@ -300,6 +300,7 @@ class GDCDownloadMixin(object):
 
         return url
 
+
 class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
 
     def __init__(self, uri, index_client, download_related_files=True,
