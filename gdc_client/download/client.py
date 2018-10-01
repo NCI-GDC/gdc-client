@@ -66,7 +66,6 @@ class GDCDownloadMixin(object):
 
         if annotations:
             log.debug('Found {0} annotations for {1}.'.format(len(annotations), file_id))
-            
             # TODO: Refactor this with the _post method for a generic function for calling active/legacy api
             r = requests.get(
                 urlparse.urljoin(self.data_uri, annotation_list),
