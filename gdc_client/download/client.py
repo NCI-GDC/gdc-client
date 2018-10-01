@@ -65,12 +65,11 @@ class GDCDownloadMixin(object):
         annotation_list = ','.join(annotations)
 
         if annotations:
-            log.debug('Found {0} annotations for {1}.'.format(
-                len(annotations), file_id))
-            r = requests.get(
-                urlparse.urljoin(self.data_uri, annotation_list),
-                params={'compress': True},
-                verify=self.verify)
+            log.debug('Found {0} annotations for {1}.'.format(len(annotations), file_id))
+            # {'ids': ['id1', 'id2'..., 'idn']}
+            ann_ids = {"ids": annotations}
+
+            r = self._post(path='data', json=ann_ids)
             r.raise_for_status()
             tar = tarfile.open(mode="r:gz", fileobj=StringIO(r.content))
             if self.annotation_name in tar.getnames():
