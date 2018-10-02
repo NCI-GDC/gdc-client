@@ -13,6 +13,7 @@ install:
   - pip install -r requirements.txt
   - pip install -r dev-requirements.txt
   - python setup.py install
+  - pip install tox
   - pip install travis-tox
   - pip freeze
 
