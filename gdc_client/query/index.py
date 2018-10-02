@@ -1,4 +1,4 @@
-from urlparse import urljoin
+from urllib.parse import urljoin
 
 import logging
 import requests
@@ -17,29 +17,29 @@ class GDCIndexClient(object):
 
     def get_related_files(self, uuid):
         # type: str -> List[str]
-        if uuid in self.metadata.keys():
+        if uuid in list(self.metadata.keys()):
             return self.metadata[uuid]['related_files']
         return []
 
     def get_annotations(self, uuid):
         # type: str -> List[str]
-        if uuid in self.metadata.keys():
+        if uuid in list(self.metadata.keys()):
             return self.metadata[uuid]['annotations']
         return []
 
     def get_md5sum(self, uuid):
         # type: str -> str
-        if uuid in self.metadata.keys():
+        if uuid in list(self.metadata.keys()):
             return self.metadata[uuid]['md5sum']
 
     def get_filesize(self, uuid):
         # type: str -> long
-        if uuid in self.metadata.keys():
-            return long(self.metadata[uuid]['file_size'])
+        if uuid in list(self.metadata.keys()):
+            return int(self.metadata[uuid]['file_size'])
 
     def get_access(self, uuid):
         # type: str -> long
-        if uuid in self.metadata.keys():
+        if uuid in list(self.metadata.keys()):
             return self.metadata[uuid]['access']
 
     def _get_hits(self, url, metadata_query):
@@ -133,7 +133,7 @@ class GDCIndexClient(object):
             # set the metadata as a class data member so that it can be
             # references as much as needed without needing to calculate
             # everything over again
-            if h['id'] not in self.metadata.keys():
+            if h['id'] not in list(self.metadata.keys()):
                 # don't want to overwrite
                 self.metadata[h['id']] = {
                     'access':        h['access'],
@@ -177,7 +177,7 @@ class GDCIndexClient(object):
 
         self._get_metadata(ids)
         for uuid in ids:
-            if uuid not in self.metadata.keys():
+            if uuid not in list(self.metadata.keys()):
                 bigs.add(uuid)
                 continue
 

@@ -1,5 +1,5 @@
 from flask import Flask, Response, jsonify, request
-from StringIO import StringIO
+from io import StringIO
 from conftest import uuids, make_tarfile
 
 import json
@@ -90,7 +90,7 @@ def files():
             result['data']['hits'].append(hit)
 
     except Exception as e:
-        print 'Error', e
+        print('Error', e)
 
     result['data']['pagination']['size'] = size
     return jsonify(result)
@@ -114,12 +114,12 @@ def download(ids=''):
     if args:
         ids = args.get('ids')
 
-    if type(ids) in [str, unicode]:
+    if type(ids) in [str, str]:
         ids = [ids]
 
     for i in ids:
-        if i not in uuids.keys():
-            return '{0} does not exist in {1}'.format(i, uuids.keys())
+        if i not in list(uuids.keys()):
+            return '{0} does not exist in {1}'.format(i, list(uuids.keys()))
 
     is_tarfile  = request.args.get('tarfile') is not None
     is_compress = request.args.get('compress') is not None or len(ids) > 1

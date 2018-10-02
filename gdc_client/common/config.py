@@ -1,5 +1,5 @@
 import logging
-from ConfigParser import ConfigParser, NoOptionError, NoSectionError
+from configparser import ConfigParser, NoOptionError, NoSectionError
 
 from gdc_client.defaults import (
     processes, USER_DEFAULT_CONFIG_LOCATION, HTTP_CHUNK_SIZE
@@ -99,4 +99,4 @@ class GDCClientConfigShared(object):
         _config = self.to_dict(section)
 
         return '\n'.join(' = '.join([key, str(val)])
-                         for key, val in _config.items())
+                         for key, val in list(_config.items()))

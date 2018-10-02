@@ -1,5 +1,5 @@
 from parcel.const import HTTP_CHUNK_SIZE
-from StringIO import StringIO
+from io import StringIO
 
 import hashlib
 import tarfile
@@ -36,10 +36,10 @@ small_content_1 = 'small content 1'
 small_content_2 = 'small content 2'
 small_content_3 = 'small content 3'
 small_content_4 = 'small content 4'
-big_content_1 = ''.join(['1' for _ in xrange(HTTP_CHUNK_SIZE+1) ])
-big_content_2 = ''.join(['2' for _ in xrange(HTTP_CHUNK_SIZE+1) ])
-big_content_3 = ''.join(['3' for _ in xrange(HTTP_CHUNK_SIZE+1) ])
-big_content_4 = ''.join(['4' for _ in xrange(HTTP_CHUNK_SIZE+1) ])
+big_content_1 = ''.join(['1' for _ in range(HTTP_CHUNK_SIZE+1) ])
+big_content_2 = ''.join(['2' for _ in range(HTTP_CHUNK_SIZE+1) ])
+big_content_3 = ''.join(['3' for _ in range(HTTP_CHUNK_SIZE+1) ])
+big_content_4 = ''.join(['4' for _ in range(HTTP_CHUNK_SIZE+1) ])
 
 uuids = {
     'small': {

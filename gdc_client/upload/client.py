@@ -1,4 +1,4 @@
-from urlparse import urljoin
+from urllib.parse import urljoin
 import random
 from multiprocessing import Pool, Manager
 import requests
@@ -317,7 +317,7 @@ class GDCUploadClient(object):
         """ Upload files to the GDC.
         """
         if os.path.isfile(self.resume_path):
-            use_resume = raw_input("Found an {0}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(self.resume_path))
+            use_resume = input("Found an {0}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(self.resume_path))
             if use_resume.lower() not in ['n','no']:
                 with open(self.resume_path,'r') as f:
                     self.files = manifest.load(f)['files']
@@ -466,7 +466,7 @@ class GDCUploadClient(object):
         self.pbar = ProgressBar(
             widgets=[Percentage(), Bar()], maxval=self.total_parts).start()
         try:
-            for i in xrange(part_amount):
+            for i in range(part_amount):
                 offset = i * self.part_size
                 remaining_bytes = self.file_size - offset
                 bytes = min(remaining_bytes, self.part_size)

@@ -9,7 +9,7 @@ import logging
 import mock_server
 import os
 import os.path
-import StringIO
+import io
 import tarfile
 import time
 

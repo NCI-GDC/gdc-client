@@ -1,5 +1,5 @@
 import argparse
-from version import __version__ as version
+from .version import __version__ as version
 
 args = argparse.ArgumentParser(description=('GDC Command Line Client'))
 argparser = argparse.ArgumentParser()

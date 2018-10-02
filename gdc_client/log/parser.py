@@ -1,5 +1,5 @@
 import argparse
-import log
+from . import log
 import logging
 import sys
 

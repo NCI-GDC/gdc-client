@@ -1,7 +1,7 @@
 from parcel import HTTPClient, UDTClient, utils
 from parcel.download_stream import DownloadStream
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
-from StringIO import StringIO
+from io import StringIO
 from gdc_client.utils import build_url
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 
@@ -13,7 +13,7 @@ import re
 import sys
 import tarfile
 import time
-import urlparse
+import urllib.parse
 
 
 log = logging.getLogger('gdc-download')
@@ -38,7 +38,7 @@ class GDCDownloadMixin(object):
             for related_file in related_files:
 
                 log.debug("related file {0}".format(related_file))
-                related_file_url = urlparse.urljoin(self.data_uri, related_file)
+                related_file_url = urllib.parse.urljoin(self.data_uri, related_file)
                 stream = DownloadStream(related_file_url, directory, self.token)
 
                 # TODO: un-set this when parcel is moved to dtt
@@ -130,8 +130,8 @@ class GDCDownloadMixin(object):
         r = None
         try:
             # try active
-            active = urlparse.urljoin(self.base_uri, path)
-            legacy = urlparse.urljoin(self.base_uri, 'legacy/{0}'.format(path))
+            active = urllib.parse.urljoin(self.base_uri, path)
+            legacy = urllib.parse.urljoin(self.base_uri, 'legacy/{0}'.format(path))
 
             r = requests.post(
                 active,
@@ -308,7 +308,7 @@ class GDCHTTPDownloadClient(GDCDownloadMixin, HTTPClient):
         self.annotations = download_annotations
         self.base_directory = kwargs.get('directory')
         self.base_uri = self.fix_url(uri)
-        self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
+        self.data_uri = urllib.parse.urljoin(self.base_uri, 'data/')
         self.index = index_client
         self.md5_check = kwargs.get('file_md5sum')
         self.related_files = download_related_files
@@ -324,7 +324,7 @@ class GDCUDTDownloadClient(GDCDownloadMixin, UDTClient):
 
         remote_uri = self.fix_url(remote_uri)
         self.base_uri = remote_uri
-        self.data_uri = urlparse.urljoin(remote_uri, 'data/')
+        self.data_uri = urllib.parse.urljoin(remote_uri, 'data/')
         self.related_files = download_related_files
         self.annotations = download_annotations
         self.directory = os.path.abspath(time.strftime("gdc-client-%Y%m%d-%H%M%S"))

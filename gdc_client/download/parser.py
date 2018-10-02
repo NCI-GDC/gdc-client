@@ -1,7 +1,7 @@
 import argparse
 import logging
 import time
-import urlparse
+import urllib.parse
 from functools import partial
 
 from gdc_client.download.client import GDCUDTDownloadClient
@@ -128,14 +128,14 @@ def download(parser, args):
         # create URLs to send to parcel for download
         params = ('latest',) if args.latest else ()
         bigs = [
-            urlparse.urljoin(client.data_uri, build_url(b, *params))
+            urllib.parse.urljoin(client.data_uri, build_url(b, *params))
             for b in bigs
         ]
         _, big_error_dict = client.download_files(bigs)
         not_downloaded_url = ''
 
         if args.retry_amount > 0:
-            for url, reason in big_error_dict.iteritems():
+            for url, reason in big_error_dict.items():
                 # only retry the download if it wasn't a controlled access error
                 if '403' not in reason:
                     not_downloaded_url = retry_download(
@@ -182,7 +182,7 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
     error = True
     while 0 < retry_amount and error:
         if no_auto_retry:
-            should_retry = raw_input('Retry download for {0}? (y/N): '.format(url))
+            should_retry = input('Retry download for {0}? (y/N): '.format(url))
         else:
             should_retry = 'y'
 
