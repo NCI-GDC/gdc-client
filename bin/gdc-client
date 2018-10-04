@@ -89,7 +89,7 @@ if __name__ == '__main__':
     upload.parser.config(upload_subparser, config_loader.to_dict('upload'))
 
     settings_subparser = subparsers.add_parser(
-        'settings', parents=[template], help='display default settings')
+        'settings', help='display default settings')
     settings.parser.config(settings_subparser, conf_parser_args.config)
 
     # Parse and run.

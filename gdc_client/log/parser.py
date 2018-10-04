@@ -11,21 +11,24 @@ from .log import LogFormatter
 def setup_logging(args):
     """ Set up logging given parsed logging arguments.
     """
+    log_level = (
+        min(args.log_levels) if hasattr(args, 'log_levels') else logging.INFO)
+    color_off = args.color_off if hasattr(args, 'color_off') else False
+    log_file = args.log_file if hasattr(args, 'log_file') else None
 
-    logging.root.setLevel(min(args.log_levels))
+    logging.root.setLevel(log_level)
     root = logging.getLogger()
 
     f_formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
 
-    root = logging.getLogger()
-    root.setLevel(min(args.log_levels))
+    root.setLevel(log_level)
 
     s_handler = logging.StreamHandler(sys.stdout)
-    s_handler.setFormatter(LogFormatter(color_off=args.color_off))
+    s_handler.setFormatter(LogFormatter(color_off=color_off))
     root.addHandler(s_handler)
 
-    if args.log_file:
-        f_handler = logging.FileHandler(args.log_file.name)
+    if log_file:
+        f_handler = logging.FileHandler(log_file.name)
         f_handler.setFormatter(f_formatter)
         root.addHandler(f_handler)
 
