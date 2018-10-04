@@ -279,6 +279,7 @@ def config(parser, download_defaults):
     '''
     parser.add_argument('-m', '--manifest',
         type=manifest.argparse_type,
+        default=[],
         help='GDC download manifest file',
     )
     parser.add_argument('file_ids',

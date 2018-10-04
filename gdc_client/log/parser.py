@@ -16,12 +16,10 @@ def setup_logging(args):
     color_off = args.color_off if hasattr(args, 'color_off') else False
     log_file = args.log_file if hasattr(args, 'log_file') else None
 
-    logging.root.setLevel(log_level)
     root = logging.getLogger()
+    root.setLevel(log_level)
 
     f_formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
-
-    root.setLevel(log_level)
 
     s_handler = logging.StreamHandler(sys.stdout)
     s_handler.setFormatter(LogFormatter(color_off=color_off))
@@ -34,6 +32,7 @@ def setup_logging(args):
 
     # the requests library has it's own log statements, and it bundles itself without asking
     logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 
 def config(parser):
