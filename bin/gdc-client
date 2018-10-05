@@ -9,7 +9,9 @@ from gdc_client.exceptions import ClientError
 from gdc_client import log as logger
 from gdc_client import auth
 from gdc_client import version
-from gdc_client.common.config import GDCClientConfigShared
+from gdc_client.common.config import (
+    GDCClientConfigShared, GDCClientArgumentParser
+)
 
 
 ####################################################
@@ -42,7 +44,7 @@ def log_version_header(log):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(
+    parser = GDCClientArgumentParser(
         description=DESCRIPTION,
     )
 
@@ -61,7 +63,7 @@ if __name__ == '__main__':
     # Generate template parser for use by all sub-commands. This will
     # contain any shared, top-level arguments and flags that will be
     # needed by most, if not all, subcommands.
-    template = argparse.ArgumentParser(
+    template = GDCClientArgumentParser(
         add_help=False,
     )
 

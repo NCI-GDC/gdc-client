@@ -31,8 +31,13 @@ def resolve(config_file, args):
 
 
 def config(parser, config_file=None):
-    parser.add_argument('section', choices=['download', 'upload'])
     parser.add_argument('--config', help=HELP, metavar='FILE')
+    choices = parser.add_subparsers(title='Settings to display', dest='section')
 
-    resolver = partial(resolve, config_file)
-    parser.set_defaults(func=resolver)
+    download_choice = choices.add_parser('download', help='Display download settings')
+    download_choice.add_argument('--config', help=HELP, metavar='FILE')
+    download_choice.set_defaults(func=partial(resolve, config_file))
+
+    upload_choice = choices.add_parser('upload', help='Display upload settings')
+    upload_choice.add_argument('--config', help=HELP, metavar='FILE')
+    upload_choice.set_defaults(func=partial(resolve, config_file))
