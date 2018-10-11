@@ -1,11 +1,28 @@
+import argparse
 import logging
+import sys
 from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 
 from gdc_client.defaults import (
     processes, USER_DEFAULT_CONFIG_LOCATION, HTTP_CHUNK_SIZE
 )
 
-log = logging.getLogger('gdc-client-config')
+log = logging.getLogger('gdc-client')
+
+# This will display the default configs in a INI-type format, so that users
+# will be able to copy and modify as needed
+DISPLAY_TEMPLATE = '[{}]\n{}\n'
+
+
+class GDCClientArgumentParser(argparse.ArgumentParser):
+    """This is a workaround introduced here https://groups.google.com/forum/#!topic/argparse-users/LazV_tEQvQw
+    which enables to print the full help message in case something went wrong
+    with argument parsing
+    """
+    def error(self, message):
+        self.print_help(sys.stderr)
+        sys.stderr.write('\ngdc-client error: {}\n'.format(message))
+        sys.exit(2)
 
 
 class GDCClientConfigShared(object):
@@ -56,7 +73,6 @@ class GDCClientConfigShared(object):
                 'no_auto_retry': False,
                 'retry_amount': 1,
                 'wait_time': 5.0,
-                'manifest': [],
             },
             'upload': {
                 'path': '.',
@@ -98,5 +114,8 @@ class GDCClientConfigShared(object):
     def to_display_string(self, section):
         _config = self.to_dict(section)
 
-        return '\n'.join(' = '.join([key, str(val)])
-                         for key, val in _config.items())
+        return DISPLAY_TEMPLATE.format(
+            section,
+            '\n'.join(' = '.join([key, str(val)])
+            for key, val in _config.items())
+        )

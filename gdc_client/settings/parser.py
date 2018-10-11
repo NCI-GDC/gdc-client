@@ -3,8 +3,7 @@ from functools import partial
 
 from gdc_client.common.config import GDCClientConfigShared
 
-
-log = logging.getLogger('gdc-settings')
+logger = logging.getLogger('gdc-client')
 
 HELP = (
     'Path to INI-type config file. See what settings will look like if a custom'
@@ -16,34 +15,29 @@ class SettingsResolver(object):
     def __init__(self, config_file):
         self.config = GDCClientConfigShared(config_file)
 
-    def ls(self, section, args):
-        log.info(self.config.to_display_string(section))
-        return self.config.to_display_string(section)
+    def download(self):
+        logger.info(self.config.to_display_string('download'))
+        return self.config.to_display_string('download')
 
-    def show(self, section, args):
-        return self.ls(section, args)
+    def upload(self):
+        logger.info(self.config.to_display_string('upload'))
+        return self.config.to_display_string('upload')
 
 
-def resolve(section, config_file, args):
+def resolve(config_file, args):
     resolver = SettingsResolver(config_file)
-    command = args.command
-    func = getattr(resolver, command)
-    return func(section, args)
+    func = getattr(resolver, args.section)
+    return func()
 
 
 def config(parser, config_file=None):
-    sub_parsers = parser.add_subparsers(
-        title='sub commands', dest='sub'
-    )
+    parser.add_argument('--config', help=HELP, metavar='FILE')
+    choices = parser.add_subparsers(title='Settings to display', dest='section')
 
-    upload_resolver = partial(resolve, 'upload', config_file)
-    upload = sub_parsers.add_parser('upload')
-    upload.add_argument('command', choices=['show', 'ls'])
-    upload.add_argument('--config', help=HELP)
-    upload.set_defaults(func=upload_resolver)
+    download_choice = choices.add_parser('download', help='Display download settings')
+    download_choice.add_argument('--config', help=HELP, metavar='FILE')
+    download_choice.set_defaults(func=partial(resolve, config_file))
 
-    download_resolver = partial(resolve, 'download', config_file)
-    download = sub_parsers.add_parser('download')
-    download.add_argument('command', choices=['show', 'ls'])
-    download.add_argument('--config', help=HELP)
-    download.set_defaults(func=download_resolver)
+    upload_choice = choices.add_parser('upload', help='Display upload settings')
+    upload_choice.add_argument('--config', help=HELP, metavar='FILE')
+    upload_choice.set_defaults(func=partial(resolve, config_file))
