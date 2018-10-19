@@ -1,17 +1,18 @@
-from conftest import md5, uuids, make_tarfile
-from gdc_client.download.client import GDCHTTPDownloadClient
-from gdc_client.query.index import GDCIndexClient
-from multiprocessing import Process, cpu_count
-from parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
-from unittest import TestCase
-
 import logging
-import mock_server
 import os
 import os.path
 import StringIO
 import tarfile
 import time
+from multiprocessing import Process, cpu_count
+from unittest import TestCase
+
+from parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
+
+import mock_server
+from conftest import make_tarfile, md5, uuids
+from gdc_client.download.client import GDCHTTPDownloadClient
+from gdc_client.query.index import GDCIndexClient
 
 # default values for flask
 server_host = 'http://127.0.0.1'
@@ -127,7 +128,7 @@ class DownloadClientTest(TestCase):
                 **client_kwargs)
 
         # it will remove redundant uuids
-        tarfile_name, errors = client._download_tarfile(files_to_dl, False)
+        tarfile_name, errors = client._download_tarfile(files_to_dl)
 
         assert tarfile_name != None
         assert os.path.exists(tarfile_name)

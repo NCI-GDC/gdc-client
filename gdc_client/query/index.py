@@ -1,9 +1,8 @@
+import logging
+from json import dumps
 from urlparse import urljoin
 
-import logging
 import requests
-from json import dumps
-
 
 log = logging.getLogger('query')
 
@@ -106,11 +105,11 @@ class GDCIndexClient(object):
         }
 
         metadata_query = {
-            'fields': 'file_id,file_size,md5sum,annotations.annotation_id,' \
+            'fields': 'file_id,file_size,md5sum,annotations.annotation_id,'
                       'metadata_files.file_id,index_files.file_id,access',
             'filters': dumps(filters),
             'from': '0',
-            'size': str(len(uuids)), # one big request
+            'size': str(len(uuids)),  # one big request
         }
 
         active_meta_url = urljoin(self.uri, self.active_meta_endpoint)
@@ -121,7 +120,7 @@ class GDCIndexClient(object):
 
         if not active_hits and not legacy_hits:
             log.debug('Unable to retrieve file metadata information. '
-                        'continuing downloading as if they were large files')
+                      'continuing downloading as if they were large files')
             return self.metadata
 
         for h in active_hits + legacy_hits:

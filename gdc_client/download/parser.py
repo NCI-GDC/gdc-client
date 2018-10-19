@@ -1,16 +1,17 @@
-import argparse
 import logging
 import time
 import urlparse
 from functools import partial
 
-from gdc_client.download.client import GDCUDTDownloadClient
-from gdc_client.download.client import GDCHTTPDownloadClient
-from gdc_client.query.index import GDCIndexClient
-from gdc_client.utils import build_url
-from parcel import colored
-from parcel import manifest
+from parcel import colored, manifest
 
+from gdc_client.download.client import (
+    GDCHTTPDownloadClient,
+    GDCUDTDownloadClient,
+)
+from gdc_client.query.index import GDCIndexClient
+from gdc_client.query.versions import get_latest_versions
+from gdc_client.utils import build_url
 
 log = logging.getLogger('gdc-download')
 
@@ -93,14 +94,18 @@ def download(parser, args):
             break
         ids.add(i['id'])
 
+    # Query the api to get the latest version of a file according to the gdc.
+    # Replace the old list of uuids with the potentially newer list of uuids,
+    # then proceed with the rest of the program as normal.
+    if args.latest:
+        log.info('Downloading LATEST versions of files')
+        ids = get_latest_versions(args.server, ids)
+
     index_client = GDCIndexClient(args.server)
     client = get_client(args, index_client)
 
     # separate the smaller files from the larger files
     bigs, smalls = index_client.separate_small_files(ids, args.http_chunk_size)
-
-    if args.latest:
-        log.info('Downloading LATEST versions of files')
 
     # the big files will be normal downloads
     # the small files will be joined together and tarfiled
@@ -108,15 +113,14 @@ def download(parser, args):
         log.debug('Downloading smaller files...')
 
         # download small file grouped in an uncompressed tarfile
-        small_errors, count = client.download_small_groups(smalls, args.latest)
+        small_errors, count = client.download_small_groups(smalls)
         successful_count += count
 
         i = 0
         while i < args.retry_amount and small_errors:
             time.sleep(args.wait_time)
             log.debug('Retrying failed grouped downloads')
-            small_errors, count = client.download_small_groups(small_errors,
-                                                               args.latest)
+            small_errors, count = client.download_small_groups(small_errors)
             successful_count += count
             i += 1
 
@@ -126,7 +130,7 @@ def download(parser, args):
         log.debug('Downloading big files...')
 
         # create URLs to send to parcel for download
-        params = ('latest',) if args.latest else ()
+        params = ()
         bigs = [
             urlparse.urljoin(client.data_uri, build_url(b, *params))
             for b in bigs
@@ -287,4 +291,3 @@ def config(parser, download_defaults):
         nargs='*',
         help='The GDC UUID of the file(s) to download',
     )
-

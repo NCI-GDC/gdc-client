@@ -1,11 +1,14 @@
-from conftest import md5, uuids
-from gdc_client.query.index import GDCIndexClient
+import time
 from multiprocessing import Process
-from parcel.const import HTTP_CHUNK_SIZE
 from unittest import TestCase
 
+import pytest
+from parcel.const import HTTP_CHUNK_SIZE
+
 import mock_server
-import time
+from conftest import uuids
+from gdc_client.query.index import GDCIndexClient
+from gdc_client.query.versions import _chunk_list
 
 # default values for flask
 server_host = 'http://127.0.0.1'
@@ -219,3 +222,14 @@ class QueryIndexTest(TestCase):
 
         assert bigs == ['big_no_friends']
         assert smalls == [['small_no_friends']]
+
+
+@pytest.mark.parametrize("case", [
+    range(1),
+    range(499),
+    range(500),
+    range(1000),
+])
+def test_chunk_list(case):
+    for chunk in _chunk_list(case):
+        assert len(chunk) <= 500
