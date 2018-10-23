@@ -34,22 +34,17 @@ def get_latest_versions(url, uuids):
 
 
 def _chunk_list(elements, chunk_size=500):
-    """Chunk any list into smaller parts.
+    """Generator to chunk any list into smaller parts.
 
     Args:
         elements (list): list of elements
         chunk_size (int): max number of elements in the resulting chunk
 
     Returns:
-        list: list of lists containing chunked workloads
+        generator: generator yielding chunked workloads
     """
 
-    chunks = [[]]
-    chunk_number = 0
-    for element in elements:
-        if len(chunks[chunk_number]) >= chunk_size:
-            chunks.append([])
-            chunk_number += 1
-        chunks[-1].append(element)
-
-    return chunks
+    current_index = 0
+    while current_index < len(elements):
+        yield elements[current_index:current_index + chunk_size]
+        current_index += chunk_size
