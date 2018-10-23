@@ -1,22 +1,23 @@
-from parcel import HTTPClient, UDTClient, utils
-from parcel.download_stream import DownloadStream
-from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
-from StringIO import StringIO
-from gdc_client.utils import build_url
-from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
-
 import hashlib
 import logging
 import os
-import requests
 import re
 import sys
 import tarfile
 import time
 import urlparse
+from StringIO import StringIO
 
+import requests
+from parcel import HTTPClient, UDTClient, utils
+from parcel.download_stream import DownloadStream
+from progressbar import ETA, Bar, FileTransferSpeed, Percentage, ProgressBar
+
+from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
+from gdc_client.utils import build_url
 
 log = logging.getLogger('gdc-download')
+
 
 class GDCDownloadMixin(object):
 
@@ -155,7 +156,7 @@ class GDCDownloadMixin(object):
 
         return r
 
-    def _download_tarfile(self, small_files, latest):
+    def _download_tarfile(self, small_files):
         # type: (List[str]) -> str, List[str]
         """ Make the request to the API for the tarfile downloads """
 
@@ -169,7 +170,7 @@ class GDCDownloadMixin(object):
         ids = {"ids": small_files}
 
         # POST request avoids the MAX LEN character limit for URLs
-        params = ('tarfile', 'latest') if latest else ('tarfile',)
+        params = ('tarfile',)
         path = build_url('data', *params)
         r = self._post(path=path, headers=headers, json=ids)
 
@@ -192,12 +193,13 @@ class GDCDownloadMixin(object):
 
         # {'content-disposition': 'filename=the_actual_filename.tar'}
         content_filename = r.headers.get('content-disposition') or \
-                r.headers.get('Content-Disposition')
+            r.headers.get('Content-Disposition')
 
         if content_filename:
             tarfile_name = os.path.join(
-                    self.base_directory,
-                    content_filename.split('=')[1])
+                self.base_directory,
+                content_filename.split('=')[1],
+            )
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
@@ -209,7 +211,7 @@ class GDCDownloadMixin(object):
 
         return tarfile_name, errors
 
-    def download_small_groups(self, smalls, latest=False):
+    def download_small_groups(self, smalls):
         # type: (List[str]) -> List[str], int
         """ Download small groups
 
@@ -234,7 +236,7 @@ class GDCDownloadMixin(object):
             pbar.start()
 
             log.debug('Saving grouping {0}/{1}'.format(i+1, groupings_len))
-            tarfile_name, error = self._download_tarfile(s, latest)
+            tarfile_name, error = self._download_tarfile(s)
 
             # this will happen in the result of an
             # error that shouldn't be retried
