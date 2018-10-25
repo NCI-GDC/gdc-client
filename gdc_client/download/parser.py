@@ -135,7 +135,7 @@ def download(parser, args):
             urlparse.urljoin(client.data_uri, build_url(b, *params))
             for b in bigs
         ]
-        _, big_error_dict = client.parcel_client.download_files(bigs)
+        _, big_error_dict = client.download_files(bigs)
         not_downloaded_url = ''
 
         if args.retry_amount > 0:
@@ -197,7 +197,7 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
             time.sleep(wait_time)
             # client.download_files accepts a list of urls to download
             # but we want to only try one at a time
-            _, e = client.parcel_client.download_files([url])
+            _, e = client.download_files([url])
             if not e:
                 log.debug('Successfully downloaded {0}!'.format(url))
                 return

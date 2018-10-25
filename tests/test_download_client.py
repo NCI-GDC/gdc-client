@@ -1,7 +1,5 @@
-import logging
 import os
 import os.path
-import StringIO
 import tarfile
 import time
 from multiprocessing import Process, cpu_count
@@ -11,7 +9,7 @@ from parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
 
 import mock_server
 from conftest import make_tarfile, md5, uuids
-from gdc_client.download.client import GDCHTTPDownloadClient
+from gdc_client.download.client import GDCHTTPDownloadClient, fix_url
 from gdc_client.query.index import GDCIndexClient
 
 # default values for flask
@@ -36,6 +34,7 @@ client_kwargs = {
     'retry_amount': 1,
     'verify': True,
 }
+
 
 class DownloadClientTest(TestCase):
     def setUp(self):

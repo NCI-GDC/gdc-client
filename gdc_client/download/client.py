@@ -9,7 +9,7 @@ import urlparse
 from StringIO import StringIO
 
 import requests
-from parcel import HTTPClient, UDTClient, utils
+from parcel import Client, UDTClient, utils
 from parcel.download_stream import DownloadStream
 from progressbar import ETA, Bar, FileTransferSpeed, Percentage, ProgressBar
 
@@ -35,32 +35,32 @@ def fix_url(url):
     return url
 
 
-class GDCDownloadClient(object):
+class GDCHTTPDownloadClient(Client):
 
     annotation_name = 'annotations.txt'
 
-    def __init__(self, parcel_client, uri, base_directory, download_related_files=True,
-                 download_annotations=True, check_file_md5=True, index_client=None):
-        """ GDC Download client init
+    def __init__(self, uri, download_related_files=True, download_annotations=True,
+                 index_client=None, *args, **kwargs):
+        """ GDC parcel client that overrides parallel download
         Args:
-            parcel_client(parcel.Client): Appropriate parcel client [UDT, or HTTP]
+            uri (str):
+            download_related_files (bool):
+            download_annotations (bool):
             index_client (gdc_client.query.index.GDCIndexClient): gdc api files index client
         """
 
         self.base_uri = uri
         self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
-        # self.data_uri = uri
 
         self.annotations = download_annotations
         self.related_files = download_related_files
 
-        self.md5_check = check_file_md5
+        self.md5_check = kwargs.get('file_md5sum')
 
         self.gdc_index_client = index_client
-        self.parcel_client = parcel_client
-        self.base_directory = base_directory
+        self.base_directory = kwargs.get('directory')
 
-        print(DownloadStream.check_segment_md5sums, self.annotations, self.related_files)
+        super(GDCHTTPDownloadClient, self).__init__(self.data_uri, *args, **kwargs)
 
     def download_related_files(self, file_id):
         # type: (str) -> None
@@ -79,13 +79,14 @@ class GDCDownloadClient(object):
 
                 log.debug("related file {0}".format(related_file))
                 related_file_url = urlparse.urljoin(self.data_uri, related_file)
-                stream = DownloadStream(related_file_url, directory, self.parcel_client.token)
+                stream = DownloadStream(related_file_url, directory, self.token)
 
                 # TODO: un-set this when parcel is moved to dtt
                 # hacky way to get it working like the old dtt
                 stream.directory = directory
 
-                self.parcel_client.parallel_download(stream)
+                # run original parallel download
+                super(GDCHTTPDownloadClient, self).parallel_download(stream)
 
                 if os.path.isfile(stream.temp_path):
                     utils.remove_partial_extension(stream.temp_path)
@@ -175,7 +176,7 @@ class GDCDownloadClient(object):
             r = requests.post(
                 active,
                 stream=stream,
-                verify=self.parcel_client.verify,
+                verify=self.verify,
                 json=json or {},
                 headers=headers or {},
             )
@@ -184,7 +185,7 @@ class GDCDownloadClient(object):
                 r = requests.post(
                    legacy,
                    stream=stream,
-                   verify=self.parcel_client.verify,
+                   verify=self.verify,
                    json=json or {},
                    headers=headers or {},
                )
@@ -200,7 +201,7 @@ class GDCDownloadClient(object):
 
         errors = []
         headers = {
-            'X-Auth-Token': self.parcel_client.token,
+            'X-Auth-Token': self.token,
         }
 
         # {'ids': ['id1', 'id2'..., 'idn']}
@@ -294,70 +295,48 @@ class GDCDownloadClient(object):
 
         return errors, successful_count
 
-    def parallel_download(self, stream, download_related_files=None,
-                          download_annotations=None, *args, **kwargs):
+    def parallel_download(self, stream):
 
         # gdc-client calls parcel's parallel_download,
         # which is where most of the downloading takes place
         file_id = stream.url.split('/')[-1]
-        self.parcel_client.parallel_download(stream)
+        super(GDCHTTPDownloadClient, self).parallel_download(stream)
 
-        if download_related_files or \
-           download_related_files is None and self.related_files:
+        if self.related_files:
             try:
                 self.download_related_files(file_id)
             except Exception as e:
                 log.warn('Unable to download related files for {0}: {1}'.format(
                     file_id, e))
-                if self.parcel_client.debug:
+                if self.debug:
                     raise
 
-        if download_annotations or \
-           download_annotations is None and self.annotations:
+        if self.annotations:
             try:
                 self.download_annotations(file_id)
             except Exception as e:
                 log.warn('Unable to download annotations for {0}: {1}'.format(
                     file_id, e))
-                if self.parcel_client.debug:
+                if self.debug:
                     raise
 
 
-class GDCHTTPDownloadClient(GDCDownloadClient):
-
-    def __init__(self, uri, index_client, download_related_files=True,
-                 download_annotations=True, *args, **kwargs):
-
-        base_directory = kwargs.get('directory')
-        base_uri = fix_url(uri)
-        data_uri = urlparse.urljoin(base_uri, 'data/')
-        index = index_client
-        md5_check = kwargs.get('file_md5sum')
-
-        # favoring composition over inheritance
-        parcel_client = HTTPClient(data_uri, *args, **kwargs)
-        super(GDCHTTPDownloadClient, self).__init__(parcel_client, uri=base_uri,
-                                                    base_directory=base_directory,
-                                                    download_related_files=download_related_files,
-                                                    download_annotations=download_annotations,
-                                                    check_file_md5=md5_check,
-                                                    index_client=index)
-
-
-class GDCUDTDownloadClient(GDCDownloadClient):
+class GDCUDTDownloadClient(GDCHTTPDownloadClient):
 
     def __init__(self, remote_uri, download_related_files=True,
                  download_annotations=True, *args, **kwargs):
-        remote_uri = fix_url(remote_uri)
-        data_uri = urlparse.urljoin(remote_uri, 'data/')
+
         directory = os.path.abspath(time.strftime("gdc-client-%Y%m%d-%H%M%S"))
-        md5_check = kwargs.get('file_md5sum')
 
         # favoring composition over inheritance
-        parcel_client = UDTClient(*args, **kwargs)
-        super(GDCUDTDownloadClient, self).__init__(parcel_client, uri=data_uri,
-                                                   base_directory=directory,
+        self.udt_adapter = UDTClient(*args, **kwargs)
+        super(GDCUDTDownloadClient, self).__init__(uri=fix_url(remote_uri),
                                                    download_related_files=download_related_files,
                                                    download_annotations=download_annotations,
-                                                   check_file_md5=md5_check,
-                                                   index_client=None)
+                                                   directory=directory, *args, **kwargs)
+
+    def construct_local_uri(self, proxy_host, proxy_port, remote_uri):
+        return self.udt_adapter.construct_local_uri(proxy_host, proxy_port, remote_uri)
+
+    def start_proxy_server(self, proxy_host, proxy_port, remote_uri):
+        return self.udt_adapter.start_proxy_server(proxy_host, proxy_port, remote_uri)
