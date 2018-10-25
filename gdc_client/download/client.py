@@ -35,12 +35,12 @@ def fix_url(url):
     return url
 
 
-class GDCDownloadMixin(object):
+class GDCDownloadClient(object):
 
     annotation_name = 'annotations.txt'
 
     def __init__(self, parcel_client, uri, base_directory, download_related_files=True,
-                 download_annotations=None, check_file_md5=True, index_client=None):
+                 download_annotations=True, check_file_md5=True, index_client=None):
         """ GDC Download client init
         Args:
             parcel_client(parcel.Client): Appropriate parcel client [UDT, or HTTP]
@@ -59,6 +59,8 @@ class GDCDownloadMixin(object):
         self.gdc_index_client = index_client
         self.parcel_client = parcel_client
         self.base_directory = base_directory
+
+        print(DownloadStream.check_segment_md5sums, self.annotations, self.related_files)
 
     def download_related_files(self, file_id):
         # type: (str) -> None
@@ -193,7 +195,7 @@ class GDCDownloadMixin(object):
         return r
 
     def _download_tarfile(self, small_files):
-        # type: (list[str], bool) -> tuple[str, object]
+        # type: (list[str]) -> tuple[str, object]
         """ Make the request to the API for the tarfile downloads """
 
         errors = []
@@ -247,7 +249,7 @@ class GDCDownloadMixin(object):
         return tarfile_name, errors
 
     def download_small_groups(self, smalls):
-        # type: (list[str], bool) -> tuple[list[str], int]
+        # type: (list[str]) -> tuple[list[str], int]
         """ Download small groups
 
         Smalls are predetermined groupings of smaller file size files.
@@ -321,7 +323,7 @@ class GDCDownloadMixin(object):
                     raise
 
 
-class GDCHTTPDownloadClient(GDCDownloadMixin):
+class GDCHTTPDownloadClient(GDCDownloadClient):
 
     def __init__(self, uri, index_client, download_related_files=True,
                  download_annotations=True, *args, **kwargs):
@@ -342,7 +344,7 @@ class GDCHTTPDownloadClient(GDCDownloadMixin):
                                                     index_client=index)
 
 
-class GDCUDTDownloadClient(GDCDownloadMixin):
+class GDCUDTDownloadClient(GDCDownloadClient):
 
     def __init__(self, remote_uri, download_related_files=True,
                  download_annotations=True, *args, **kwargs):

@@ -197,7 +197,7 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
             time.sleep(wait_time)
             # client.download_files accepts a list of urls to download
             # but we want to only try one at a time
-            _, e = client.download_files([url])
+            _, e = client.parcel_client.download_files([url])
             if not e:
                 log.debug('Successfully downloaded {0}!'.format(url))
                 return

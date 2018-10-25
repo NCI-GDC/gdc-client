@@ -2,7 +2,12 @@
 
 Functionality related to versioning.
 """
+import logging
+
 import requests
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_latest_versions(url, uuids):
@@ -16,6 +21,7 @@ def get_latest_versions(url, uuids):
         list: list of uuids with potentially new versions
     """
 
+    uuids = list(uuids)
     versions_url = url + '/files/versions'
     latest_versions = []
 
@@ -26,9 +32,12 @@ def get_latest_versions(url, uuids):
         # Parse the results of the chunked query.
         for result in resp.json():
             # Probably wouldn't happen, but just in case add an error check.
+            file_id = result.get("id")
             uuid = result.get('latest_id')
             if uuid:
+                logger.info("Latest version for {} ==> {}".format(file_id, uuid))
                 latest_versions.append(uuid)
+            logger.info("No latest version found for {}".format(file_id))
 
     return latest_versions
 
