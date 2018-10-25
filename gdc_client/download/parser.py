@@ -135,7 +135,7 @@ def download(parser, args):
             urlparse.urljoin(client.data_uri, build_url(b, *params))
             for b in bigs
         ]
-        _, big_error_dict = client.download_files(bigs)
+        _, big_error_dict = client.parcel_client.download_files(bigs)
         not_downloaded_url = ''
 
         if args.retry_amount > 0:

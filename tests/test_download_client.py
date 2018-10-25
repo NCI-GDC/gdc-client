@@ -55,11 +55,11 @@ class DownloadClientTest(TestCase):
                 index_client=index_client,
                 **client_kwargs)
 
-        assert client.fix_url('api.gdc.cancer.gov') == \
+        assert fix_url('api.gdc.cancer.gov') == \
                 'https://api.gdc.cancer.gov/'
-        assert client.fix_url('http://api.gdc.cancer.gov/') == \
+        assert fix_url('http://api.gdc.cancer.gov/') == \
                 'http://api.gdc.cancer.gov/'
-        assert client.fix_url('api.gdc.cancer.gov/') == \
+        assert fix_url('api.gdc.cancer.gov/') == \
                 'https://api.gdc.cancer.gov/'
 
     def test_untar_file(self):
