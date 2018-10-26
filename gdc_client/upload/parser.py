@@ -13,9 +13,6 @@ log = logging.getLogger('gdc-upload')
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
-    if args.identifier:
-        log.warn('The use of the -i/--identifier flag has been deprecated.')
-
     if not args.token_file:
         parser.error('A token is required in order to upload.')
 
@@ -104,8 +101,6 @@ def config(parser, upload_defaults):
     parser.add_argument('--manifest', '-m',
                         type=argparse.FileType('r'),
                         help='Manifest which describes files to be uploaded')
-    parser.add_argument('--identifier', '-i', action='store_true',
-                        help='DEPRECATED')
     parser.add_argument('file_ids',
                         metavar='file_id', type=str,
                         nargs='*',
