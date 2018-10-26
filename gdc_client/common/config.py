@@ -4,7 +4,8 @@ import sys
 from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 
 from gdc_client.defaults import (
-    processes, USER_DEFAULT_CONFIG_LOCATION, HTTP_CHUNK_SIZE
+    processes, USER_DEFAULT_CONFIG_LOCATION, HTTP_CHUNK_SIZE, SAVE_INTERVAL,
+    UPLOAD_PART_SIZE
 )
 
 log = logging.getLogger('gdc-client')
@@ -29,6 +30,7 @@ class GDCClientConfigShared(object):
     setting_getters = {
         'server': ConfigParser.get,
         'http_chunk_size': ConfigParser.getint,
+        'upload_part_size': ConfigParser.getint,
         'save_interval': ConfigParser.getint,
         'dir': ConfigParser.get,
         'n_processes': ConfigParser.getint,
@@ -59,12 +61,12 @@ class GDCClientConfigShared(object):
         return {
             'common': {
                 'server': 'https://api.gdc.cancer.gov',
-                'http_chunk_size': HTTP_CHUNK_SIZE,
-                'save_interval': HTTP_CHUNK_SIZE,
                 'n_processes': processes,
             },
             'download': {
                 'dir': '.',
+                'save_interval': SAVE_INTERVAL,
+                'http_chunk_size': HTTP_CHUNK_SIZE,
                 'no_segment_md5sum': False,
                 'no_file_md5sum': False,
                 'no_verify': False,
@@ -76,6 +78,7 @@ class GDCClientConfigShared(object):
             },
             'upload': {
                 'path': '.',
+                'upload_part_size': UPLOAD_PART_SIZE,
                 'insecure': False,
                 'disable_multipart': False,
             },

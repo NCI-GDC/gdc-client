@@ -52,7 +52,7 @@ def upload(parser, args):
         token=args.token_file,
         processes=args.n_processes,
         multipart=(not args.disable_multipart),
-        part_size=args.http_chunk_size,
+        upload_part_size=args.upload_part_size,
         server=args.server,
         files=files,
         verify=(not args.insecure),
@@ -85,7 +85,7 @@ def config(parser, upload_defaults):
     # TODO remove this and replace w/ top level host and port
     parser.add_argument('--server', '-s', type=str,
                         help='GDC API server address')
-    parser.add_argument('--http-chunk-size', '-c', type=int,
+    parser.add_argument('--upload-part-size', '-c', type=int,
                         help='Part size for multipart upload')
     parser.add_argument('-n', '--n-processes', type=int,
                         help='Number of client connections')

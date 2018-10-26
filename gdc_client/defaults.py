@@ -38,7 +38,10 @@ proxy_host = 'localhost'
 # proxy (on `proxy_host`) to traffic on the GDC api host
 proxy_port = 9000
 
-HTTP_CHUNK_SIZE = 1024 * 1024 * 1024  # 1 GiB
+HTTP_CHUNK_SIZE = 1024 * 1024  # 1 MB
+SAVE_INTERVAL = 1024 * 1024 * 1024  # 1 GiB
+# Part size for multipart uploads
+UPLOAD_PART_SIZE = 1024 * 1024 * 1024 # 1 GiB
 
 # The following file will contain superseded files information
 SUPERSEDED_INFO_FILENAME_TEMPLATE = re.compile(r'superseded_files[\d._]+.txt')
