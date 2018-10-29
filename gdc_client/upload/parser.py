@@ -13,6 +13,10 @@ log = logging.getLogger('gdc-upload')
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
+    if args.part_size:
+        log.warn('[--part-size] is DEPRECATED in favor of [--upload-part-size]')
+        args.upload_part_size = args.part_size
+
     if not args.token_file:
         parser.error('A token is required in order to upload.')
 
@@ -82,6 +86,8 @@ def config(parser, upload_defaults):
     # TODO remove this and replace w/ top level host and port
     parser.add_argument('--server', '-s', type=str,
                         help='GDC API server address')
+    parser.add_argument('--part-size', type=int,
+                        help='DEPRECATED in favor of [--upload-part-size]')
     parser.add_argument('--upload-part-size', '-c', type=int,
                         help='Part size for multipart upload')
     parser.add_argument('-n', '--n-processes', type=int,
