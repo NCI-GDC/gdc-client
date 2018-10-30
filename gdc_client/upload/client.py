@@ -69,7 +69,7 @@ class Stream(object):
         return self._file.read(num)
 
 
-def upload_multipart(filename, offset, bytes, url, upload_id, part_number,
+def upload_multipart(filename, offset, num_bytes, url, upload_id, part_number,
                      headers, verify=True, pbar=None, ns=None):
     tries = MAX_RETRIES
     while tries > 0:
@@ -79,14 +79,14 @@ def upload_multipart(filename, offset, bytes, url, upload_id, part_number,
             if OS_WINDOWS:
                 chunk_file = mmap(
                     fileno=f.fileno(),
-                    length=bytes,
+                    length=num_bytes,
                     offset=offset,
                     access=ACCESS_READ
                 )
             else:
                 chunk_file = mmap(
                     fileno=f.fileno(),
-                    length=bytes,
+                    length=num_bytes,
                     offset=offset,
                     prot=PROT_READ
                 )
@@ -139,9 +139,9 @@ def create_resume_path(file_path):
 
 class GDCUploadClient(object):
 
-    def __init__(self, token, processes, server, part_size,
-                 multipart=True, debug=False,
-                 files={}, verify=True, manifest_name=None):
+    def __init__(self, token, processes, server, upload_part_size,
+                 multipart=True, debug=False, files=None, verify=True,
+                 manifest_name=None):
         self.headers = {'X-Auth-Token': token.strip()}
         self.manifest_name = manifest_name
         self.verify = verify
@@ -152,7 +152,7 @@ class GDCUploadClient(object):
         except:
             log.info('Using system default CA')
 
-        self.files = files
+        self.files = files or []
         self.incompleted = deque(copy.deepcopy(self.files))
 
         if not (server.startswith('http://') or server.startswith('https://')):
@@ -163,7 +163,9 @@ class GDCUploadClient(object):
         self.upload_id = None
         self.debug = debug
         self.processes = processes
-        self.part_size = (max(part_size, MIN_PARTSIZE)/PAGESIZE+1)*PAGESIZE
+        self.upload_part_size = (
+            (max(upload_part_size, MIN_PARTSIZE) / PAGESIZE + 1) * PAGESIZE
+        )
         self._metadata = {}
         self.resume_path = "resume_{0}".format(self.manifest_name)
 
@@ -331,8 +333,8 @@ class GDCUploadClient(object):
                 self._upload()
             else:
 
-                if self.file_size < self.part_size:
-                    log.info("File size smaller than part size {0}, do simple upload".format(self.part_size))
+                if self.file_size < self.upload_part_size:
+                    log.info("File size smaller than part size {0}, do simple upload".format(self.upload_part_size))
                     self._upload()
                 else:
                     self.multipart_upload()
@@ -461,17 +463,16 @@ class GDCUploadClient(object):
             manager = Manager()
             self.ns = manager.Namespace()
             self.ns.completed = 0
-        part_amount = int(math.ceil(self.file_size / float(self.part_size)))
+        part_amount = int(math.ceil(self.file_size / float(self.upload_part_size)))
         self.total_parts = part_amount
         self.pbar = ProgressBar(
             widgets=[Percentage(), Bar()], maxval=self.total_parts).start()
         try:
             for i in xrange(part_amount):
-                offset = i * self.part_size
-                remaining_bytes = self.file_size - offset
-                bytes = min(remaining_bytes, self.part_size)
+                offset = i * self.upload_part_size
+                num_bytes = min(self.file_size - offset, self.upload_part_size)
                 if not self.multiparts.uploaded(i+1):
-                    args_list.append([self.file_path, offset, bytes,
+                    args_list.append([self.file_path, offset, num_bytes,
                                       self.url, self.upload_id, i+1,
                                       self.headers, self.verify,
                                       self.pbar, self.ns])

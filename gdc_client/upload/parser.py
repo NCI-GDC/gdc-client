@@ -13,8 +13,9 @@ log = logging.getLogger('gdc-upload')
 def validate_args(parser, args):
     """ Validate argparse namespace.
     """
-    if args.identifier:
-        log.warn('The use of the -i/--identifier flag has been deprecated.')
+    if args.part_size:
+        log.warn('[--part-size] is DEPRECATED in favor of [--upload-part-size]')
+        args.upload_part_size = args.part_size
 
     if not args.token_file:
         parser.error('A token is required in order to upload.')
@@ -52,7 +53,7 @@ def upload(parser, args):
         token=args.token_file,
         processes=args.n_processes,
         multipart=(not args.disable_multipart),
-        part_size=args.http_chunk_size,
+        upload_part_size=args.upload_part_size,
         server=args.server,
         files=files,
         verify=(not args.insecure),
@@ -85,7 +86,9 @@ def config(parser, upload_defaults):
     # TODO remove this and replace w/ top level host and port
     parser.add_argument('--server', '-s', type=str,
                         help='GDC API server address')
-    parser.add_argument('--http-chunk-size', '-c', type=int,
+    parser.add_argument('--part-size', type=int,
+                        help='DEPRECATED in favor of [--upload-part-size]')
+    parser.add_argument('--upload-part-size', '-c', type=int,
                         help='Part size for multipart upload')
     parser.add_argument('-n', '--n-processes', type=int,
                         help='Number of client connections')
@@ -104,8 +107,6 @@ def config(parser, upload_defaults):
     parser.add_argument('--manifest', '-m',
                         type=argparse.FileType('r'),
                         help='Manifest which describes files to be uploaded')
-    parser.add_argument('--identifier', '-i', action='store_true',
-                        help='DEPRECATED')
     parser.add_argument('file_ids',
                         metavar='file_id', type=str,
                         nargs='*',
