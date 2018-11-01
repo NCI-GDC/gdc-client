@@ -9,7 +9,8 @@ import urlparse
 from StringIO import StringIO
 
 import requests
-from parcel import Client, UDTClient, utils
+from parcel import Client as HTTPClient
+from parcel import UDTClient, utils
 from parcel.download_stream import DownloadStream
 from progressbar import ETA, Bar, FileTransferSpeed, Percentage, ProgressBar
 
@@ -35,7 +36,7 @@ def fix_url(url):
     return url
 
 
-class GDCHTTPDownloadClient(Client):
+class GDCHTTPDownloadClient(HTTPClient):
 
     annotation_name = 'annotations.txt'
 
