@@ -37,6 +37,7 @@ def get_latest_versions(url, uuids):
             if uuid:
                 logger.info("Latest version for {} ==> {}".format(file_id, uuid))
                 latest_versions.append(uuid)
+                continue
             logger.info("No latest version found for {}".format(file_id))
 
     return latest_versions
