@@ -9,8 +9,7 @@ import urlparse
 from StringIO import StringIO
 
 import requests
-from parcel import Client as HTTPClient
-from parcel import UDTClient, utils
+from parcel import HTTPClient, UDTClient, utils
 from parcel.download_stream import DownloadStream
 from progressbar import ETA, Bar, FileTransferSpeed, Percentage, ProgressBar
 
