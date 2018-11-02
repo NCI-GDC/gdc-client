@@ -1,12 +1,11 @@
 from flask import Flask, Response, jsonify, request
-from StringIO import StringIO
 from conftest import uuids, make_tarfile
 
 import json
 import os
-import tarfile
 
 app = Flask(__name__)
+
 
 @app.route('/v0/files', methods=['POST'])
 @app.route('/files', methods=['POST'])
@@ -94,6 +93,7 @@ def files():
 
     result['data']['pagination']['size'] = size
     return jsonify(result)
+
 
 @app.route('/data', methods=['POST'])
 @app.route('/v0/data', methods=['POST'])
