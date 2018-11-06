@@ -98,6 +98,9 @@ def download(parser, args):
     # Return OLD_ID => NEW_ID mapping
     ids_map = get_latest_versions(args.server, ids)
 
+    if args.latest:
+        log.info('Downloading LATEST versions of files')
+
     for file_id, latest_id in ids_map.iteritems():
         if args.latest:
             log.info('Latest version for {} ==> {}'.format(file_id, latest_id))
