@@ -4,5 +4,5 @@ lxml==4.2.1
 ndg-httpsclient==0.5.0
 pyasn1==0.4.3
 pyOpenSSL==18.0.0
--e git+https://github.com/LabAdvComp/parcel.git@d2670ce65ef6ea3dda0b1bab56a3342bed675958#egg=parcel
+-e git+https://github.com/LabAdvComp/parcel.git@f03ab838aa27cdb1f596854c863b31d22ef75ed1#egg=parcel
 PyYAML==3.12
