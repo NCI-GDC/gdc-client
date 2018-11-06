@@ -18,12 +18,12 @@ def get_latest_versions(url, uuids):
         uuids (list): list of UUIDs that might have a new version
 
     Returns:
-        list: list of uuids with potentially new versions
+        dict: mapping for user requested file UUIDs potentially new versions
     """
 
     uuids = list(uuids)
     versions_url = url + '/files/versions'
-    latest_versions = []
+    latest_versions = {}
 
     # Make multiple queries in an attempt to balance the load on the server.
     for chunk in _chunk_list(uuids):
@@ -35,8 +35,7 @@ def get_latest_versions(url, uuids):
             file_id = result.get("id")
             uuid = result.get('latest_id')
             if uuid:
-                logger.info("Latest version for {} ==> {}".format(file_id, uuid))
-                latest_versions.append(uuid)
+                latest_versions[file_id] = uuid
                 continue
             logger.info("No latest version found for {}".format(file_id))
 

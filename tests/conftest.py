@@ -101,3 +101,14 @@ uuids = {
         'access': 'open',
     },
 }
+
+
+@pytest.fixture
+def versions_response(requests_mock):
+    def mock_response(url, ids, latest_ids):
+        requests_mock.post(url, json=[
+            {'id': file_id, 'latest_id': latest_id}
+            for file_id, latest_id in zip(ids, latest_ids)
+        ])
+
+    return mock_response

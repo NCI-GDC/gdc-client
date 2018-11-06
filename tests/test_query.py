@@ -8,7 +8,7 @@ from parcel.const import HTTP_CHUNK_SIZE
 import mock_server
 from conftest import uuids
 from gdc_client.query.index import GDCIndexClient
-from gdc_client.query.versions import _chunk_list
+from gdc_client.query.versions import _chunk_list, get_latest_versions
 
 # default values for flask
 server_host = 'http://127.0.0.1'
@@ -233,3 +233,28 @@ class QueryIndexTest(TestCase):
 def test_chunk_list(case):
     for chunk in _chunk_list(case):
         assert len(chunk) <= 500
+
+
+@pytest.fixture
+def versions_response(requests_mock):
+    def mock_response(url, ids, latest_ids):
+        requests_mock.post(url, json=[
+            {'id': file_id, 'latest_id': latest_id}
+            for file_id, latest_id in zip(ids, latest_ids)
+        ])
+
+    return mock_response
+
+
+@pytest.mark.parametrize('ids, latest_ids, expected', [
+    (['foo', 'bar'], ['foo', 'baz'], {'foo': 'foo', 'bar': 'baz'}),
+    (['1', '2', '3'], ['a', 'b', 'c'], {'1': 'a', '2': 'b', '3': 'c'}),
+    (['1', '2', '3'], ['a', 'b', None], {'1': 'a', '2': 'b'}),
+])
+def test_get_latest_versions(versions_response, ids, latest_ids, expected):
+    url = 'https://example.com'
+    versions_response(url + '/files/versions', ids, latest_ids)
+
+    result = get_latest_versions(url, ids)
+
+    assert result == expected
