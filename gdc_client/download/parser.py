@@ -94,12 +94,23 @@ def download(parser, args):
             break
         ids.add(i['id'])
 
-    # Query the api to get the latest version of a file according to the gdc.
-    # Replace the old list of uuids with the potentially newer list of uuids,
-    # then proceed with the rest of the program as normal.
+    # Query the api to get the latest version of a file(s) according to the gdc.
+    # Return OLD_ID => NEW_ID mapping
+    ids_map = get_latest_versions(args.server, ids)
+
     if args.latest:
         log.info('Downloading LATEST versions of files')
-        ids = get_latest_versions(args.server, ids)
+
+    for file_id, latest_id in ids_map.iteritems():
+        if args.latest:
+            log.info('Latest version for {} ==> {}'.format(file_id, latest_id))
+            continue
+        if latest_id is not None and file_id != latest_id:
+            log.warn('The file "{}" was superseded by "{}"'.format(
+                file_id, latest_id
+            ))
+
+    ids = ids_map.values() if args.latest else ids_map.keys()
 
     index_client = GDCIndexClient(args.server)
     client = get_client(args, index_client)
