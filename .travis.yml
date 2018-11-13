@@ -3,21 +3,12 @@ language: python
 python:
   - "2.6"
   - "2.7"
-  - "3.5"
-  - "3.6"
-
 
 sudo: false
 
 install:
-  - pip install -r requirements.txt
-  - pip install -r dev-requirements.txt
-  - python setup.py install
   - pip install tox
   - pip install travis-tox
-  - pip freeze
 
 script:
   - tox
-  - python -m pytest -vv --cov=gdc_client --cov-report xml tests/
-  - python-codacy-coverage -r coverage.xml
