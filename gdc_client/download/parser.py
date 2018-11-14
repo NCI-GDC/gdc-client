@@ -234,7 +234,7 @@ def config(parser, download_defaults):
 
     parser.add_argument('-d', '--dir', type=str,
                         help='Directory to download files to. '
-                        'Defaults to current dir')
+                        'Defaults to current directory')
     parser.add_argument('-s', '--server', metavar='server', type=str,
                         help='The TCP server address server[:port]')
     parser.add_argument('--no-segment-md5sums', dest='no_segment_md5sums',
