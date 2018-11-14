@@ -7,8 +7,7 @@ python:
 sudo: false
 
 install:
-  - pip install tox
-  - pip install travis-tox
+  - pip install tox-travis
 
 script:
   - tox
