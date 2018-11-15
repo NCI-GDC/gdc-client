@@ -31,13 +31,13 @@ def get_latest_versions(url, uuids):
 
         # Parse the results of the chunked query.
         for result in resp.json():
-            # Probably wouldn't happen, but just in case add an error check.
             file_id = result.get("id")
             uuid = result.get('latest_id')
             if uuid:
                 latest_versions[file_id] = uuid
                 continue
-            logger.info("No latest version found for {}".format(file_id))
+            # Might happen for legacy files
+            latest_versions[file_id] = file_id
 
     return latest_versions
 
