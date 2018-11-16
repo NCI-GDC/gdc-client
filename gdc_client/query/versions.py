@@ -35,9 +35,9 @@ def get_latest_versions(url, uuids):
             uuid = result.get('latest_id')
             if uuid:
                 latest_versions[file_id] = uuid
-                continue
-            # Might happen for legacy files
-            latest_versions[file_id] = file_id
+            else:
+                # Might happen for legacy files
+                latest_versions[file_id] = file_id
 
     return latest_versions
 
