@@ -238,7 +238,7 @@ def test_chunk_list(case):
 @pytest.mark.parametrize('ids, latest_ids, expected', [
     (['foo', 'bar'], ['foo', 'baz'], {'foo': 'foo', 'bar': 'baz'}),
     (['1', '2', '3'], ['a', 'b', 'c'], {'1': 'a', '2': 'b', '3': 'c'}),
-    (['1', '2', '3'], ['a', 'b', None], {'1': 'a', '2': 'b'}),
+    (['1', '2', '3'], ['a', 'b', None], {'1': 'a', '2': 'b', '3': '3'}),
 ])
 def test_get_latest_versions(versions_response, ids, latest_ids, expected):
     url = 'https://example.com'
