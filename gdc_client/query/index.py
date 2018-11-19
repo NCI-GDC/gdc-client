@@ -9,11 +9,12 @@ log = logging.getLogger('query')
 
 class GDCIndexClient(object):
 
-    def __init__(self, uri):
+    def __init__(self, uri, verify=True):
         self.uri = uri
         self.active_meta_endpoint = '/v0/files'
         self.legacy_meta_endpoint = '/v0/legacy/files'
         self.metadata = dict()
+        self.verify = verify
 
     def get_related_files(self, uuid):
         # type: (str) -> list[str]
@@ -55,7 +56,7 @@ class GDCIndexClient(object):
         """
         json_response = {}
         # using a POST request lets us avoid the MAX URL character length limit
-        r = requests.post(url, json=metadata_query, verify=False)
+        r = requests.post(url, json=metadata_query, verify=self.verify)
 
         if r is None:
             return []
