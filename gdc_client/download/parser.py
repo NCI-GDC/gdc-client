@@ -112,7 +112,7 @@ def download(parser, args):
 
     ids = ids_map.values() if args.latest else ids_map.keys()
 
-    index_client = GDCIndexClient(args.server)
+    index_client = GDCIndexClient(args.server, not args.no_verify)
     client = get_client(args, index_client)
 
     # separate the smaller files from the larger files
