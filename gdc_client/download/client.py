@@ -109,7 +109,8 @@ class GDCHTTPDownloadClient(HTTPClient):
             # {'ids': ['id1', 'id2'..., 'idn']}
             ann_ids = {"ids": annotations}
 
-            r = self._post(path='data', json=ann_ids)
+            # NOTE: Force compression
+            r = self._post(path='data?compress', json=ann_ids)
             r.raise_for_status()
             tar = tarfile.open(mode="r:gz", fileobj=StringIO(r.content))
             if self.annotation_name in tar.getnames():
