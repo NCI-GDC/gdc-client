@@ -11,16 +11,9 @@ The gdc-client provides several convenience functions over the GDC API which pro
 
 ## Tests
 
-In order to run tests:
+In order to run tests install [tox](https://tox.readthedocs.io/en/latest/)
 
-- `pip install -r requirements.txt`
-- `pip install -r dev-requirements.txt`
-- `python setup.py install`
-
-Run tests
-- `python -m pytest tests/`
-Run tests with coverage:
-- `python -m pytest --cov=gdc_client --cov-branch  --cov-report term tests/`
+- `tox`
 
 ## Contributing
 
