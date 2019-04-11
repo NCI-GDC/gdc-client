@@ -19,6 +19,7 @@ In order to run tests:
 
 Run tests
 - `python -m pytest tests/`
+
 Run tests with coverage:
 - `python -m pytest --cov=gdc_client --cov-branch  --cov-report term tests/`
 
