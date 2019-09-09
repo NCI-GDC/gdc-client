@@ -5,8 +5,13 @@ import re
 import sys
 import tarfile
 import time
-import urlparse
-from StringIO import StringIO
+from six.moves.urllib.parse import urljoin
+import sys
+
+if sys.version_info[0] < 3:
+    from StringIO import StringIO
+else:
+    from io import StringIO
 
 import requests
 from gdc_client.parcel import HTTPClient, utils
@@ -50,7 +55,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         """
 
         self.base_uri = uri
-        self.data_uri = urlparse.urljoin(self.base_uri, 'data/')
+        self.data_uri = urljoin(self.base_uri, 'data/')
 
         self.annotations = download_annotations
         self.related_files = download_related_files
@@ -79,7 +84,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             for related_file in related_files:
 
                 log.debug("related file {0}".format(related_file))
-                related_file_url = urlparse.urljoin(self.data_uri, related_file)
+                related_file_url = urljoin(self.data_uri, related_file)
                 stream = DownloadStream(related_file_url, directory, self.token)
 
                 # TODO: un-set this when parcel is moved to dtt
@@ -172,8 +177,8 @@ class GDCHTTPDownloadClient(HTTPClient):
         r = None
         try:
             # try active
-            active = urlparse.urljoin(self.base_uri, path)
-            legacy = urlparse.urljoin(self.base_uri, 'legacy/{0}'.format(path))
+            active = urljoin(self.base_uri, path)
+            legacy = urljoin(self.base_uri, 'legacy/{0}'.format(path))
 
             r = requests.post(
                 active,

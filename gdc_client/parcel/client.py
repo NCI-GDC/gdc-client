@@ -160,7 +160,7 @@ class Client(object):
                 utils.print_closing_header(url)
 
         # Print error messages
-        for url, error in errors.iteritems():
+        for url, error in errors.items():
             file_id = url.split('/')[-1]
             log.error('{0}: {1}'.format(file_id, error))
 

@@ -1,6 +1,7 @@
 from flask import Flask, Response, jsonify, request
 from conftest import uuids, make_tarfile
 
+import six
 import json
 import os
 
@@ -89,7 +90,7 @@ def files():
             result['data']['hits'].append(hit)
 
     except Exception as e:
-        print 'Error', e
+        print('Error {}'.format(e))
 
     result['data']['pagination']['size'] = size
     return jsonify(result)
@@ -114,7 +115,7 @@ def download(ids=''):
     if args:
         ids = args.get('ids')
 
-    if type(ids) in [str, unicode]:
+    if type(ids) in [str, six.text_type]:
         ids = [ids]
 
     for i in ids:

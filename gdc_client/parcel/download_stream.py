@@ -7,7 +7,7 @@ from intervaltree import Interval
 import os
 import requests
 import time
-import urlparse
+from six.moves.urllib.parse import urlparse
 
 
 class DownloadStream(object):
@@ -36,7 +36,7 @@ class DownloadStream(object):
 
     def _get_directory_name(self, directory, url):
         # get filename/id
-        path = urlparse.urlparse(url).path
+        path = urlparse(url).path
         if ',' not in path:
             folder = os.path.basename(path)
         else:
@@ -124,7 +124,7 @@ class DownloadStream(object):
             header['Range'] = 'bytes={0}-{1}'.format(start, end)
             # provide host because it's mandatory, range request
             # may not work otherwise
-            scheme, host, path, params, q, frag = urlparse.urlparse(self.url)
+            scheme, host, path, params, q, frag = urlparse(self.url)
             header['host'] = host
         return header
 
@@ -146,7 +146,7 @@ class DownloadStream(object):
         # Set urllib3 retries and mount for session
         a = requests.adapters.HTTPAdapter(max_retries=max_retries)
         s = requests.Session()
-        s.mount(urlparse.urlparse(self.url).scheme, a)
+        s.mount(urlparse(self.url).scheme, a)
 
         headers = self.headers() if headers is None else headers
         try:
@@ -183,7 +183,7 @@ class DownloadStream(object):
             # it also won't come with an md5sum
             self.check_file_md5sum = False
         else:
-            self.size = long(content_length)
+            self.size = int(content_length)
             self.log.debug('{0} bytes'.format(self.size))
 
         attachment = r.headers.get('content-disposition', None)

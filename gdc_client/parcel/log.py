@@ -1,6 +1,6 @@
 import logging
 import sys
-from portability import colored
+from .portability import colored
 
 
 loggers = {}

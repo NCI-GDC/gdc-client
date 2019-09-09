@@ -1,7 +1,7 @@
 from .portability import OS_WINDOWS
 from intervaltree import Interval, IntervalTree
-from utils import get_pbar, md5sum, mmap_open, STRIP, check_file_existence_and_size
-from const import SAVE_INTERVAL
+from .utils import get_pbar, md5sum, mmap_open, STRIP, check_file_existence_and_size
+from .const import SAVE_INTERVAL
 from progressbar import ProgressBar, Percentage, Bar, ETA
 import logging
 import os
@@ -14,7 +14,7 @@ import sys
 
 if OS_WINDOWS:
     WINDOWS = True
-    from Queue import Queue
+    from six.moves.queue import Queue
 else:
     # if we are running on a posix system, then we will be
     # communicating across processes, and will need
