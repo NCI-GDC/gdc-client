@@ -6,11 +6,7 @@ python:
 sudo: false
 
 install:
-  - pip install -r requirements.txt
-  - pip install -r dev-requirements.txt
-  - python setup.py install
-  - pip freeze
+  - "pip install tox-travis"
 
 script:
-  - python -m pytest -vv --cov=gdc_client --cov-report xml tests/
-  - python-codacy-coverage -r coverage.xml
+  - "tox -e py27"

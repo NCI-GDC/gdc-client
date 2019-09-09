@@ -23,7 +23,7 @@ class QueryIndexTest(TestCase):
         self.server.start()
 
         # give the server time to start
-        time.sleep(0.5)
+        time.sleep(2)
 
     def tearDown(self):
         self.server.terminate()

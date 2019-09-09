@@ -35,7 +35,7 @@ client_kwargs = {
     'download_related_files': True,
     'download_annotations': True,
     'no_auto_retry': True,
-    'retry_amount': 1,
+    'retry_amount': 5,
     'verify': True,
 }
 
@@ -46,10 +46,11 @@ class DownloadClientTest(TestCase):
         self.server.start()
 
         # give the server time to start
-        time.sleep(0.5)
+        time.sleep(2)
 
     def tearDown(self):
         self.server.terminate()
+        self.server.join()
 
     def test_fix_url(self):
         index_client = GDCIndexClient(base_url)
