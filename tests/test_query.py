@@ -3,7 +3,7 @@ from multiprocessing import Process
 from unittest import TestCase
 
 import pytest
-from parcel.const import HTTP_CHUNK_SIZE
+from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
 import mock_server
 from conftest import uuids

@@ -1,4 +1,4 @@
-from parcel.const import HTTP_CHUNK_SIZE
+from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 from StringIO import StringIO
 
 import hashlib

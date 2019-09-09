@@ -9,8 +9,8 @@ import urlparse
 from StringIO import StringIO
 
 import requests
-from parcel import HTTPClient, UDTClient, utils
-from parcel.download_stream import DownloadStream
+from gdc_client.parcel import HTTPClient, utils
+from gdc_client.parcel.download_stream import DownloadStream
 from progressbar import ETA, Bar, FileTransferSpeed, Percentage, ProgressBar
 
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
@@ -59,6 +59,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
         self.gdc_index_client = index_client
         self.base_directory = kwargs.get('directory')
+        self.verify = None
 
         super(GDCHTTPDownloadClient, self).__init__(self.data_uri, *args, **kwargs)
 
@@ -320,24 +321,3 @@ class GDCHTTPDownloadClient(HTTPClient):
                     file_id, e))
                 if self.debug:
                     raise
-
-
-class GDCUDTDownloadClient(GDCHTTPDownloadClient):
-
-    def __init__(self, remote_uri, download_related_files=True,
-                 download_annotations=True, *args, **kwargs):
-
-        directory = os.path.abspath(time.strftime("gdc-client-%Y%m%d-%H%M%S"))
-
-        # favoring composition over inheritance
-        self.udt_adapter = UDTClient(*args, **kwargs)
-        super(GDCUDTDownloadClient, self).__init__(uri=fix_url(remote_uri),
-                                                   download_related_files=download_related_files,
-                                                   download_annotations=download_annotations,
-                                                   directory=directory, *args, **kwargs)
-
-    def construct_local_uri(self, proxy_host, proxy_port, remote_uri):
-        return self.udt_adapter.construct_local_uri(proxy_host, proxy_port, remote_uri)
-
-    def start_proxy_server(self, proxy_host, proxy_port, remote_uri):
-        return self.udt_adapter.start_proxy_server(proxy_host, proxy_port, remote_uri)
