@@ -32,31 +32,31 @@ class QueryIndexTest(TestCase):
     def test_no_metadata_get_related_files(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_related_files(uuids['small'])
+        results = index.get_related_files('small')
         assert results == []
 
     def test_no_metadata_get_annotations(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_annotations(uuids['small'])
+        results = index.get_annotations('small')
         assert results == []
 
     def test_no_metadata_get_md5sum(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_md5sum(uuids['small'])
+        results = index.get_md5sum('small')
         assert results == None
 
     def test_no_metadata_get_filesize(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_filesize(uuids['small'])
+        results = index.get_filesize('small')
         assert results == None
 
     def test_no_metadata_get_filesize(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_access(uuids['small'])
+        results = index.get_access('small')
         assert results == None
 
     ############ mock metadata ############

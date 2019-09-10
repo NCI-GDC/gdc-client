@@ -1,10 +1,11 @@
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
+import os
 import sys
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
 else:
-    from io import StringIO
+    from io import BytesIO
 
 import hashlib
 import tarfile
@@ -31,13 +32,17 @@ def make_tarfile(ids, tarfile_name='temp.tar', write_mode='w'):
 
     with tarfile.open(tarfile_name, write_mode) as t:
         for i in ids:
-            s = StringIO()
-            s.write(uuids[i]['contents'])
-            s.seek(0)
+            if sys.version_info[0] < 3:
+                s = StringIO()
+                s.write(uuids[i]['contents'])
+            else:
+                s = BytesIO()
+                s.write(uuids[i]['contents'].encode('utf-8'))
 
             info = tarfile.TarInfo(name=i)
-            info.size = len(s.buf)
+            info.size = s.tell()
 
+            s.seek(0)
             t.addfile(fileobj=s, tarinfo=info)
             s.close()
 

@@ -39,7 +39,6 @@ class GDCIndexClient(object):
             return int(self.metadata[uuid]['file_size'])
 
     def get_access(self, uuid):
-        import pdb; pdb.set_trace()
         if uuid in self.metadata.keys():
             return self.metadata[uuid]['access']
 

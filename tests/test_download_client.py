@@ -2,6 +2,7 @@ import copy
 import os
 import os.path
 import tarfile
+import sys
 
 import pytest
 import time
@@ -142,7 +143,10 @@ class DownloadClientTest(TestCase):
             for member in t.getmembers():
                 m = t.extractfile(member)
                 contents = m.read()
-                assert contents == uuids[m.name]['contents']
+                if sys.version_info[0] < 3:
+                    assert contents == uuids[m.name]['contents']
+                else:
+                    assert contents.decode('utf-8') == uuids[member.name]['contents']
                 os.remove(tarfile_name)
 
 
