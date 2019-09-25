@@ -1,3 +1,11 @@
+# ***************************************************************************************
+# Title: LabAdvComp/parcel
+# Author: Joshua S. Miller
+# Date: May 26, 2016
+# Code version: 0.1.13
+# Availability: https://github.com/LabAdvComp/parcel
+# ***************************************************************************************
+
 from . import const
 from . import utils
 from .download_stream import DownloadStream
@@ -93,10 +101,12 @@ class Client(object):
         """
 
         self.stop_time = time.time()
-        if file_size > 0:
+        rate_info = ''
+        if file_size and file_size > 0:
             rate = (int(file_size)*8/1e9) / (self.stop_time - self.start_time)
-            log.debug(
-                'Download complete: {0:.2f} Gbps average'.format(rate))
+            rate_info = ': {0:.2f} Gbps average'.format(rate)
+
+        log.debug('Download complete' + rate_info)
 
     def validate_file_md5sum(self, stream):
 
@@ -153,6 +163,7 @@ class Client(object):
             # Handle file download error, store error to print out later
             except Exception as e:
                 errors[url] = str(e)
+                log.exception(e)
                 if self.debug:
                     raise
 
@@ -219,13 +230,14 @@ class Client(object):
         pool = [Process(target=download_worker) for i in range(n_procs)]
 
         # Start pool
-        map(lambda p: p.start(), pool)
+        for p in pool:
+            p.start()
+
         self.start_timer()
 
         # Wait for file to finish download
         producer.wait_for_completion()
-        self.stop_timer()
-
+        self.stop_timer(stream.size)
 
     def _standard_tcp_download(self, stream):
         """Backup download method for when you can't

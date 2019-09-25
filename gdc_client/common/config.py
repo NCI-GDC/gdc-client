@@ -1,7 +1,7 @@
 import argparse
 import logging
 import sys
-from ConfigParser import ConfigParser, NoOptionError, NoSectionError
+from configparser import ConfigParser, NoOptionError, NoSectionError
 
 from gdc_client.defaults import (
     processes, USER_DEFAULT_CONFIG_LOCATION, HTTP_CHUNK_SIZE, SAVE_INTERVAL,

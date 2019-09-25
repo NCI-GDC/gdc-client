@@ -1,3 +1,11 @@
+# ***************************************************************************************
+# Title: LabAdvComp/parcel
+# Author: Joshua S. Miller
+# Date: May 26, 2016
+# Code version: 0.1.13
+# Availability: https://github.com/LabAdvComp/parcel
+# ***************************************************************************************
+
 from .portability import OS_WINDOWS
 from intervaltree import Interval, IntervalTree
 from .utils import get_pbar, md5sum, mmap_open, STRIP, check_file_existence_and_size
@@ -54,7 +62,7 @@ class SegmentProducer(object):
             return
 
         work_size = self.integrate(self.work_pool)
-        self.block_size = work_size / self.n_procs
+        self.block_size = work_size // self.n_procs
 
     def _setup_queues(self):
         if WINDOWS:

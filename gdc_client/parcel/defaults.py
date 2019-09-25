@@ -1,5 +1,12 @@
+# ***************************************************************************************
+# Title: LabAdvComp/parcel
+# Author: Joshua S. Miller
+# Date: May 26, 2016
+# Code version: 0.1.13
+# Availability: https://github.com/LabAdvComp/parcel
+# ***************************************************************************************
+
 tcp_url = 'https://localhost'
-udt_url = 'https://localhost'
 processes = 8
 subcommand = 'http'
 proxy_host = 'localhost'

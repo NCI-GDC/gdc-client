@@ -1,3 +1,10 @@
+# ***************************************************************************************
+# Title: LabAdvComp/parcel
+# Author: Joshua S. Miller
+# Date: May 26, 2016
+# Code version: 0.1.13
+# Availability: https://github.com/LabAdvComp/parcel
+# ***************************************************************************************
 
 from contextlib import contextmanager
 from progressbar import ProgressBar, Percentage, Bar, ETA, FileTransferSpeed
@@ -57,38 +64,27 @@ def print_closing_header(file_id):
     log.debug('^{0}^'.format('{s:{c}^{n}}'.format(
         s=' {0} '.format(file_id), n=50, c='-')))
 
+
 def write_offset(path, data, offset):
-    try:
-        f = open(path, 'r+b')
+    with open(path, 'r+b') as f:
         f.seek(offset)
         f.write(data)
-        f.close()
-    except Exception as e:
-        raise Exception('Unable to write offset: {0}'.format(str(e)))
 
 
 def read_offset(path, offset, size):
-    try:
-        f = open(path, 'r+b')
+    with open(path, 'r+b') as f:
         f.seek(offset)
         data = f.read(size)
-        f.close()
         return data
-    except Exception as e:
-        raise Exception('Unable to read offset: {0}'.format(str(e)))
 
 
 def set_file_length(path, length):
-    try:
-        if os.path.isfile(path) and os.path.getsize(path) == length:
-            return
-        f = open(path, 'wb')
+    if os.path.isfile(path) and os.path.getsize(path) == length:
+        return
+    with open(path, 'wb') as f:
         f.seek(length-1)
         f.write('\0')
         f.truncate()
-        f.close()
-    except Exception as e:
-        raise Exception('Unable to set file length: {0}'.format(str(e)))
 
 
 def remove_partial_extension(path):
