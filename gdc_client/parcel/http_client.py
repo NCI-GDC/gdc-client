@@ -6,7 +6,7 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-from .client import Client
+from gdc_client.parcel.client import Client
 
 
 class HTTPClient(Client):

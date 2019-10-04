@@ -8,7 +8,8 @@
 
 import logging
 import sys
-from .portability import colored
+
+from gdc_client.parcel.portability import colored
 
 
 loggers = {}

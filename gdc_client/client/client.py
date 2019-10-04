@@ -3,8 +3,8 @@ from contextlib import contextmanager
 
 import requests
 
-from .. import auth
-from .. import version
+from gdc_client import auth
+from gdc_client import version
 
 
 GDC_API_HOST = 'api.gdc.cancer.gov'

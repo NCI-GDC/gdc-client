@@ -1,6 +1,6 @@
 import logging
 import time
-from six.moves.urllib.parse import urljoin
+from six.moves.urllib import parse as urlparse
 from six.moves import input
 from functools import partial
 
@@ -119,7 +119,7 @@ def download(parser, args):
         # create URLs to send to parcel for download
         params = ()
         bigs = [
-            urljoin(client.data_uri, build_url(b, *params))
+            urlparse.urljoin(client.data_uri, build_url(b, *params))
             for b in bigs
         ]
         _, big_error_dict = client.download_files(bigs)

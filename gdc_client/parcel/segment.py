@@ -6,11 +6,6 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-from .portability import OS_WINDOWS
-from intervaltree import Interval, IntervalTree
-from .utils import get_pbar, md5sum, mmap_open, STRIP, check_file_existence_and_size
-from .const import SAVE_INTERVAL
-from progressbar import ProgressBar, Percentage, Bar, ETA
 import logging
 import os
 import pickle
@@ -19,6 +14,13 @@ import string
 import tempfile
 import time
 import sys
+
+from intervaltree import Interval, IntervalTree
+from progressbar import ProgressBar, Percentage, Bar, ETA
+
+from gdc_client.parcel.portability import OS_WINDOWS
+from gdc_client.parcel.utils import get_pbar, md5sum, mmap_open, STRIP, check_file_existence_and_size
+from gdc_client.parcel.const import SAVE_INTERVAL
 
 if OS_WINDOWS:
     WINDOWS = True

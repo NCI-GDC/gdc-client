@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urljoin
+from six.moves.urllib import parse as urlparse
 from six.moves import input
 import random
 from multiprocessing import Pool, Manager
@@ -19,7 +19,7 @@ import time
 import copy
 import logging
 
-from . import manifest
+from gdc_client.upload import manifest
 import logging
 
 log = logging.getLogger('upload')
@@ -183,7 +183,7 @@ class GDCUploadClient(object):
         query = {'query': 'query Files { node (id: "%s") { type }}' % id}
 
         r = requests.post(
-            urljoin(self.server, "v0/submission/graphql"),
+            urlparse.urljoin(self.server, "v0/submission/graphql"),
             headers=self.headers,
             data=json.dumps(query),
             verify=self.verify)
@@ -208,7 +208,7 @@ class GDCUploadClient(object):
         query = {'query': 'query Files { %s (id: "%s") { project_id, file_name }}' % (file_type, id)}
 
         r = requests.post(
-            urljoin(self.server, "v0/submission/graphql"),
+            urlparse.urljoin(self.server, "v0/submission/graphql"),
             headers=self.headers,
             data=json.dumps(query),
             verify=self.verify)
@@ -249,7 +249,7 @@ class GDCUploadClient(object):
                     raise RuntimeError('Unable to parse project id {0}'
                                        .format(project_id))
 
-                file_entity.url = urljoin(
+                file_entity.url = urlparse.urljoin(
                     self.server, 'v0/submission/{0}/{1}/files/{2}'
                     .format(program, project, f['id']))
 

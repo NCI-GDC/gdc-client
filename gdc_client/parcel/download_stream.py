@@ -6,9 +6,9 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-from . import utils
-from . import const
-from .defaults import max_timeout, deprecation_header
+from gdc_client.parcel import utils
+from gdc_client.parcel import const
+from gdc_client.parcel.defaults import max_timeout, deprecation_header
 
 import logging
 from intervaltree import Interval

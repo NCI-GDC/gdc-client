@@ -7,7 +7,6 @@
 # ***************************************************************************************
 
 from contextlib import contextmanager
-from progressbar import ProgressBar, Percentage, Bar, ETA, FileTransferSpeed
 import hashlib
 import logging
 import mmap
@@ -15,6 +14,9 @@ import os
 import requests
 import stat
 import sys
+
+from progressbar import ProgressBar, Percentage, Bar, ETA, FileTransferSpeed
+
 
 # Logging
 log = logging.getLogger('utils')

@@ -6,12 +6,12 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-from . import const
-from . import utils
-from .download_stream import DownloadStream
-from .portability import colored
-from .portability import Process
-from .segment import SegmentProducer
+from gdc_client.parcel import const
+from gdc_client.parcel import utils
+from gdc_client.parcel.download_stream import DownloadStream
+from gdc_client.parcel.portability import colored
+from gdc_client.parcel.portability import Process
+from gdc_client.parcel.segment import SegmentProducer
 
 import logging
 import os

@@ -1,6 +1,6 @@
 import logging
 from json import dumps
-from six.moves.urllib.parse import urljoin
+from six.moves.urllib import parse as urlparse
 
 import requests
 
@@ -113,8 +113,8 @@ class GDCIndexClient(object):
             'size': str(len(uuids)),  # one big request
         }
 
-        active_meta_url = urljoin(self.uri, self.active_meta_endpoint)
-        legacy_meta_url = urljoin(self.uri, self.legacy_meta_endpoint)
+        active_meta_url = urlparse.urljoin(self.uri, self.active_meta_endpoint)
+        legacy_meta_url = urlparse.urljoin(self.uri, self.legacy_meta_endpoint)
 
         active_hits = self._get_hits(active_meta_url, metadata_query)
         legacy_hits = self._get_hits(legacy_meta_url, metadata_query)
