@@ -74,3 +74,5 @@ package.json
 *.tsv
 *.DS_Store
 *.dtt
+
+ignore/

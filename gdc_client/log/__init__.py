@@ -1,3 +1,3 @@
-from .parser import setup_logging
+from gdc_client.log.parser import setup_logging
 
-from . import parser
+from gdc_client.log import parser

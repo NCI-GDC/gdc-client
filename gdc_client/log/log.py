@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from parcel import colored
+from gdc_client.parcel import colored
 
 class LogFormatter(logging.Formatter):
 

@@ -1,25 +1,19 @@
 import logging
 import time
-import urlparse
+from six.moves.urllib import parse as urlparse
+from six.moves import input
 from functools import partial
 
-from parcel import colored, manifest
+from gdc_client.parcel import colored, manifest
 
 from gdc_client.download.client import (
     GDCHTTPDownloadClient,
-    GDCUDTDownloadClient,
 )
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.query.versions import get_latest_versions
 from gdc_client.utils import build_url
 
 log = logging.getLogger('gdc-download')
-
-UDT_SUPPORT = ' '.join([
-    'UDT is supported through the use of the Parcel UDT proxy.',
-    'To set up a Parcel UDT proxy for use with the GDC client,',
-    'please contact the GDC Help Desk at support@nci-gdc.datacommons.io.',
-])
 
 
 def validate_args(parser, args):
@@ -28,10 +22,6 @@ def validate_args(parser, args):
     if not args.file_ids and not args.manifest:
         msg = 'must specify either --manifest or file_id'
         parser.error(msg)
-
-    if args.udt:
-        # We were asked to remove 'error' in the message
-        parser.exit(status=1, message=UDT_SUPPORT)
 
 
 def get_client(args, index_client):
@@ -50,21 +40,7 @@ def get_client(args, index_client):
         'retry_amount': args.retry_amount,
         'verify': not args.no_verify,
     }
-    # The option to use UDT should be hidden until
-    # (1) the external library is packaged into the binary and
-    # (2) the GDC supports Parcel servers in production
-    '''
-    if args.udt:
-        server = args.server or defaults.udt_url
-        return GDCUDTDownloadClient(
-            remote_uri=server,
-            proxy_host=args.proxy_host,
-            proxy_port=args.proxy_port,
-            external_proxy=args.external_proxy,
-            **kwargs
-        )
-    else:
-    '''
+
     return GDCHTTPDownloadClient(
             uri=args.server,
             index_client=index_client,
@@ -101,7 +77,7 @@ def download(parser, args):
     if args.latest:
         log.info('Downloading LATEST versions of files')
 
-    for file_id, latest_id in ids_map.iteritems():
+    for file_id, latest_id in ids_map.items():
         if args.latest:
             log.info('Latest version for {} ==> {}'.format(file_id, latest_id))
             continue
@@ -150,7 +126,7 @@ def download(parser, args):
         not_downloaded_url = ''
 
         if args.retry_amount > 0:
-            for url, reason in big_error_dict.iteritems():
+            for url, reason in big_error_dict.items():
                 # only retry the download if it wasn't a controlled access error
                 if '403' not in reason:
                     not_downloaded_url = retry_download(
@@ -197,7 +173,7 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
     error = True
     while 0 < retry_amount and error:
         if no_auto_retry:
-            should_retry = raw_input('Retry download for {0}? (y/N): '.format(url))
+            should_retry = input('Retry download for {0}? (y/N): '.format(url))
         else:
             should_retry = 'y'
 
@@ -272,26 +248,6 @@ def config(parser, download_defaults):
     parser.add_argument('--config', help='Path to INI-type config file',
                         metavar='FILE')
 
-    #############################################################
-    #                       UDT options
-    #############################################################
-
-    # The option to use UDT should be hidden until
-    # (1) the external library is packaged into the binary and
-    # (2) the GDC supports Parcel servers in production
-    parser.add_argument('-u', '--udt', action='store_true',
-                        help='Use the UDT protocol.')
-    '''
-    parser.add_argument('--proxy-host', default=defaults.proxy_host,
-                        type=str, dest='proxy_host',
-                        help='The port to bind the local proxy to')
-    parser.add_argument('--proxy-port', default=defaults.proxy_port,
-                        type=str, dest='proxy_port',
-                        help='The port to bind the local proxy to')
-    parser.add_argument('-e', '--external-proxy', action='store_true',
-                        dest='external_proxy',
-                        help='Do not create a local proxy but bind to an external one')
-    '''
     parser.add_argument('-m', '--manifest',
         type=manifest.argparse_type,
         default=[],

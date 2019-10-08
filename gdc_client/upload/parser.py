@@ -2,9 +2,9 @@ import argparse
 import logging
 from functools import partial
 
-from . import manifest
-from . import exceptions
-from .client import GDCUploadClient
+from gdc_client.upload import manifest
+from gdc_client.upload import exceptions
+from gdc_client.upload.client import GDCUploadClient
 
 
 log = logging.getLogger('gdc-upload')

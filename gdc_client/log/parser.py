@@ -1,11 +1,10 @@
 import argparse
-import log
 import logging
 import sys
 
-from .. import version
+from gdc_client import version
 
-from .log import LogFormatter
+from gdc_client.log.log import LogFormatter
 
 
 def setup_logging(args):

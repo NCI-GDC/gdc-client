@@ -1,6 +1,6 @@
 import logging
 from json import dumps
-from urlparse import urljoin
+from six.moves.urllib import parse as urlparse
 
 import requests
 
@@ -34,12 +34,11 @@ class GDCIndexClient(object):
             return self.metadata[uuid]['md5sum']
 
     def get_filesize(self, uuid):
-        # type: (str) -> long
+        # type: (str) -> int
         if uuid in self.metadata.keys():
-            return long(self.metadata[uuid]['file_size'])
+            return int(self.metadata[uuid]['file_size'])
 
     def get_access(self, uuid):
-        # type: (str) -> long
         if uuid in self.metadata.keys():
             return self.metadata[uuid]['access']
 
@@ -114,8 +113,8 @@ class GDCIndexClient(object):
             'size': str(len(uuids)),  # one big request
         }
 
-        active_meta_url = urljoin(self.uri, self.active_meta_endpoint)
-        legacy_meta_url = urljoin(self.uri, self.legacy_meta_endpoint)
+        active_meta_url = urlparse.urljoin(self.uri, self.active_meta_endpoint)
+        legacy_meta_url = urlparse.urljoin(self.uri, self.legacy_meta_endpoint)
 
         active_hits = self._get_hits(active_meta_url, metadata_query)
         legacy_hits = self._get_hits(legacy_meta_url, metadata_query)

@@ -2,14 +2,15 @@ import copy
 import os
 import os.path
 import tarfile
+import sys
 
 import pytest
 import time
 from multiprocessing import Process, cpu_count
 from unittest import TestCase
 
-from parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
-from parcel.download_stream import DownloadStream
+from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
+from gdc_client.parcel.download_stream import DownloadStream
 
 import mock_server
 from conftest import make_tarfile, md5, uuids
@@ -35,7 +36,7 @@ client_kwargs = {
     'download_related_files': True,
     'download_annotations': True,
     'no_auto_retry': True,
-    'retry_amount': 1,
+    'retry_amount': 5,
     'verify': True,
 }
 
@@ -46,10 +47,11 @@ class DownloadClientTest(TestCase):
         self.server.start()
 
         # give the server time to start
-        time.sleep(0.5)
+        time.sleep(2)
 
     def tearDown(self):
         self.server.terminate()
+        self.server.join()
 
     def test_fix_url(self):
         index_client = GDCIndexClient(base_url)
@@ -141,7 +143,10 @@ class DownloadClientTest(TestCase):
             for member in t.getmembers():
                 m = t.extractfile(member)
                 contents = m.read()
-                assert contents == uuids[m.name]['contents']
+                if sys.version_info[0] < 3:
+                    assert contents == uuids[m.name]['contents']
+                else:
+                    assert contents.decode('utf-8') == uuids[member.name]['contents']
                 os.remove(tarfile_name)
 
 

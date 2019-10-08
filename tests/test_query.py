@@ -3,7 +3,7 @@ from multiprocessing import Process
 from unittest import TestCase
 
 import pytest
-from parcel.const import HTTP_CHUNK_SIZE
+from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
 import mock_server
 from conftest import uuids
@@ -23,7 +23,7 @@ class QueryIndexTest(TestCase):
         self.server.start()
 
         # give the server time to start
-        time.sleep(0.5)
+        time.sleep(2)
 
     def tearDown(self):
         self.server.terminate()
@@ -32,31 +32,31 @@ class QueryIndexTest(TestCase):
     def test_no_metadata_get_related_files(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_related_files(uuids['small'])
+        results = index.get_related_files('small')
         assert results == []
 
     def test_no_metadata_get_annotations(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_annotations(uuids['small'])
+        results = index.get_annotations('small')
         assert results == []
 
     def test_no_metadata_get_md5sum(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_md5sum(uuids['small'])
+        results = index.get_md5sum('small')
         assert results == None
 
     def test_no_metadata_get_filesize(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_filesize(uuids['small'])
+        results = index.get_filesize('small')
         assert results == None
 
     def test_no_metadata_get_filesize(self):
         index = GDCIndexClient(uri=base_url)
 
-        results = index.get_access(uuids['small'])
+        results = index.get_access('small')
         assert results == None
 
     ############ mock metadata ############
