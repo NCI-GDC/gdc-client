@@ -9,18 +9,38 @@ The gdc-client provides several convenience functions over the GDC API which pro
 [![Python 3](https://pyup.io/repos/github/NCI-GDC/gdc-client/python-3-shield.svg)](https://pyup.io/repos/github/NCI-GDC/gdc-client/)
 [![Updates](https://pyup.io/repos/github/NCI-GDC/gdc-client/shield.svg)](https://pyup.io/repos/github/NCI-GDC/gdc-client/)
 
-## Tests
+## Building the gdc-client
 
-In order to run tests:
+There is a bash script inside the ./bin directory of this repository named `package` that does most of the heavy lifting for building a single executable file of the gdc-client through PyInstaller. It will attempt to guess your operating system, based on `uname`, and build accordingly.
 
-- `pip install -r requirements.txt`
-- `pip install -r dev-requirements.txt`
-- `python setup.py install`
+Building on Windows requires the installation of [git](https://git-scm.com/downloads) and the use of the git-shell that comes bundled with it. This will provide enough Unix-like utility needed to run the bash script in this repository.
+
+### Instructions 
+
+```bash
+# The script is currently location-dependant, so navigate to the bin directory.
+cd bin
+# Then just execute the package script. The result will be a zip file containing your executable.
+./package
+```
+
+## Executing unit tests
+
+First install the Python package from source locally
+
+```bash
+virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python setup.py install
+pip install -r dev-requirements.txt
+```
 
 Run tests
 - `python -m pytest tests/`
+
 Run tests with coverage:
-- `python -m pytest --cov=gdc_client --cov-branch  --cov-report term tests/`
+- `python -m pytest --cov=gdc_client --cov-branch --cov-report term tests/`
 
 ## Contributing
 

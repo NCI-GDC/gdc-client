@@ -8,3 +8,4 @@ PyYAML==3.13
 progressbar2==3.43.1
 intervaltree==3.0.2
 termcolor==1.1.0
+requests==2.22.0

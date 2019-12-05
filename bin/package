@@ -6,7 +6,7 @@ function cleanup() {
     # get rid of the virtualenv
     echo "Cleaning up"
     deactivate
-    rm -rf $VENV_NAME/ build/ dist/ include/ local/ share/  gdc-client.spec
+    rm -rf "${VENV_NAME:?}/" build/ dist/ include/ local/ share/ gdc-client.spec
 }
 
 function compress() {
@@ -16,7 +16,7 @@ function compress() {
 
     # python will complain about new indentation
     # if you line it up with the function
-    python -c "
+    python3 -c "
 from zipfile import ZipFile
 with ZipFile('${zip_name}', 'w') as z:
     z.write('${binary_name}')"
@@ -25,7 +25,7 @@ with ZipFile('${zip_name}', 'w') as z:
 while getopts ":d" opt; do
     case $opt in
         d)
-            DATE=`date "+%m_%d_%Y"`
+            DATE=$(date "+%m_%d_%Y")
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
@@ -35,9 +35,9 @@ done
 
 VENV_NAME="venv"
 BINARY_NAME="gdc-client"
-VENV_PATH=$VENV_NAME/bin/activate
+VENV_PATH="$VENV_NAME/bin/activate"
 
-case `uname -s` in
+case $(uname -s) in
     *NT*)
         # for use in git bash with all the nice unix utilities
         TARGET_ENVIRONMENT="Windows"
@@ -47,7 +47,7 @@ case `uname -s` in
         alias python="winpty python"
 
         # why does windows have to be so different?
-        VENV_PATH=$VENV_NAME/Scripts/activate
+        VENV_PATH="$VENV_NAME/Scripts/activate"
         ;;
     *Linux*)
         TARGET_ENVIRONMENT="Ubuntu"
@@ -57,8 +57,8 @@ case `uname -s` in
         ;;
 esac
 
-python -m virtualenv $VENV_NAME
-source $VENV_PATH
+python3 -m virtualenv "$VENV_NAME" --python=python3
+source "$VENV_PATH"
 
 # setup.py is in previous dir
 cd ..
@@ -76,12 +76,12 @@ cd bin
 echo "Building for ${TARGET_ENVIRONMENT}..."
 
 # Make sure the correct version of pyinstaller and setuptools are installed
-pip install -U "PyInstaller==3.2.1"
+pip install -U "PyInstaller"
 
 # Get version
 VERSION=$(python -c "
 import gdc_client.version
-print gdc_client.version.__version__")
+print(gdc_client.version.__version__)")
 
 echo "Creating ${TARGET_ENVIRONMENT} package for version ${VERSION}..."
 
@@ -101,9 +101,8 @@ if [ -n "${DATE}" ]; then
 fi
 
 echo "The output zip file will be called ${ZIP_NAME}"
-compress $ZIP_NAME $BINARY_NAME
-mv $ZIP_NAME ..
+compress "$ZIP_NAME" "$BINARY_NAME"
+mv "$ZIP_NAME" ..
 cd ..
 
 cleanup
-
