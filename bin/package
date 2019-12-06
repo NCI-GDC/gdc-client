@@ -16,7 +16,7 @@ function compress() {
 
     # python will complain about new indentation
     # if you line it up with the function
-    python3 -c "
+    python -c "
 from zipfile import ZipFile
 with ZipFile('${zip_name}', 'w') as z:
     z.write('${binary_name}')"
@@ -48,25 +48,27 @@ case $(uname -s) in
 
         # why does windows have to be so different?
         VENV_PATH="$VENV_NAME/Scripts/activate"
+
+        # Presumably Python3 is the only `python` in the Windows %PATH% variable
+        python -m virtualenv "$VENV_NAME"
+        source "$VENV_PATH"
+        pip install pywin32
         ;;
     *Linux*)
         TARGET_ENVIRONMENT="Ubuntu"
+        python -m virtualenv "$VENV_NAME" --python=python3
+        source "$VENV_PATH"
         ;;
     *Darwin*)
         TARGET_ENVIRONMENT="OSX"
+        python -m virtualenv "$VENV_NAME" --python=python3
+        source "$VENV_PATH"
         ;;
 esac
-
-python3 -m virtualenv "$VENV_NAME" --python=python3
-source "$VENV_PATH"
 
 # setup.py is in previous dir
 cd ..
 
-# only way to enforce install order
-# installing the cryptography library from the dependency resolution
-# always breaks because it does not install the wheel
-# this separate install step forces a wheel install
 python -m pip install -r requirements.txt
 python setup.py install
 
