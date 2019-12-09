@@ -78,7 +78,7 @@ cd bin
 echo "Building for ${TARGET_ENVIRONMENT}..."
 
 # Make sure the correct version of pyinstaller and setuptools are installed
-pip install -U "PyInstaller"
+pip install -U "PyInstaller==3.5"
 
 # Get version
 VERSION=$(python -c "
