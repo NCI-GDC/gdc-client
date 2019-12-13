@@ -1,25 +1,17 @@
-from gdc_client.parcel.const import HTTP_CHUNK_SIZE
-import os
-import sys
-
-if sys.version_info[0] < 3:
-    from StringIO import StringIO
-else:
-    from io import BytesIO
-
 import hashlib
-import tarfile
+from io import BytesIO
+import os
 import pytest
+import tarfile
+
+from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
 
 def md5(iterable):
     md5 = hashlib.md5()
 
     for chunk in iterable:
-        if sys.version_info[0] < 3:
-            md5.update(chunk)
-        else:
-            md5.update(chunk.encode('utf-8'))
+        md5.update(chunk.encode('utf-8'))
 
     return md5.hexdigest()
 
@@ -32,12 +24,8 @@ def make_tarfile(ids, tarfile_name='temp.tar', write_mode='w'):
 
     with tarfile.open(tarfile_name, write_mode) as t:
         for i in ids:
-            if sys.version_info[0] < 3:
-                s = StringIO()
-                s.write(uuids[i]['contents'])
-            else:
-                s = BytesIO()
-                s.write(uuids[i]['contents'].encode('utf-8'))
+            s = BytesIO()
+            s.write(uuids[i]['contents'].encode('utf-8'))
 
             info = tarfile.TarInfo(name=i)
             info.size = s.tell()
@@ -71,7 +59,7 @@ uuids = {
         'contents': small_content_2,
         'file_size': len(small_content_2),
         'md5sum': md5(small_content_2),
-        'annotations': ['annotation 2'],
+        'annotations': ['annotations.txt'],
         'access': 'open',
     },
     'small_rel': {
@@ -80,6 +68,9 @@ uuids = {
         'md5sum': md5(small_content_3),
         'related_files': ['related 3'],
         'access': 'open',
+    },
+    'annotations.txt': {
+        'contents': 'id\tsubmitter_id\t\n123\t456\n'
     },
     'small_no_friends': { # :'(
         'contents': small_content_4,
