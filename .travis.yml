@@ -16,7 +16,7 @@ install:
 
 script:
   - pyenv local 3.5.7
-  - tox -e py27,py3
+  - tox -e py3
 
 after_script:
   - tox -e coverage
