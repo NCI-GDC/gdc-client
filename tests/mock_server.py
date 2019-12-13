@@ -112,6 +112,7 @@ def download(ids=''):
     ids = ids.split(',')
 
     args = request.json
+
     if args:
         ids = args.get('ids')
 
@@ -135,7 +136,7 @@ def download(ids=''):
 
     if is_tarfile or is_compress:
         # make tarfile
-        make_tarfile(ids, filename)
+        make_tarfile(ids, filename, write_mode=write_mode)
 
         # load tarfile into memory to be returned
         with open(filename, 'rb') as f:

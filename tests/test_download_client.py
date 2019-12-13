@@ -1,12 +1,10 @@
 import copy
 import os
 import os.path
-import tarfile
-import sys
-
 import pytest
 import time
 from multiprocessing import Process, cpu_count
+import tarfile
 from unittest import TestCase
 
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
@@ -42,6 +40,7 @@ client_kwargs = {
 
 
 class DownloadClientTest(TestCase):
+
     def setUp(self):
         self.server = Process(target=mock_server.app.run)
         self.server.start()
@@ -143,11 +142,46 @@ class DownloadClientTest(TestCase):
             for member in t.getmembers():
                 m = t.extractfile(member)
                 contents = m.read()
-                if sys.version_info[0] < 3:
-                    assert contents == uuids[m.name]['contents']
-                else:
-                    assert contents.decode('utf-8') == uuids[member.name]['contents']
+                assert contents.decode('utf-8') == uuids[member.name]['contents']
                 os.remove(tarfile_name)
+
+    def test_download_annotations(self):
+
+        # uuid of file that has an annotation
+        files_to_dl = ['small_ann']
+
+        # get annotation id out of metadata
+        index_client = GDCIndexClient(base_url)
+        index_client._get_metadata(files_to_dl)
+
+        # set expected output path for download client
+        override_kwargs = copy.deepcopy(client_kwargs)
+        override_kwargs['directory'] = os.getcwd() + '/tests'
+        # where we expect annotations to be written
+        output_path = override_kwargs['directory'] + '/{}/annotations.txt'.format(
+            files_to_dl[0]
+        )
+
+        client = GDCHTTPDownloadClient(
+            uri=base_url,
+            index_client=index_client,
+            **override_kwargs
+        )
+
+        try:
+            # we mock the response from api, a gzipped tarfile with an annotations.txt in it
+            # this code will open that and write the annotations.txt to a particular path
+            # no return
+            client.download_annotations(files_to_dl[0])
+
+            # verify
+            assert os.path.exists(output_path), "failed to write annotations file"
+            with open(output_path, 'r') as f:
+                contents = f.read()
+                assert contents == uuids['annotations.txt']['contents'], "annotations content incorrect"
+
+        finally:
+            if os.path.exists(output_path): os.remove(output_path)
 
 
 @pytest.mark.parametrize("check_segments", (True, False))

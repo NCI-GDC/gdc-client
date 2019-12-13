@@ -1,19 +1,15 @@
 import hashlib
+from io import BytesIO
 import logging
 import os
 import re
+import requests
 import sys
 import tarfile
 import time
 from six.moves.urllib import parse as urlparse
-import sys
 
-if sys.version_info[0] < 3:
-    from StringIO import StringIO
-else:
-    from io import StringIO
 
-import requests
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
 from progressbar import ETA, Bar, FileTransferSpeed, Percentage, ProgressBar
@@ -118,12 +114,12 @@ class GDCHTTPDownloadClient(HTTPClient):
             # NOTE: Force compression
             r = self._post(path='data?compress', json=ann_ids)
             r.raise_for_status()
-            tar = tarfile.open(mode="r:gz", fileobj=StringIO(r.content))
+            tar = tarfile.open(mode="r:gz", fileobj=BytesIO(r.content))
             if self.annotation_name in tar.getnames():
                 member = tar.getmember(self.annotation_name)
                 ann = tar.extractfile(member).read()
                 path = os.path.join(directory, self.annotation_name)
-                with open(path, 'w') as f:
+                with open(path, 'wb') as f:
                     f.write(ann)
 
                 log.debug('Wrote annotations to {0}.'.format(path))
