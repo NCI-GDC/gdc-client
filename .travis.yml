@@ -13,10 +13,12 @@ install:
   - source venv/bin/activate
   - pip install tox-travis tox-pyenv
   - pyenv install 3.5.7
+  - pyenv install 3.6.9
+  - pyenv install 3.7.5
 
 script:
-  - pyenv local 3.5.7
-  - tox -e py3
+  - pyenv local 3.5.7 3.6.9 3.7.5
+  - tox -e py35,py36,py37
 
 after_script:
   - tox -e coverage
