@@ -1,10 +1,11 @@
 import copy
+from multiprocessing import Process, cpu_count
 import os
 import os.path
 import pytest
-import time
-from multiprocessing import Process, cpu_count
 import tarfile
+import tempfile
+import time
 from unittest import TestCase
 
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
@@ -155,20 +156,22 @@ class DownloadClientTest(TestCase):
         index_client._get_metadata(files_to_dl)
 
         # set expected output path for download client
-        override_kwargs = copy.deepcopy(client_kwargs)
-        override_kwargs['directory'] = os.getcwd() + '/tests'
-        # where we expect annotations to be written
-        output_path = override_kwargs['directory'] + '/{}/annotations.txt'.format(
-            files_to_dl[0]
-        )
+        with tempfile.TemporaryDirectory() as tmpdirname:
 
-        client = GDCHTTPDownloadClient(
-            uri=base_url,
-            index_client=index_client,
-            **override_kwargs
-        )
+            override_kwargs = copy.deepcopy(client_kwargs)
+            override_kwargs['directory'] = tmpdirname
+            # where we expect annotations to be written
+            os.mkdir(tmpdirname + '/{}'.format(files_to_dl[0]))
+            output_path = tmpdirname + '/{}/annotations.txt'.format(
+                files_to_dl[0]
+            )
 
-        try:
+            client = GDCHTTPDownloadClient(
+                uri=base_url,
+                index_client=index_client,
+                **override_kwargs
+            )
+
             # we mock the response from api, a gzipped tarfile with an annotations.txt in it
             # this code will open that and write the annotations.txt to a particular path
             # no return
@@ -179,9 +182,6 @@ class DownloadClientTest(TestCase):
             with open(output_path, 'r') as f:
                 contents = f.read()
                 assert contents == uuids['annotations.txt']['contents'], "annotations content incorrect"
-
-        finally:
-            if os.path.exists(output_path): os.remove(output_path)
 
 
 @pytest.mark.parametrize("check_segments", (True, False))
