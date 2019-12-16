@@ -13,7 +13,7 @@ class LogFormatter(logging.Formatter):
 
     def __init__(self, fmt='%(asctime)s - %(levelname)s: %(msg)s', style='%',
                  color_off=False):
-        logging.Formatter.__init__(self, fmt)
+        logging.Formatter.__init__(self, fmt, style)
         self.color_off = color_off
 
 
