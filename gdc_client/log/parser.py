@@ -29,7 +29,7 @@ def setup_logging(args):
         f_handler.setFormatter(f_formatter)
         root.addHandler(f_handler)
 
-    # the requests library has it's own log statements, and it bundles itself without asking
+    # the requests library has its own log statements, and it bundles itself without asking
     logging.getLogger("requests").setLevel(logging.WARNING)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
 
