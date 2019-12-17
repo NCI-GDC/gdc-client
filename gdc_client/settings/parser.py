@@ -33,6 +33,7 @@ def resolve(config_file, args):
 def config(parser, config_file=None):
     parser.add_argument('--config', help=HELP, metavar='FILE')
     choices = parser.add_subparsers(title='Settings to display', dest='section')
+    choices.required = True
 
     download_choice = choices.add_parser('download', help='Display download settings')
     download_choice.add_argument('--config', help=HELP, metavar='FILE')
