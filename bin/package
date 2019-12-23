@@ -88,7 +88,12 @@ print(gdc_client.version.__version__)")
 echo "Creating ${TARGET_ENVIRONMENT} package for version ${VERSION}..."
 
 # Create binary
-pyinstaller --clean --additional-hooks-dir=. --noconfirm --onefile -c gdc-client
+pyinstaller \
+    --clean \
+    --additional-hooks-dir=. \
+    --noconfirm \
+    --onefile \
+    -c gdc-client
 
 echo "Testing produced binary..."
 ./dist/$BINARY_NAME --help

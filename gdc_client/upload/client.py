@@ -1,26 +1,25 @@
-from six.moves.urllib import parse as urlparse
-from six.moves import input
-import random
-from multiprocessing import Pool, Manager
-import requests
-import platform
-from lxml import etree
+import contextlib
+import copy
+import json
+import logging
 import math
 import os
-import signal
-import json
+import platform
+import random
 import sys
-import yaml
-from mmap import mmap, PAGESIZE
-import contextlib
-from progressbar import ProgressBar, Percentage, Bar
-from collections import deque
 import time
-import copy
-import logging
+from collections import deque
+from mmap import PAGESIZE, mmap
+from multiprocessing import Manager, Pool
+
+import requests
+import yaml
+from lxml import etree
+from progressbar import Bar, Percentage, ProgressBar
+from six.moves import input
+from six.moves.urllib import parse as urlparse
 
 from gdc_client.upload import manifest
-import logging
 
 log = logging.getLogger('upload')
 
@@ -66,7 +65,7 @@ class Stream(object):
         return getattr(self._file, attr)
 
     def read(self, num):
-        self.pbar.update(min(self.pbar.currval+num, self.filesize))
+        self.pbar.update(min(self.pbar.value+num, self.filesize))
         return self._file.read(num)
 
 
@@ -146,13 +145,6 @@ class GDCUploadClient(object):
         self.headers = {'X-Auth-Token': token.strip()}
         self.manifest_name = manifest_name
         self.verify = verify
-        try:
-            # this only works in executable built by pyinstaller
-            self.verify = os.path.join(
-                sys._MEIPASS, 'requests', 'cacert.pem') if verify else verify
-        except:
-            log.info('Using system default CA')
-
         self.files = files or []
         self.incompleted = deque(copy.deepcopy(self.files))
 
@@ -299,7 +291,7 @@ class GDCUploadClient(object):
         except KeyError as e:
             log.error(
                 "Please provide {0} from manifest or as an argument"
-                .format(e.message))
+                .format(e))
             return False
 
         # this makes things very hard to debug
@@ -312,9 +304,10 @@ class GDCUploadClient(object):
         # Load attributes from a UploadFile to self for easy access
         self.__dict__.update(file_entity.__dict__)
 
+    # TODO: Is this used anywhere?
     def called(self, arg):
         if arg:
-            self.pbar.update(self.pbar.currval+1)
+            self.pbar.update(self.pbar.value+1)
 
     def upload(self):
         """ Upload files to the GDC.
@@ -391,7 +384,7 @@ class GDCUploadClient(object):
                 self.cleanup()
                 log.info("Upload finished for file {0}".format(self.node_id))
             except Exception as e:
-                log.error("Upload failed {0}".format(e.message))
+                log.error("Upload failed {0}".format(e))
 
     def multipart_upload(self):
         '''S3 Multipart upload'''
@@ -426,7 +419,7 @@ class GDCUploadClient(object):
             if self.debug:
                 raise
             else:
-                log.error('Failure: {0}'.format(e.message))
+                log.error('Failure: {0}'.format(e))
 
     def check_multipart(self):
         tries = MAX_RETRIES

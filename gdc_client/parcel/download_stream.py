@@ -136,7 +136,7 @@ class DownloadStream(object):
             header['host'] = host
         return header
 
-    def request(self, headers=None, verify=False, close=False,
+    def request(self, headers=None, verify=True, close=False,
                 max_retries=16):
         """Make request for file and return the response.
 

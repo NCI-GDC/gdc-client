@@ -47,11 +47,16 @@ def get_pbar(file_id, maxval, start_val=0):
 
     """
     log.debug('Downloading {0}:'.format(file_id))
-    pbar = ProgressBar(widgets=[
-        Percentage(), ' ',
-        Bar(marker='#', left='[', right=']'), ' ',
-        ETA(), ' ', FileTransferSpeed(), ' '], maxval=maxval, fd=sys.stdout)
-    pbar.currval = start_val
+    pbar = ProgressBar(
+        widgets=[
+            Percentage(), ' ',
+            Bar(marker='#', left='[', right=']'), ' ',
+            ETA(), ' ',
+            FileTransferSpeed(), ' ',
+        ],
+        initial_value=start_val,
+        maxval=maxval,
+        fd=sys.stdout)
     pbar.start()
     return pbar
 
@@ -85,7 +90,7 @@ def set_file_length(path, length):
         return
     with open(path, 'wb') as f:
         f.seek(length-1)
-        f.write('\0')
+        f.write(b'\0')
         f.truncate()
 
 
