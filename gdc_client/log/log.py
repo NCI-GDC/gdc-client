@@ -3,19 +3,21 @@ import sys
 
 from gdc_client.parcel import colored
 
+
 class LogFormatter(logging.Formatter):
 
-    err_format  = colored('ERROR: ', 'red') + '%(msg)s'
-    warn_format = colored('WARNING: ', 'yellow') + '%(msg)s'
-    dbg_format  = colored('%(asctime)s - DEBUG: %(module)s: %(lineno)d: ', 'blue') + '%(msg)s'
-    info_format = '%(msg)s'
+    err_format = colored("ERROR: ", "red") + "%(msg)s"
+    warn_format = colored("WARNING: ", "yellow") + "%(msg)s"
+    dbg_format = (
+        colored("%(asctime)s - DEBUG: %(module)s: %(lineno)d: ", "blue") + "%(msg)s"
+    )
+    info_format = "%(msg)s"
 
-
-    def __init__(self, fmt='%(asctime)s - %(levelname)s: %(msg)s', style='%',
-                 color_off=False):
+    def __init__(
+        self, fmt="%(asctime)s - %(levelname)s: %(msg)s", style="%", color_off=False
+    ):
         logging.Formatter.__init__(self, fmt, style)
         self.color_off = color_off
-
 
     def format(self, record):
         # Skip colored output if the flag is set
@@ -45,4 +47,3 @@ class LogFormatter(logging.Formatter):
         self._style._fmt = format_orig
 
         return result
-

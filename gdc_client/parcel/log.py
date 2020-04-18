@@ -16,7 +16,7 @@ loggers = {}
 
 
 # Logging
-def get_logger(name='parcel'):
+def get_logger(name="parcel"):
     """Create or return an existing logger with given name
     """
 
@@ -26,10 +26,10 @@ def get_logger(name='parcel'):
     log.propagate = False
     if sys.stderr.isatty():
         formatter = logging.Formatter(
-            colored('%(asctime)s: %(levelname)s: ', 'blue')+'%(message)s')
+            colored("%(asctime)s: %(levelname)s: ", "blue") + "%(message)s"
+        )
     else:
-        formatter = logging.Formatter(
-            '%(asctime)s: %(levelname)s: %(message)s')
+        formatter = logging.Formatter("%(asctime)s: %(levelname)s: %(message)s")
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(formatter)
     log.addHandler(handler)
