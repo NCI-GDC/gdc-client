@@ -19,13 +19,13 @@ from progressbar import ProgressBar, Percentage, Bar, ETA, FileTransferSpeed
 
 
 # Logging
-log = logging.getLogger('utils')
+log = logging.getLogger("utils")
 
 # Silence warnings from requests
 try:
     requests.packages.urllib3.disable_warnings()
 except Exception as e:
-    log.debug('Unable to silence requests warnings: {0}'.format(str(e)))
+    log.debug("Unable to silence requests warnings: {0}".format(str(e)))
 
 
 def check_transfer_size(actual, expected):
@@ -46,40 +46,47 @@ def get_pbar(file_id, maxval, start_val=0):
     "param int maxva': The maximumum value of the progress bar
 
     """
-    log.debug('Downloading {0}:'.format(file_id))
+    log.debug("Downloading {0}:".format(file_id))
     pbar = ProgressBar(
         widgets=[
-            Percentage(), ' ',
-            Bar(marker='#', left='[', right=']'), ' ',
-            ETA(), ' ',
-            FileTransferSpeed(), ' ',
+            Percentage(),
+            " ",
+            Bar(marker="#", left="[", right="]"),
+            " ",
+            ETA(),
+            " ",
+            FileTransferSpeed(),
+            " ",
         ],
         initial_value=start_val,
         maxval=maxval,
-        fd=sys.stdout)
+        fd=sys.stdout,
+    )
     pbar.start()
     return pbar
 
 
 def print_opening_header(file_id):
-    log.debug('')
-    log.debug('v{0}v'.format('{s:{c}^{n}}'.format(
-        s=' {0} '.format(file_id), n=50, c='-')))
+    log.debug("")
+    log.debug(
+        "v{0}v".format("{s:{c}^{n}}".format(s=" {0} ".format(file_id), n=50, c="-"))
+    )
 
 
 def print_closing_header(file_id):
-    log.debug('^{0}^'.format('{s:{c}^{n}}'.format(
-        s=' {0} '.format(file_id), n=50, c='-')))
+    log.debug(
+        "^{0}^".format("{s:{c}^{n}}".format(s=" {0} ".format(file_id), n=50, c="-"))
+    )
 
 
 def write_offset(path, data, offset):
-    with open(path, 'r+b') as f:
+    with open(path, "r+b") as f:
         f.seek(offset)
         f.write(data)
 
 
 def read_offset(path, offset, size):
-    with open(path, 'r+b') as f:
+    with open(path, "r+b") as f:
         f.seek(offset)
         data = f.read(size)
         return data
@@ -88,49 +95,49 @@ def read_offset(path, offset, size):
 def set_file_length(path, length):
     if os.path.isfile(path) and os.path.getsize(path) == length:
         return
-    with open(path, 'wb') as f:
-        f.seek(length-1)
-        f.write(b'\0')
+    with open(path, "wb") as f:
+        f.seek(length - 1)
+        f.write(b"\0")
         f.truncate()
 
 
 def remove_partial_extension(path):
     try:
-        if not path.endswith('.partial'):
-            log.warn('No partial extension found')
-            log.warn('Got {0}'.format(path))
+        if not path.endswith(".partial"):
+            log.warn("No partial extension found")
+            log.warn("Got {0}".format(path))
             return
-        log.debug('renaming to {0}'.format(path.replace('.partial', '')))
-        os.rename(path, path.replace('.partial', ''))
+        log.debug("renaming to {0}".format(path.replace(".partial", "")))
+        os.rename(path, path.replace(".partial", ""))
     except Exception as e:
-        raise Exception('Unable to remove partial extension: {0}'.format(str(e)))
+        raise Exception("Unable to remove partial extension: {0}".format(str(e)))
 
 
 def check_file_existence_and_size(path, size):
-    return (os.path.isfile(path) and os.path.getsize(path) == size)
+    return os.path.isfile(path) and os.path.getsize(path) == size
 
 
 def get_file_type(path):
     try:
         mode = os.stat(path).st_mode
         if stat.S_ISDIR(mode):
-            return 'directory'
+            return "directory"
         elif stat.S_ISCHR(mode):
-            return 'character device'
+            return "character device"
         elif stat.S_ISBLK(mode):
-            return 'block device'
+            return "block device"
         elif stat.S_ISREG(mode):
-            return 'regular'
+            return "regular"
         elif stat.S_ISFIFO(mode):
-            return 'fifo'
+            return "fifo"
         elif stat.S_ISLNK(mode):
-            return 'link'
+            return "link"
         elif stat.S_ISSOCK(mode):
-            return 'socket'
+            return "socket"
         else:
-            return 'unknown'
+            return "unknown"
     except Exception as e:
-        raise RuntimeError('Unable to get file type: {0}'.format(str(e)))
+        raise RuntimeError("Unable to get file type: {0}".format(str(e)))
 
 
 def calculate_segments(start, stop, block):
@@ -138,7 +145,7 @@ def calculate_segments(start, stop, block):
     block can be smaller.
 
     """
-    return [(a, min(stop, a+block)-1) for a in range(start, stop, block)]
+    return [(a, min(stop, a + block) - 1) for a in range(start, stop, block)]
 
 
 def md5sum(block):
@@ -162,8 +169,8 @@ def mmap_open(path):
             mm = mmap.mmap(f.fileno(), 0)
             yield mm
     except Exception as e:
-        raise RuntimeError('Unable to get file type: {0}'.format(str(e)))
+        raise RuntimeError("Unable to get file type: {0}".format(str(e)))
 
 
 def STRIP(comment):
-    return ' '.join(comment.split())
+    return " ".join(comment.split())

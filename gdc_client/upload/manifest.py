@@ -19,8 +19,8 @@ def load(m, schema=UPLOAD_MANIFEST_SCHEMA):
     """
     manifest = yaml.load(m)
 
-    validate(manifest,
-        schema=schema,
+    validate(
+        manifest, schema=schema,
     )
 
     return manifest

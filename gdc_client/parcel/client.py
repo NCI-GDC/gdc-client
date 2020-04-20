@@ -20,13 +20,13 @@ import tempfile
 import time
 
 # Logging
-log = logging.getLogger('client')
+log = logging.getLogger("client")
 
 
 class Client(object):
-
-    def __init__(self, url, token, n_procs, directory=None, verify=True,
-                 debug=False, **kwargs):
+    def __init__(
+        self, url, token, n_procs, directory=None, verify=True, debug=False, **kwargs
+    ):
         """Creates a parcel client object.
 
         :param str token:
@@ -40,13 +40,11 @@ class Client(object):
         """
 
         DownloadStream.http_chunk_size = kwargs.get(
-            'http_chunk_size', const.HTTP_CHUNK_SIZE)
-        DownloadStream.check_segment_md5sums = kwargs.get(
-            'segment_md5sums', True)
-        DownloadStream.check_file_md5sum = kwargs.get(
-            'file_md5sum', True)
-        SegmentProducer.save_interval = kwargs.get(
-            'save_interval', const.SAVE_INTERVAL)
+            "http_chunk_size", const.HTTP_CHUNK_SIZE
+        )
+        DownloadStream.check_segment_md5sums = kwargs.get("segment_md5sums", True)
+        DownloadStream.check_file_md5sum = kwargs.get("file_md5sum", True)
+        SegmentProducer.save_interval = kwargs.get("save_interval", const.SAVE_INTERVAL)
 
         self.debug = debug
         self.directory = directory or os.path.abspath(os.getcwd())
@@ -65,8 +63,8 @@ class Client(object):
         :returns: Fixed url starting with a valid scheme
 
         """
-        if not (url.startswith('https://') or url.startswith('http://')):
-            url = 'https://{0}'.format(url)
+        if not (url.startswith("https://") or url.startswith("http://")):
+            url = "https://{0}".format(url)
         return url
 
     @staticmethod
@@ -74,7 +72,9 @@ class Client(object):
         try:
             tempfile.NamedTemporaryFile(dir=directory).close()
         except (OSError, IOError) as e:
-            raise IOError(utils.STRIP("""Unable to write
+            raise IOError(
+                utils.STRIP(
+                    """Unable to write
             to download to directory '{directory}': {err}.  This
             error likely occurred because the program was launched
             from (or specified to download to) a protected
@@ -82,7 +82,9 @@ class Client(object):
             archive (*.zip, *.tar.gz, etc.) then extracting it
             from the archive might solve this problem. Otherwise,
             please see documentation on how to change/specify
-            directory.""").format(err=str(e), directory=directory))
+            directory."""
+                ).format(err=str(e), directory=directory)
+            )
 
     def start_timer(self):
         """Start a download timer.
@@ -101,26 +103,28 @@ class Client(object):
         """
 
         self.stop_time = time.time()
-        rate_info = ''
+        rate_info = ""
         if file_size and file_size > 0:
-            rate = (int(file_size)*8/1e9) / (self.stop_time - self.start_time)
-            rate_info = ': {0:.2f} Gbps average'.format(rate)
+            rate = (int(file_size) * 8 / 1e9) / (self.stop_time - self.start_time)
+            rate_info = ": {0:.2f} Gbps average".format(rate)
 
-        log.debug('Download complete' + rate_info)
+        log.debug("Download complete" + rate_info)
 
     def validate_file_md5sum(self, stream):
 
         if not stream.check_file_md5sum:
-            log.debug('checksum validation disabled')
+            log.debug("checksum validation disabled")
             return
 
-        log.debug('Validating checksum...')
+        log.debug("Validating checksum...")
 
         if not stream.is_regular_file:
-            raise Exception('Not a regular file')
+            raise Exception("Not a regular file")
 
         if stream.md5sum is None:
-            raise Exception("Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error.")
+            raise Exception(
+                "Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error."
+            )
 
         if utils.md5sum_whole_file(stream.path) != stream.md5sum:
             raise Exception("File checksum is invalid")
@@ -135,14 +139,14 @@ class Client(object):
 
         # Short circuit if no urls given
         if not urls:
-            log.warn('No file urls given.')
+            log.warn("No file urls given.")
             return
 
         self.raise_for_write_permissions(self.directory)
 
         # Log file ids
         for url in urls:
-            log.debug('Given url: {0}'.format(url))
+            log.debug("Given url: {0}".format(url))
 
         # Download each file
         downloaded, errors = [], {}
@@ -172,8 +176,8 @@ class Client(object):
 
         # Print error messages
         for url, error in errors.items():
-            file_id = url.split('/')[-1]
-            log.error('{0}: {1}'.format(file_id, error))
+            file_id = url.split("/")[-1]
+            log.error("{0}: {1}".format(file_id, error))
 
         return downloaded, errors
 
@@ -199,7 +203,7 @@ class Client(object):
 
         # Start stream
         utils.print_opening_header(stream.url)
-        log.debug('Getting file information...')
+        log.debug("Getting file information...")
         stream.init()
 
         # if there's no size/Content-Length in the http header
@@ -209,7 +213,7 @@ class Client(object):
             return self._standard_tcp_download(stream)
 
         # Create segments producer to stream
-        n_procs = 1 if stream.size < .01 * const.GB else nprocs
+        n_procs = 1 if stream.size < 0.01 * const.GB else nprocs
         producer = SegmentProducer(stream, n_procs)
 
         def download_worker():
@@ -217,7 +221,7 @@ class Client(object):
                 try:
                     segment = producer.q_work.get()
                     if segment is None:
-                        return log.debug('Producer returned with no more work')
+                        return log.debug("Producer returned with no more work")
                     stream.write_segment(segment, producer.q_complete)
                 except Exception as e:
                     if self.debug:
@@ -251,15 +255,17 @@ class Client(object):
 
             if r.status_code == 200:
                 stream.setup_directories()
-                with open(stream.path, 'wb') as f:
+                with open(stream.path, "wb") as f:
                     for chunk in r:
                         f.write(chunk)
 
             else:
-                raise Exception('[{0}] Unable to download url {1}'.format(r.status_code, stream.url))
+                raise Exception(
+                    "[{0}] Unable to download url {1}".format(r.status_code, stream.url)
+                )
 
             r.close()
 
         except Exception as e:
             log.error(e)
-            raise Exception('Unable to connect to {0}'.format(stream.url))
+            raise Exception("Unable to connect to {0}".format(stream.url))
