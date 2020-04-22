@@ -14,11 +14,11 @@ OS_LINUX = False
 OS_OSX = False
 
 # Are we running on windows?
-if platform.system() == 'Windows':
+if platform.system() == "Windows":
     OS_WINDOWS = True
-elif platform.system() == 'Darwin':
+elif platform.system() == "Darwin":
     OS_OSX = True
-elif platform.system() == 'Linux':
+elif platform.system() == "Linux":
     OS_LINUX = True
 
 # Are we running on windows?

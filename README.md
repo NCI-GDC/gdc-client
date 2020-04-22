@@ -42,6 +42,18 @@ Run tests
 Run tests with coverage:
 - `python -m pytest --cov=gdc_client --cov-branch --cov-report term tests/`
 
+## Install `pre-commit`
+
+This repository makes use of `pre-commit` for code formatting.
+In order to make use of it, run the following command:
+```
+pip install -r dev-requirements.txt
+pre-commit install
+```
+
+Note: This requires you dev environment to have Python 3.6 or higher.
+
+
 ## Contributing
 
 Read how to contribute [here](https://github.com/NCI-GDC/portal-ui/blob/develop/CONTRIBUTING.md)

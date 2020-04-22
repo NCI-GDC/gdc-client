@@ -22,17 +22,17 @@ def get_latest_versions(url, uuids):
     """
 
     uuids = list(uuids)
-    versions_url = url + '/files/versions'
+    versions_url = url + "/files/versions"
     latest_versions = {}
 
     # Make multiple queries in an attempt to balance the load on the server.
     for chunk in _chunk_list(uuids):
-        resp = requests.post(versions_url, json={'ids': chunk})
+        resp = requests.post(versions_url, json={"ids": chunk})
 
         # Parse the results of the chunked query.
         for result in resp.json():
             file_id = result.get("id")
-            uuid = result.get('latest_id')
+            uuid = result.get("latest_id")
             if uuid:
                 latest_versions[file_id] = uuid
             else:
@@ -55,5 +55,5 @@ def _chunk_list(elements, chunk_size=500):
 
     current_index = 0
     while current_index < len(elements):
-        yield elements[current_index:current_index + chunk_size]
+        yield elements[current_index : current_index + chunk_size]
         current_index += chunk_size
