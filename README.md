@@ -1,13 +1,22 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bd6edccc96fe40bba154086169b3d237)](https://www.codacy.com/app/NCI-GDC/gdc-client?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NCI-GDC/gdc-client&amp;utm_campaign=Badge_Grade)
+[![Python 3](https://pyup.io/repos/github/NCI-GDC/gdc-client/python-3-shield.svg)](https://pyup.io/repos/github/NCI-GDC/gdc-client/)
+[![Updates](https://pyup.io/repos/github/NCI-GDC/gdc-client/shield.svg)](https://pyup.io/repos/github/NCI-GDC/gdc-client/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+
+---
+
 # GDC Data Transfer Tool (gdc-client)
 
 [Overview of the GDC Data Transfer Tool](https://gdc.cancer.gov/access-data/gdc-data-transfer-tool)
 
 The gdc-client provides several convenience functions over the GDC API which provides general download/upload via HTTPS.
 
-## Badges:
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bd6edccc96fe40bba154086169b3d237)](https://www.codacy.com/app/NCI-GDC/gdc-client?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NCI-GDC/gdc-client&amp;utm_campaign=Badge_Grade)
-[![Python 3](https://pyup.io/repos/github/NCI-GDC/gdc-client/python-3-shield.svg)](https://pyup.io/repos/github/NCI-GDC/gdc-client/)
-[![Updates](https://pyup.io/repos/github/NCI-GDC/gdc-client/shield.svg)](https://pyup.io/repos/github/NCI-GDC/gdc-client/)
+- [GDC Data Transfer Tool (gdc-client)](#gdc-data-transfer-tool-gdc-client)
+  - [Building the gdc-client](#building-the-gdc-client)
+    - [Instructions](#instructions)
+  - [Executing unit tests](#executing-unit-tests)
+  - [Install `pre-commit`](#install-pre-commit)
+  - [Contributing](#contributing)
 
 ## Building the gdc-client
 
@@ -44,14 +53,15 @@ Run tests with coverage:
 
 ## Install `pre-commit`
 
-This repository makes use of `pre-commit` for code formatting.
+This repository makes use of `pre-commit` for code formatting and secrets 
+detecting.
 In order to make use of it, run the following command:
 ```
 pip install -r dev-requirements.txt
 pre-commit install
 ```
 
-Note: This requires you dev environment to have Python 3.6 or higher.
+Note: This requires your dev environment to have Python 3.6 or higher. 
 
 
 ## Contributing
