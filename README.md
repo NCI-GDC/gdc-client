@@ -16,6 +16,7 @@ The gdc-client provides several convenience functions over the GDC API which pro
     - [Instructions](#instructions)
   - [Executing unit tests](#executing-unit-tests)
   - [Install `pre-commit`](#install-pre-commit)
+    - [Update secrets baseline for `detect-secrets`](#update-secrets-baseline-for-detect-secrets)
   - [Contributing](#contributing)
 
 ## Building the gdc-client
@@ -62,6 +63,21 @@ pre-commit install
 ```
 
 Note: This requires your dev environment to have Python 3.6 or higher. 
+
+### Update secrets baseline for `detect-secrets`
+
+We use [detect-secrets](https://github.com/Yelp/detect-secrets) to search for secrets being committed into the repo.
+
+To update the .secrets.baseline file run
+```
+detect-secrets scan --update .secrets.baseline
+```
+
+`.secrets.baseline` contains all the string that were caught by detect-secrets but are not stored in plain text. Audit the baseline to view the secrets . 
+
+```
+detect-secrets audit .secrets.baseline
+```
 
 
 ## Contributing
