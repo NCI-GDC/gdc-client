@@ -40,18 +40,8 @@ client_kwargs = {
 }
 
 
+@pytest.mark.usefixtures("setup_mock_server")
 class DownloadClientTest(TestCase):
-    def setUp(self):
-        self.server = Process(target=mock_server.app.run)
-        self.server.start()
-
-        # give the server time to start
-        time.sleep(2)
-
-    def tearDown(self):
-        self.server.terminate()
-        self.server.join()
-
     def test_fix_url(self):
         index_client = GDCIndexClient(base_url)
         client = GDCHTTPDownloadClient(

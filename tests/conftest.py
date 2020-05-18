@@ -1,8 +1,10 @@
-from collections import namedtuple
 import hashlib
 from io import BytesIO
-import pytest
+from multiprocessing import Process
 import tarfile
+import time
+
+import pytest
 
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
@@ -72,6 +74,18 @@ uuids = {
     "big_no_friends": generate_metadata_dict("open", next(big_content), [], [],),
     "annotations.txt": {"contents": "id\tsubmitter_id\t\n123\t456\n"},
 }
+
+
+@pytest.fixture(scope="class")
+def setup_mock_server():
+    # import mock_server here to avoid cyclic import
+    import mock_server
+
+    server = Process(target=mock_server.app.run)
+    server.start()
+    time.sleep(2)
+    yield
+    server.terminate()
 
 
 @pytest.fixture

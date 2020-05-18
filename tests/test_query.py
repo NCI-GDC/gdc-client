@@ -1,34 +1,22 @@
-import time
-from multiprocessing import Process
-from unittest import TestCase
-
 import pytest
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
-import mock_server
 from conftest import uuids
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.query.versions import _chunk_list, get_latest_versions
 
 # default values for flask
-server_host = "http://127.0.0.1"
-server_port = "5000"
+SERVER_HOST = "http://127.0.0.1"
+SERVER_PORT = "5000"
 
 # same as --server flag for gdc-client
-base_url = server_host + ":" + server_port
+BASE_URL = SERVER_HOST + ":" + SERVER_PORT
 
 
+@pytest.mark.usefixtures("setup_mock_server")
 class TestQueryIndex:
     def setup_method(self):
-        self.server = Process(target=mock_server.app.run)
-        self.server.start()
-        self.index = GDCIndexClient(uri=base_url)
-
-        # give the server time to start
-        time.sleep(2)
-
-    def teardown_method(self):
-        self.server.terminate()
+        self.index = GDCIndexClient(uri=BASE_URL)
 
     def assert_index_with_uuids(self, uuid):
         assert self.index.get_access(uuid) == uuids[uuid]["access"]
@@ -102,8 +90,7 @@ class TestQueryIndex:
 
 @pytest.mark.parametrize("case", [range(1), range(499), range(500), range(1000),])
 def test_chunk_list(case):
-    for chunk in _chunk_list(case):
-        assert len(chunk) <= 500
+    assert all(len(chunk) <= 500 for chunk in _chunk_list(case))
 
 
 @pytest.mark.parametrize(
