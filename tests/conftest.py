@@ -3,24 +3,14 @@ from io import BytesIO
 from multiprocessing import Process
 import tarfile
 import time
+from typing import Iterable, List, Mapping, Union
 
 import pytest
 
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
 
-def generate_metadata_dict(access, contents, annotations, related_files):
-    return {
-        "access": access,
-        "contents": contents,
-        "file_size": None if contents is None else len(contents),
-        "md5sum": None if contents is None else md5(contents),
-        "annotations": annotations,
-        "related_files": related_files,
-    }
-
-
-def md5(iterable):
+def md5(iterable: Iterable):
     md5 = hashlib.md5()
 
     for chunk in iterable:
@@ -29,7 +19,9 @@ def md5(iterable):
     return md5.hexdigest()
 
 
-def make_tarfile(ids, tarfile_name="temp.tar", write_mode="w"):
+def make_tarfile(
+    ids: List[str], tarfile_name: str = "temp.tar", write_mode: str = "w"
+) -> str:
     """Make a tarfile for the purposes of testing tarfile methods"""
 
     # normally small files don't get grouped together if they have
@@ -48,6 +40,19 @@ def make_tarfile(ids, tarfile_name="temp.tar", write_mode="w"):
             s.close()
 
     return tarfile_name
+
+
+def generate_metadata_dict(
+    access: str, contents: str, annotations: List[str], related_files: List[str]
+) -> Mapping[str, Union[str, List[str]]]:
+    return {
+        "access": access,
+        "contents": contents,
+        "file_size": None if contents is None else len(contents),
+        "md5sum": None if contents is None else md5(contents),
+        "annotations": annotations,
+        "related_files": related_files,
+    }
 
 
 big_content = (str(i) * (HTTP_CHUNK_SIZE + 1) for i in range(1, 5))
@@ -77,7 +82,7 @@ uuids = {
 
 
 @pytest.fixture(scope="class")
-def setup_mock_server():
+def setup_mock_server() -> None:
     # import mock_server here to avoid cyclic import
     import mock_server
 
@@ -90,7 +95,7 @@ def setup_mock_server():
 
 @pytest.fixture
 def versions_response(requests_mock):
-    def mock_response(url, ids, latest_ids):
+    def mock_response(url: str, ids: List[str], latest_ids: List[str]) -> None:
         requests_mock.post(
             url,
             json=[

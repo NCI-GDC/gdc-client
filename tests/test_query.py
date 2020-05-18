@@ -1,16 +1,13 @@
 import pytest
-from gdc_client.parcel.const import HTTP_CHUNK_SIZE
+from typing import List, Iterable, Mapping
 
 from conftest import uuids
+from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.query.versions import _chunk_list, get_latest_versions
 
 # default values for flask
-SERVER_HOST = "http://127.0.0.1"
-SERVER_PORT = "5000"
-
-# same as --server flag for gdc-client
-BASE_URL = SERVER_HOST + ":" + SERVER_PORT
+BASE_URL = "http://127.0.0.1:5000"
 
 
 @pytest.mark.usefixtures("setup_mock_server")
@@ -18,7 +15,7 @@ class TestQueryIndex:
     def setup_method(self):
         self.index = GDCIndexClient(uri=BASE_URL)
 
-    def assert_index_with_uuids(self, uuid):
+    def assert_index_with_uuids(self, uuid: str) -> None:
         assert self.index.get_access(uuid) == uuids[uuid]["access"]
         assert self.index.get_filesize(uuid) == uuids[uuid]["file_size"]
         assert self.index.get_md5sum(uuid) == uuids[uuid]["md5sum"]
@@ -32,7 +29,7 @@ class TestQueryIndex:
     @pytest.mark.parametrize(
         "uuid", ["small", "small_no_friends", "small_ann", "small_rel"]
     )
-    def test_full_mock_get_metadata(self, uuid):
+    def test_full_mock_get_metadata(self, uuid: str) -> None:
         self.index._get_metadata([uuid])
 
         self.assert_index_with_uuids(uuid)
@@ -52,7 +49,12 @@ class TestQueryIndex:
             ),
         ],
     )
-    def test_full_separate_files(self, input_uuids, expected_bigs, expected_smalls):
+    def test_full_separate_files(
+        self,
+        input_uuids: List[str],
+        expected_bigs: List[str],
+        expected_smalls: List[List[str]],
+    ) -> None:
         """ Currently if a file has related or annotation files
         the dtt processes it as if it were a big file so that
         it goes through the old method of downloading,
@@ -70,10 +72,10 @@ class TestQueryIndex:
         assert smalls == expected_smalls
 
     ############ not set ############
-    def test_no_metadata(self):
+    def test_no_metadata(self) -> None:
         self.assert_invalid_index()
 
-    def test_small_invalid_separate_small_files(self):
+    def test_small_invalid_separate_small_files(self) -> None:
         """ If no metadata can be found about a file, attempt a
         download using the big file method
         """
@@ -89,7 +91,7 @@ class TestQueryIndex:
 
 
 @pytest.mark.parametrize("case", [range(1), range(499), range(500), range(1000),])
-def test_chunk_list(case):
+def test_chunk_list(case: Iterable[int]) -> None:
     assert all(len(chunk) <= 500 for chunk in _chunk_list(case))
 
 
@@ -101,7 +103,12 @@ def test_chunk_list(case):
         (["1", "2", "3"], ["a", "b", None], {"1": "a", "2": "b", "3": "3"}),
     ],
 )
-def test_get_latest_versions(versions_response, ids, latest_ids, expected):
+def test_get_latest_versions(
+    versions_response,
+    ids: List[str],
+    latest_ids: List[str],
+    expected: Mapping[str, str],
+) -> None:
     url = "https://example.com"
     versions_response(url + "/files/versions", ids, latest_ids)
 
