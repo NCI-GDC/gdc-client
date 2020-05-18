@@ -76,7 +76,9 @@ def download(parser, args):
             log.info("Latest version for {} ==> {}".format(file_id, latest_id))
             continue
         if latest_id is not None and file_id != latest_id:
-            log.warn('The file "{}" was superseded by "{}"'.format(file_id, latest_id))
+            log.warning(
+                'The file "{}" was superseded by "{}"'.format(file_id, latest_id)
+            )
 
     ids = ids_map.values() if args.latest else ids_map.keys()
 
