@@ -55,7 +55,9 @@ def generate_metadata_dict(
     }
 
 
-big_content = (str(i) * (HTTP_CHUNK_SIZE + 1) for i in range(1, 5))
+def get_big_content(n: int) -> str:
+    return str(n) * (HTTP_CHUNK_SIZE + 1)
+
 
 uuids = {
     "invalid": generate_metadata_dict(None, None, [], []),
@@ -70,13 +72,13 @@ uuids = {
         "controlled", "small content 4", [], [],
     ),
     "big": generate_metadata_dict(
-        "controlled", next(big_content), ["annotation 1"], ["related 1"],
+        "controlled", get_big_content(1), ["annotation 1"], ["related 1"],
     ),
     "big_ann": generate_metadata_dict(
-        "controlled", next(big_content), ["annotation 2"], [],
+        "controlled", get_big_content(2), ["annotation 2"], [],
     ),
-    "big_rel": generate_metadata_dict("open", next(big_content), [], ["related 3"],),
-    "big_no_friends": generate_metadata_dict("open", next(big_content), [], [],),
+    "big_rel": generate_metadata_dict("open", get_big_content(3), [], ["related 3"],),
+    "big_no_friends": generate_metadata_dict("open", get_big_content(4), [], [],),
     "annotations.txt": {"contents": "id\tsubmitter_id\t\n123\t456\n"},
 }
 
