@@ -1,9 +1,7 @@
-import shutil
 from multiprocessing import cpu_count
 import os
 import pytest
 import tarfile
-import tempfile
 
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
 from gdc_client.parcel.download_stream import DownloadStream
@@ -12,18 +10,24 @@ from conftest import make_tarfile, md5, uuids
 from gdc_client.download.client import GDCHTTPDownloadClient, fix_url
 from gdc_client.query.index import GDCIndexClient
 
+BASE_URL = "http://127.0.0.1:5000"
+
 
 @pytest.mark.usefixtures("setup_mock_server")
 class TestDownloadClient:
-    def setup_method(self, method):
-        # same as --server flag for gdc-client
-        self.base_url = "http://127.0.0.1:5000"
-        self.index_client = GDCIndexClient(self.base_url)
-        self.tmp_path = tempfile.mkdtemp()
-        self.client_kwargs = {
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, tmp_path):
+        self.index_client = GDCIndexClient(BASE_URL)
+        self.tmp_path = tmp_path
+        # use str version to be 3.5 compatible
+        self.client_kwargs = self.get_client_kwargs(str(self.tmp_path))
+        self.client = self.get_download_client()
+
+    def get_client_kwargs(self, path):
+        return {
             "token": "valid token",
             "n_procs": min(cpu_count(), 8),
-            "directory": self.tmp_path,
+            "directory": path,
             "segment_md5sums": True,
             "file_md5sum": True,
             "debug": True,
@@ -35,26 +39,23 @@ class TestDownloadClient:
             "retry_amount": 5,
             "verify": True,
         }
-        self.client = GDCHTTPDownloadClient(
-            uri=self.base_url, index_client=self.index_client, **self.client_kwargs
+
+    def get_download_client(self):
+        return GDCHTTPDownloadClient(
+            uri=BASE_URL, index_client=self.index_client, **self.client_kwargs
         )
 
-    def teardown_method(self, method):
-        shutil.rmtree(self.tmp_path)
-
     def test_download_files_with_fake_uuid_throw_exception_to_developer(self):
-        url_with_fake_uuid = self.base_url + "/data/fake-uuid"
+        url_with_fake_uuid = BASE_URL + "/data/fake-uuid"
 
         with pytest.raises(RuntimeError):
             self.client.download_files([url_with_fake_uuid])
 
     def test_download_files_with_fake_uuid_not_throw_exception_to_user(self):
-        url_with_fake_uuid = self.base_url + "/data/fake-uuid"
+        url_with_fake_uuid = BASE_URL + "/data/fake-uuid"
 
         self.client_kwargs["debug"] = False
-        client_with_debug_off = GDCHTTPDownloadClient(
-            uri=self.base_url, index_client=self.index_client, **self.client_kwargs
-        )
+        client_with_debug_off = self.get_download_client()
         client_with_debug_off.download_files([url_with_fake_uuid])
 
     def test_fix_url(self):
@@ -70,17 +71,14 @@ class TestDownloadClient:
         tarfile_name = make_tarfile(files_to_tar)
         self.client._untar_file(tarfile_name)
 
-        for f in files_to_tar:
-            assert os.path.exists(os.path.join(self.tmp_path, f))
+        assert all((self.tmp_path / f).exists() for f in files_to_tar)
 
     def test_md5_members(self):
 
         files_to_tar = ["small", "small_ann", "small_rel", "small_no_friends"]
         self.index_client._get_metadata(files_to_tar)
 
-        client = GDCHTTPDownloadClient(
-            uri=self.base_url, index_client=self.index_client, **self.client_kwargs
-        )
+        client = self.get_download_client()
 
         tarfile_name = make_tarfile(files_to_tar)
         client._untar_file(tarfile_name)
@@ -95,9 +93,7 @@ class TestDownloadClient:
 
         self.index_client._get_metadata(files_to_dl)
 
-        client = GDCHTTPDownloadClient(
-            uri=self.base_url, index_client=self.index_client, **self.client_kwargs
-        )
+        client = self.get_download_client()
 
         # it will remove redundant uuids
         tarfile_name, errors = client._download_tarfile(files_to_dl)
@@ -108,9 +104,8 @@ class TestDownloadClient:
 
         with tarfile.open(tarfile_name, "r") as t:
             for member in t.getmembers():
-                m = t.extractfile(member)
-                contents = m.read()
-                assert contents.decode("utf-8") == uuids[member.name]["contents"]
+                contents = t.extractfile(member).read().decode()
+                assert contents == uuids[member.name]["contents"]
 
     def test_download_annotations(self):
 
@@ -121,13 +116,11 @@ class TestDownloadClient:
         self.index_client._get_metadata([small_ann])
 
         # where we expect annotations to be written
-        dir_path = os.path.join(self.tmp_path, small_ann)
-        os.mkdir(dir_path)
-        file_path = os.path.join(dir_path, "annotations.txt")
+        dir_path = self.tmp_path / small_ann
+        dir_path.mkdir()
+        file_path = dir_path / "annotations.txt"
 
-        client = GDCHTTPDownloadClient(
-            uri=self.base_url, index_client=self.index_client, **self.client_kwargs
-        )
+        client = self.get_download_client()
 
         # we mock the response from api, a gzipped tarfile with an annotations.txt in it
         # this code will open that and write the annotations.txt to a particular path
@@ -135,16 +128,15 @@ class TestDownloadClient:
         client.download_annotations(small_ann)
 
         # verify
-        assert os.path.exists(file_path), "failed to write annotations file"
-        with open(file_path, "r") as f:
-            assert (
-                f.read() == uuids["annotations.txt"]["contents"]
-            ), "annotations content incorrect"
+        assert file_path.exists(), "failed to write annotations file"
+        assert (
+            file_path.read_text() == uuids["annotations.txt"]["contents"]
+        ), "annotations content incorrect"
 
     @pytest.mark.parametrize("check_segments", (True, False))
     def test_no_segment_md5sums_args(self, check_segments):
 
         self.client_kwargs["segment_md5sums"] = check_segments
-        GDCHTTPDownloadClient(uri=self.base_url, **self.client_kwargs)
+        self.get_download_client()
 
         assert DownloadStream.check_segment_md5sums is check_segments
