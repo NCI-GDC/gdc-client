@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import pytest
 import tarfile
+from typing import List
 
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
 from gdc_client.parcel.download_stream import DownloadStream
@@ -41,7 +42,10 @@ class TestDownloadClient:
             "verify": True,
         }
 
-    def get_download_client(self) -> GDCHTTPDownloadClient:
+    def get_download_client(self, uuids: List[str] = None) -> GDCHTTPDownloadClient:
+        if uuids is not None:
+            # get annotation id out of metadata
+            self.index_client._get_metadata(uuids)
         return GDCHTTPDownloadClient(
             uri=BASE_URL, index_client=self.index_client, **self.client_kwargs
         )
@@ -59,13 +63,6 @@ class TestDownloadClient:
         client_with_debug_off = self.get_download_client()
         client_with_debug_off.download_files([url_with_fake_uuid])
 
-    def test_fix_url(self) -> None:
-        fixed_url = "https://api.gdc.cancer.gov/"
-
-        assert fix_url("api.gdc.cancer.gov") == fixed_url
-        assert fix_url(fixed_url) == fixed_url
-        assert fix_url("api.gdc.cancer.gov/") == fixed_url
-
     def test_untar_file(self) -> None:
 
         files_to_tar = ["small", "small_ann", "small_rel", "small_no_friends"]
@@ -77,9 +74,8 @@ class TestDownloadClient:
     def test_md5_members(self) -> None:
 
         files_to_tar = ["small", "small_ann", "small_rel", "small_no_friends"]
-        self.index_client._get_metadata(files_to_tar)
 
-        client = self.get_download_client()
+        client = self.get_download_client(files_to_tar)
 
         tarfile_name = make_tarfile(files_to_tar)
         client._untar_file(tarfile_name)
@@ -92,9 +88,7 @@ class TestDownloadClient:
         # so pick UUIDs that would be grouped together
         files_to_dl = ["small_no_friends"]
 
-        self.index_client._get_metadata(files_to_dl)
-
-        client = self.get_download_client()
+        client = self.get_download_client(files_to_dl)
 
         # it will remove redundant uuids
         tarfile_name, errors = client._download_tarfile(files_to_dl)
@@ -113,15 +107,12 @@ class TestDownloadClient:
         # uuid of file that has an annotation
         small_ann = "small_ann"
 
-        # get annotation id out of metadata
-        self.index_client._get_metadata([small_ann])
-
         # where we expect annotations to be written
         dir_path = self.tmp_path / small_ann
         dir_path.mkdir()
         file_path = dir_path / "annotations.txt"
 
-        client = self.get_download_client()
+        client = self.get_download_client([small_ann])
 
         # we mock the response from api, a gzipped tarfile with an annotations.txt in it
         # this code will open that and write the annotations.txt to a particular path
@@ -141,3 +132,11 @@ class TestDownloadClient:
         self.get_download_client()
 
         assert DownloadStream.check_segment_md5sums is check_segments
+
+
+def test_fix_url() -> None:
+    fixed_url = "https://api.gdc.cancer.gov/"
+
+    assert fix_url("api.gdc.cancer.gov") == fixed_url
+    assert fix_url(fixed_url) == fixed_url
+    assert fix_url("api.gdc.cancer.gov/") == fixed_url
