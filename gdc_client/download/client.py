@@ -156,7 +156,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         for m in members:
             if re.findall(SUPERSEDED_INFO_FILENAME_TEMPLATE, m):
-                log.warn(
+                log.warning(
                     "Some of the files have been superseded. See {} "
                     "for reference.".format(m)
                 )
