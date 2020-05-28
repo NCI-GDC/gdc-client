@@ -16,8 +16,7 @@ import requests
 import yaml
 from lxml import etree
 from progressbar import Bar, Percentage, ProgressBar
-from six.moves import input
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 from gdc_client.upload import manifest
 

@@ -1,7 +1,6 @@
 import logging
 import time
-from six.moves.urllib import parse as urlparse
-from six.moves import input
+from urllib import parse as urlparse
 from functools import partial
 
 from gdc_client.parcel import colored, manifest
