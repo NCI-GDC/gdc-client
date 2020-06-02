@@ -77,8 +77,6 @@ def upload_multipart(
     part_number,
     headers,
     verify=True,
-    pbar=None,
-    ns=None,
 ):
     tries = MAX_RETRIES
     while tries > 0:
@@ -105,10 +103,6 @@ def upload_multipart(
             chunk_file.close()
             f.close()
             if res.status_code == 200:
-                if pbar:
-                    pbar.fd = sys.stderr
-                    ns.completed += 1
-                    pbar.update(ns.completed)
                 log.debug("Finish upload part {0}".format(part_number))
                 return True
             else:
@@ -529,8 +523,6 @@ class GDCUploadClient(object):
                             i + 1,
                             self.headers,
                             self.verify,
-                            self.pbar,
-                            self.ns,
                         ]
                     )
                 else:
