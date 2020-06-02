@@ -115,7 +115,7 @@ def upload_multipart(
                 time.sleep(get_sleep_time(tries))
 
                 tries -= 1
-                log.debug("Retry upload part {0}, {1}".format(part_number, res.text))
+                log.debug("Retry upload part {0}, {1}".format(part_number, res.content))
 
         except:
             time.sleep(get_sleep_time(tries))
@@ -171,7 +171,7 @@ class GDCUploadClient(object):
         self.upload_id = None
         self.debug = debug
         self.processes = processes
-        self.upload_part_size = (
+        self.upload_part_size = int(
             max(upload_part_size, MIN_PARTSIZE) / PAGESIZE + 1
         ) * PAGESIZE
         self._metadata = {}
@@ -211,7 +211,7 @@ class GDCUploadClient(object):
             file_type = nodes[0]["type"]
 
         else:
-            raise Exception(r.text)
+            raise Exception(r.content)
         # </file_type>
 
         # get metadata about file_type
@@ -245,7 +245,7 @@ class GDCUploadClient(object):
             raise Exception("File with id {0} not found".format(id))
 
         else:
-            raise Exception("Fail to get filename: {0}".format(r.text))
+            raise Exception("Fail to get filename: {0}".format(r.content))
         # </metadata>
 
     def get_files(self, action="download"):
@@ -392,7 +392,7 @@ class GDCUploadClient(object):
                 verify=self.verify,
             )
             if r.status_code not in [204, 404]:
-                raise Exception("Fail to abort multipart upload: \n{0}".format(r.text))
+                raise Exception("Fail to abort multipart upload: \n{0}".format(r.content))
             else:
                 log.warning("Abort multipart upload {0}".format(self.upload_id))
 
@@ -405,7 +405,7 @@ class GDCUploadClient(object):
             if r.status_code == 204:
                 log.info("Delete file {0}".format(self.node_id))
             else:
-                log.warning("Fail to delete file {0}: {1}".format(self.node_id, r.text))
+                log.warning("Fail to delete file {0}: {1}".format(self.node_id, r.content))
 
     def _upload(self):
         """Simple S3 PUT"""
@@ -416,7 +416,7 @@ class GDCUploadClient(object):
                     self.url + "/_dry_run", headers=self.headers, verify=self.verify
                 )
                 if r.status_code != 200:
-                    log.error("Can't upload:{0}".format(r.text))
+                    log.error("Can't upload:{0}".format(r.content))
                     return
                 self.pbar = ProgressBar(
                     widgets=[Percentage(), Bar()], maxval=self.file_size
@@ -427,7 +427,7 @@ class GDCUploadClient(object):
                     self.url, data=stream, headers=self.headers, verify=self.verify
                 )
                 if r.status_code != 200:
-                    log.error("Upload failed {0}".format(r.text))
+                    log.error("Upload failed {0}".format(r.content))
                     return
                 self.pbar.finish()
                 self.cleanup()
@@ -492,12 +492,12 @@ class GDCUploadClient(object):
                 self.url + "?uploads", headers=self.headers, verify=self.verify
             )
             if r.status_code == 200:
-                xml = XMLResponse(r.text)
+                xml = XMLResponse(r.content)
                 self.upload_id = xml.get_key("UploadId")
                 log.info("Start multipart upload: {0}".format(self.upload_id))
                 return True
             else:
-                log.error("Fail to initiate multipart upload: {0}".format(r.text))
+                log.error("Fail to initiate multipart upload: {0}".format(r.content))
                 return False
         return True
 
@@ -556,10 +556,10 @@ class GDCUploadClient(object):
             verify=self.verify,
         )
         if r.status_code == 200:
-            self.multiparts = Multiparts(r.text)
+            self.multiparts = Multiparts(r.content)
             return self.multiparts
         elif r.status_code in [403, 400]:
-            raise Exception(r.text)
+            raise Exception(r.content)
         return None
 
     def complete(self):
@@ -590,7 +590,7 @@ class GDCUploadClient(object):
             else:
                 log.info("Multipart upload finished for file {0}".format(self.node_id))
                 return
-        raise Exception("Multipart upload complete failed: {0}".format(r.text))
+        raise Exception("Multipart upload complete failed: {0}".format(r.content))
 
     def cleanup(self):
         if os.path.isfile(self.resume_path):
@@ -623,7 +623,7 @@ class Multiparts(object):
             part_number.text = part["PartNumber"]
             etag = etree.SubElement(xml_part, "ETag")
             etag.text = part["ETag"]
-        return str(etree.tostring(root))
+        return etree.tostring(root, encoding="utf-8")
 
     def uploaded(self, part_number):
         for part in self.parts:
@@ -634,7 +634,7 @@ class Multiparts(object):
 
 class XMLResponse(object):
     def __init__(self, xml_string):
-        self.root = etree.fromstring(str(xml_string))
+        self.root = etree.fromstring(xml_string)
         self.namespace = self.root.nsmap[None]
 
     def get_key(self, key):
