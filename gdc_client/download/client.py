@@ -12,7 +12,6 @@ from urllib import parse as urlparse
 
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
-from progressbar import ETA, Bar, FileTransferSpeed, Percentage, ProgressBar
 
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 from gdc_client.utils import build_url
@@ -67,7 +66,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
         self.gdc_index_client = index_client
         self.base_directory = kwargs.get("directory")
-        self.verify = None
+        self.verify = kwargs.get("verify")
 
         super(GDCHTTPDownloadClient, self).__init__(self.data_uri, *args, **kwargs)
 
@@ -281,22 +280,6 @@ class GDCHTTPDownloadClient(HTTPClient):
                 log.error("There are no files to download")
                 return [], 0
 
-            pbar = ProgressBar(
-                widgets=[
-                    Percentage(),
-                    " ",
-                    Bar(marker="#", left="[", right="]"),
-                    " ",
-                    ETA(),
-                    " ",
-                    FileTransferSpeed(),
-                    " ",
-                ],
-                maxval=1,
-                fd=sys.stdout,
-            )
-            pbar.start()
-
             log.debug("Saving grouping {0}/{1}".format(i + 1, groupings_len))
             tarfile_name, error = self._download_tarfile(s)
 
@@ -315,8 +298,6 @@ class GDCHTTPDownloadClient(HTTPClient):
 
             if self.md5_check:
                 errors += self._md5_members(members)
-            pbar.update(1)
-            pbar.finish()
 
         return errors, successful_count
 
@@ -331,7 +312,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             try:
                 self.download_related_files(file_id)
             except Exception as e:
-                log.warn(
+                log.warning(
                     "Unable to download related files for {0}: {1}".format(file_id, e)
                 )
                 if self.debug:
@@ -341,7 +322,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             try:
                 self.download_annotations(file_id)
             except Exception as e:
-                log.warn(
+                log.warning(
                     "Unable to download annotations for {0}: {1}".format(file_id, e)
                 )
                 if self.debug:

@@ -76,3 +76,6 @@ package.json
 *.dtt
 
 ignore/
+
+# pyenv
+.python-version
