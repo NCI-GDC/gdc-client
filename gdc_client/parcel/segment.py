@@ -15,8 +15,6 @@ import tempfile
 import time
 import sys
 
-from multiprocessing import Manager
-
 from intervaltree import Interval, IntervalTree
 from progressbar import ProgressBar, Percentage, Bar, ETA
 
@@ -29,6 +27,17 @@ from gdc_client.parcel.utils import (
     check_file_existence_and_size,
 )
 from gdc_client.parcel.const import SAVE_INTERVAL
+
+if OS_WINDOWS:
+    WINDOWS = True
+    from six.moves.queue import Queue
+else:
+    # if we are running on a posix system, then we will be
+    # communicating across processes, and will need
+    # multiprocessing manager
+    from multiprocessing import Manager
+
+    WINDOWS = False
 
 log = logging.getLogger("segment")
 
@@ -66,10 +75,13 @@ class SegmentProducer(object):
         self.block_size = work_size // self.n_procs
 
     def _setup_queues(self):
-
-        manager = Manager()
-        self.q_work = manager.Queue()
-        self.q_complete = manager.Queue()
+        if WINDOWS:
+            self.q_work = Queue()
+            self.q_complete = Queue()
+        else:
+            manager = Manager()
+            self.q_work = manager.Queue()
+            self.q_complete = manager.Queue()
 
     def integrate(self, itree):
         return sum([i.end - i.begin for i in itree.items()])
