@@ -1,6 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import contextlib
 import copy
-import json
 import logging
 import math
 import os
@@ -9,7 +9,7 @@ import random
 import time
 from collections import deque
 from mmap import PAGESIZE, mmap
-from multiprocessing import Manager, Pool
+from multiprocessing import Manager
 
 import requests
 import yaml
@@ -24,6 +24,7 @@ log = logging.getLogger("upload")
 MAX_RETRIES = 10
 MAX_TIMEOUT = 60
 MIN_PARTSIZE = 5242880
+DEFAULT_METADATA = ("project_id", "file_name")
 
 OS_WINDOWS = platform.system() == "Windows"
 
@@ -112,11 +113,11 @@ def upload_multipart(
                     ns.completed += 1
 
                 return True
-            else:
-                time.sleep(get_sleep_time(tries))
 
-                tries -= 1
-                log.debug("Retry upload part {0}, {1}".format(part_number, res.content))
+            time.sleep(get_sleep_time(tries))
+
+            tries -= 1
+            log.debug("Retry upload part {0}, {1}".format(part_number, res.content))
 
         except Exception as e:
 
@@ -181,77 +182,79 @@ class GDCUploadClient(object):
         ) * PAGESIZE
         self._metadata = {}
         self.resume_path = "resume_{0}".format(self.manifest_name)
+        self.graphql_url = urlparse.urljoin(self.server, "v0/submission/graphql")
 
-    def metadata(self, field):
-        return self._metadata.get(field) or self.get_metadata(self.node_id)[field]
+    def _get_node_metadata_via_graphql(self, node_id, node_type="node",
+                                       fields=("project_id", "file_name")):
 
-    def get_metadata(self, id):
+        query_template = 'query Files { %s (id: "%s") { %s } }'
+        query = {
+            "query": query_template % (node_type, node_id, " ".join(fields)),
+        }
+
+        response = requests.post(
+            self.graphql_url,
+            json=query,
+            headers=self.headers,
+            verify=self.verify,
+        )
+        return response
+
+    def _get_node_type(self, node_id):
+        response = self._get_node_metadata_via_graphql(node_id, fields=["type"])
+
+        if response.status_code != 200:
+            raise Exception(response.content)
+
+        result = response.json()
+
+        if "errors" in result:
+            raise Exception(
+                "Fail to query file type: {}".format(", ".join(result["errors"]))
+            )
+
+        nodes = result["data"]["node"]
+
+        if not nodes:
+            raise Exception("File with id {} not found".format(node_id))
+
+        return nodes[0]["type"]
+
+    def get_metadata(self, node_id, field):
         """
         Get file's project_id and filename from graphql
         """
+        if node_id in self._metadata:
+            return self._metadata[node_id].get(field)
 
-        # first get the file_type
-        self._metadata = {}
-        query = {"query": 'query Files { node (id: "%s") { type }}' % id}
+        file_type = self._get_node_type(node_id)
 
-        r = requests.post(
-            urlparse.urljoin(self.server, "v0/submission/graphql"),
-            headers=self.headers,
-            data=json.dumps(query),
-            verify=self.verify,
-        )
-
-        if r.status_code == 200:
-            result = r.json()
-
-            if "errors" in result:
-                raise Exception(
-                    "Fail to query file type: {0}".format(", ".join(result["errors"]))
-                )
-
-            nodes = result["data"]["node"]
-            if len(nodes) == 0:
-                raise Exception("File with id {0} not found".format(id))
-
-            file_type = nodes[0]["type"]
-
-        else:
-            raise Exception(r.content)
-        # </file_type>
+        fields = DEFAULT_METADATA if field in DEFAULT_METADATA else DEFAULT_METADATA + (field, )
 
         # get metadata about file_type
-        query = {
-            "query": 'query Files { %s (id: "%s") { project_id, file_name }}'
-            % (file_type, id)
-        }
-
-        r = requests.post(
-            urlparse.urljoin(self.server, "v0/submission/graphql"),
-            headers=self.headers,
-            data=json.dumps(query),
-            verify=self.verify,
+        r = self._get_node_metadata_via_graphql(
+            node_id,
+            node_type=file_type,
+            fields=fields,
         )
 
-        if r.status_code == 200:
+        if r.status_code != 200:
+            raise Exception("Fail to get project_id, filename: {}".format(r.content))
 
-            result = r.json()
-            if "errors" in result:
-                raise Exception(
-                    "Fail to query project_id and file_name: {0}".format(
-                        ", ".join(result["errors"])
-                    )
+        result = r.json()
+        if "errors" in result:
+            raise Exception(
+                "Fail to query project_id and file_name: {}".format(
+                    ", ".join(result["errors"])
                 )
+            )
 
-            # get first result only
-            if len(result["data"][file_type]) > 0:
-                self._metadata = result["data"][file_type][0]
-                return self._metadata
+        # get first result only
+        if len(result["data"][file_type]) > 0:
+            self._metadata[node_id] = result["data"][file_type][0]
+            return self._metadata[node_id][field]
 
-            raise Exception("File with id {0} not found".format(id))
-
-        else:
-            raise Exception("Fail to get filename: {0}".format(r.content))
-        # </metadata>
+        raise Exception("File with id {} not found".format(node_id))
 
     def get_files(self, action="download"):
         """Parse file information from manifest"""
@@ -259,10 +262,10 @@ class GDCUploadClient(object):
             self.file_entities = []
             for f in self.files:
                 file_entity = FileEntity()
-                file_entity.node_id = f["id"]
-                # cache node_id to use metadata property
-                self.node_id = file_entity.node_id
-                project_id = f.get("project_id") or self.metadata("project_id")
+                file_id = f["id"]
+                file_entity.node_id = file_id
+
+                project_id = f.get("project_id") or self.get_metadata(file_id, "project_id")
                 program, project = [part.upper() for part in project_id.split("-", 1)]
 
                 if not program or not project:
@@ -272,8 +275,12 @@ class GDCUploadClient(object):
 
                 file_entity.url = urlparse.urljoin(
                     self.server,
-                    "v0/submission/{0}/{1}/files/{2}".format(program, project, f["id"]),
+                    "v0/submission/{}/{}/files/{}".format(program, project, file_id),
                 )
+
+                if action == "delete":
+                    self.file_entities.append(file_entity)
+                    continue
 
                 # https://github.com/NCI-GDC/gdcapi/pull/426#issue-146068652
                 # [[[ --path takes precedence over everything ]]]
@@ -297,13 +304,14 @@ class GDCUploadClient(object):
                 # 2) --path and UUID's filename, pull filename from API
                 elif (
                     f.get("path")
-                    and f.get("id")
+                    and file_id
                     and os.path.exists(
-                        os.path.join(f.get("path"), self.metadata("file_name"))
+                        os.path.join(f.get("path"),
+                                     self.get_metadata(file_id, "file_name"))
                     )
                 ):
                     file_entity.file_path = os.path.join(
-                        f.get("path"), self.metadata("file_name")
+                        f.get("path"), self.get_metadata(file_id, "file_name")
                     )
 
                 # 3) only local_file_path from manifest file
@@ -320,11 +328,7 @@ class GDCUploadClient(object):
 
                 # 5) UUID given, get filename from api
                 else:
-                    file_entity.file_path = self.metadata("file_name")
-
-                if action == "delete":
-                    self.file_entities.append(file_entity)
-                    continue
+                    file_entity.file_path = self.get_metadata(file_id, "file_name")
 
                 with open(file_entity.file_path, "rb") as fp:
                     file_entity.file_size = os.fstat(fp.fileno()).st_size
@@ -417,7 +421,13 @@ class GDCUploadClient(object):
                     log.error("Can't upload:{0}".format(r.content))
                     return
 
-                pbar = tqdm(total=self.file_size, unit_scale=True, desc="Regular Upload", unit="B")
+                pbar = tqdm(
+                    total=self.file_size,
+                    unit_scale=True,
+                    desc="Regular Upload",
+                    unit="B",
+                    ascii=True,
+                )
                 stream = Stream(f, pbar, self.file_size)
 
                 r = requests.put(
@@ -484,12 +494,12 @@ class GDCUploadClient(object):
         tries = MAX_RETRIES
 
         while tries:
-            if self.list_parts() is None:
-                tries -= 1
-                time.sleep(get_sleep_time(tries))
-
-            else:
+            if self.list_parts() is not None:
                 return
+
+            tries -= 1
+            time.sleep(get_sleep_time(tries))
+
         raise Exception(
             "Can't find multipart upload with upload id {0}".format(self.upload_id)
         )
@@ -502,7 +512,7 @@ class GDCUploadClient(object):
             if r.status_code == 200:
                 xml = XMLResponse(r.content)
                 self.upload_id = xml.get_key("UploadId")
-                log.info("Start multipart upload: {0}".format(self.upload_id))
+                log.info("Start multipart upload. UploadId: {0}".format(self.upload_id))
                 return True
             else:
                 log.error("Fail to initiate multipart upload: {0}".format(r.content))
@@ -545,17 +555,22 @@ class GDCUploadClient(object):
         if self.total_parts == 0:
             return
 
-        pbar = tqdm(total=len(args_list), unit="part", desc="Multipart Upload")
+        pbar = tqdm(
+            total=len(args_list),
+            unit="part",
+            desc="Multipart Upload",
+            ascii=True,
+        )
 
-        def update(*_):
-            pbar.update()
-
-        with Pool(processes=self.processes) as pool:
-            for payload in args_list:
-                pool.apply_async(upload_multipart, payload, callback=update)
-
-            pool.close()
-            pool.join()
+        with ThreadPoolExecutor(max_workers=self.processes) as executor:
+            future_to_part_number = {
+                executor.submit(upload_multipart, *payload): payload[5]
+                for payload in args_list
+            }
+            for future in as_completed(future_to_part_number):
+                part_number = future_to_part_number[future]
+                log.debug("Part: {} is done".format(part_number))
+                pbar.update()
 
         pbar.close()
 

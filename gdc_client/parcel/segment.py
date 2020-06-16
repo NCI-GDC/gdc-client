@@ -95,7 +95,7 @@ class SegmentProducer(object):
         log.debug("Checksumming {0}:".format(self.download.url))
 
         pbar = tqdm(
-            intervals, desc="Segment md5sum validation", file=sys.stdout
+            intervals, desc="Segment md5sum validation", file=sys.stdout, ascii=True,
         )
 
         with mmap_open(path or self.download.path) as data:

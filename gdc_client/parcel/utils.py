@@ -56,6 +56,7 @@ def get_pbar(file_id, maxval, start_val=0, desc="Downloading"):
         unit_scale=True,
         unit="B",
         desc="{} {}".format(desc, file_id),
+        ascii=True,
     )
     return pbar
 
