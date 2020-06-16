@@ -5,6 +5,8 @@ import tarfile
 import time
 from typing import Iterable, List, Mapping, Union
 
+import boto3
+from moto import mock_s3
 import pytest
 
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
@@ -107,3 +109,16 @@ def versions_response(requests_mock):
         )
 
     return mock_response
+
+
+@pytest.fixture
+def mock_s3_conn():
+    with mock_s3():
+        conn = boto3.resource("s3")
+        yield conn
+
+
+@pytest.fixture
+def mock_s3_bucket(mock_s3_conn):
+    bucket = mock_s3_conn.create_bucket(Bucket="test-bucket")
+    return bucket
