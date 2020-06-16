@@ -208,7 +208,7 @@ def handle_post_mp(url, req):
                 to_xml_response("CompleteMultipartUploadResult", result)
             )
 
-        return httmock.response(400, "")
+        return httmock.response(400, "unable to process uploadId request")
 
     return httmock.response(400, "cannot process request")
 
@@ -320,6 +320,7 @@ def complete_multipart_side_effect(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def cleanup_resume():
+
     yield
 
     if os.path.isfile("resume_None"):
