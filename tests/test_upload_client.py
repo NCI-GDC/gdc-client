@@ -16,27 +16,28 @@ from gdc_client.upload import GDCUploadClient
 from gdc_client.upload.client import create_resume_path
 
 
-ParsedQuery = namedtuple("ParsedQuery", field_names=["node_type", "node_id", "fields"])
+QueryParts = namedtuple("QueryParts", field_names=["node_type", "node_id", "fields"])
+
 FIVE_MB = 5 * 1024 * 1024
 
 
-def parse_graphql_query(query: str) -> Optional[ParsedQuery]:
+def parse_graphql_query(query: str) -> Optional[QueryParts]:
     # This is based entirely on the known GraphQL query that is sent to backend
     graphql_re = (
-        "^query \w+ \{ "
-        "(?P<node_type>\w+)"
-        " \(id: \""
-        "(?P<node_id>[a-z0-9-]+)"
-        "\"\) \{ "
-        "(?P<fields>[\w ]+)"
-        " } }$"
+        r"^query \w+ \{ "
+        r"(?P<node_type>\w+)"
+        r" \(id: \""
+        r"(?P<node_id>[a-z0-9-]+)"
+        r"\"\) \{ "
+        r"(?P<fields>[\w ]+)"
+        r" } }$"
     )
     parts = re.match(graphql_re, query)
 
     if not parts:
         return None
 
-    return ParsedQuery(
+    return QueryParts(
         parts.group("node_type"),
         parts.group("node_id"),
         parts.group("fields"),
