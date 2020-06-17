@@ -1,6 +1,8 @@
+from collections import namedtuple
 import json
 import os
 import re
+from typing import Optional
 from urllib.parse import parse_qs
 from xml.etree.ElementTree import Element
 
@@ -14,17 +16,31 @@ from gdc_client.upload import GDCUploadClient
 from gdc_client.upload.client import create_resume_path
 
 
-# This is based entirely on the known GraphQL query that is sent to backend
-GRAPHQL_RE = (
-    "^query \w+ \{ "
-    "(?P<type>\w+)"
-    " \(id: \""
-    "(?P<node_id>[a-z0-9-]+)"
-    "\"\) \{ "
-    "(?P<fields>[\w ]+)"
-    " } }$"
-)
+ParsedQuery = namedtuple("ParsedQuery", field_names=["node_type", "node_id", "fields"])
 FIVE_MB = 5 * 1024 * 1024
+
+
+def parse_graphql_query(query: str) -> Optional[ParsedQuery]:
+    # This is based entirely on the known GraphQL query that is sent to backend
+    graphql_re = (
+        "^query \w+ \{ "
+        "(?P<node_type>\w+)"
+        " \(id: \""
+        "(?P<node_id>[a-z0-9-]+)"
+        "\"\) \{ "
+        "(?P<fields>[\w ]+)"
+        " } }$"
+    )
+    parts = re.match(graphql_re, query)
+
+    if not parts:
+        return None
+
+    return ParsedQuery(
+        parts.group("node_type"),
+        parts.group("node_id"),
+        parts.group("fields"),
+    )
 
 
 @pytest.fixture
@@ -81,13 +97,13 @@ def mock_graphql_responses(mock_files):
         body = json.loads(req.body.decode())
         query = body["query"]
 
-        parts = re.match(re.compile(GRAPHQL_RE), query)
+        parsed = parse_graphql_query(query)
 
-        if not parts:
+        if not parsed:
             return httmock.response(status_code=400, content="Invalid request")
 
-        node_type = parts.group("type")
-        file_id = parts.group("node_id")
+        node_type = parsed.node_type
+        file_id = parsed.node_id
 
         data = {"data": {node_type: []}}
 

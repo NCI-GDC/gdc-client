@@ -60,8 +60,12 @@ class Stream(object):
         return getattr(self._file, attr)
 
     def read(self, num):
-        self.pbar.update(num)
-        return self._file.read(num)
+        chunk = self._file.read(num)
+
+        if self.pbar:
+            self.pbar.update(len(chunk))
+
+        return chunk
 
 
 def upload_multipart(

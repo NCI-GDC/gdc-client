@@ -4,11 +4,11 @@ import logging
 import os
 import re
 import requests
-import sys
 import tarfile
 import time
 from urllib import parse as urlparse
 
+from tqdm import tqdm
 
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
@@ -275,7 +275,10 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         groupings_len = len(smalls)
 
-        for i, s in enumerate(smalls):
+        for i, s in tqdm(iterable=enumerate(smalls), total=len(smalls),
+                         desc="Downloading small groups",
+                         unit="group", ascii=True):
+
             if len(s) == 0 or s == []:
                 log.error("There are no files to download")
                 return [], 0
