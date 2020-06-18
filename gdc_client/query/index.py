@@ -1,6 +1,6 @@
 import logging
 from json import dumps
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 import requests
 

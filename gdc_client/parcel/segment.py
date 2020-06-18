@@ -30,7 +30,7 @@ from gdc_client.parcel.const import SAVE_INTERVAL
 
 if OS_WINDOWS:
     WINDOWS = True
-    from six.moves.queue import Queue
+    from queue import Queue
 else:
     # if we are running on a posix system, then we will be
     # communicating across processes, and will need

@@ -15,7 +15,7 @@ from intervaltree import Interval
 import os
 import requests
 import time
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 class DownloadStream(object):

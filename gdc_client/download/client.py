@@ -7,7 +7,7 @@ import requests
 import sys
 import tarfile
 import time
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 
 from gdc_client.parcel import HTTPClient, utils
