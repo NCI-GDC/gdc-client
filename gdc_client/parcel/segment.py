@@ -16,7 +16,6 @@ import time
 import sys
 
 from intervaltree import Interval, IntervalTree
-from tqdm import tqdm
 
 from gdc_client.parcel.portability import OS_WINDOWS
 from gdc_client.parcel.utils import (
@@ -25,6 +24,7 @@ from gdc_client.parcel.utils import (
     mmap_open,
     STRIP,
     check_file_existence_and_size,
+    tqdm,
 )
 from gdc_client.parcel.const import SAVE_INTERVAL
 
@@ -95,7 +95,7 @@ class SegmentProducer(object):
         log.debug("Checksumming {0}:".format(self.download.url))
 
         pbar = tqdm(
-            intervals, desc="Segment md5sum validation", file=sys.stdout, ascii=True,
+            iterable=intervals, desc="Segment md5sum validation", file=sys.stdout,
         )
 
         with mmap_open(path or self.download.path) as data:
@@ -305,8 +305,7 @@ class SegmentProducer(object):
             time.sleep(0.1)
 
         # Finish the progressbar
-        if self.pbar:
-            self.pbar.close()
+        self.pbar.close()
 
     def wait_for_completion(self):
         try:
@@ -315,12 +314,16 @@ class SegmentProducer(object):
                 while since_save < self.save_interval:
                     interval = self.q_complete.get()
                     self.completed.add(interval)
-                    if self.is_complete():
-                        break
+
+                    # Get bytes downloaded and update progress bar
                     this_size = interval.end - interval.begin
                     self.size_complete += this_size
                     since_save += this_size
                     self.pbar.update(this_size)
+
+                    if self.is_complete():
+                        break
+
                 since_save = 0
                 self.save_state()
         finally:

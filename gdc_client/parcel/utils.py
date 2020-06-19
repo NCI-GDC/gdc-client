@@ -7,6 +7,7 @@
 # ***************************************************************************************
 
 from contextlib import contextmanager
+from functools import partial
 import hashlib
 import logging
 import mmap
@@ -14,7 +15,7 @@ import os
 import requests
 import stat
 
-from tqdm import tqdm
+from tqdm import tqdm as std_tqdm
 
 # Logging
 log = logging.getLogger("utils")
@@ -24,6 +25,9 @@ try:
     requests.packages.urllib3.disable_warnings()
 except Exception as e:
     log.debug("Unable to silence requests warnings: {0}".format(str(e)))
+
+tqdm = partial(std_tqdm, ascii=True)
+tqdm_file = partial(std_tqdm, ascii=True, unit="B", unit_scale=True)
 
 
 def check_transfer_size(actual, expected):
@@ -50,13 +54,10 @@ def get_pbar(file_id, maxval, start_val=0, desc="Downloading"):
         tqdm: progress bar instance
     """
     log.debug("Downloading {0}:".format(file_id))
-    pbar = tqdm(
+    pbar = tqdm_file(
         total=maxval,
         initial=start_val,
-        unit_scale=True,
-        unit="B",
         desc="{} {}".format(desc, file_id),
-        ascii=True,
     )
     return pbar
 
@@ -151,7 +152,10 @@ def md5sum(block):
 
 def md5sum_whole_file(fname):
     hash_md5 = hashlib.md5()
-    with open(fname, "rb") as f, get_pbar(fname, None, desc="Validating md5sum") as pbar:
+    file_size = os.stat(fname).st_size
+
+    with open(fname, "rb") as f, get_pbar(fname, file_size,
+                                          desc="Validating md5sum") as pbar:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
             pbar.update(len(chunk))

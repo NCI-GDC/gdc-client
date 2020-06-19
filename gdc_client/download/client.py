@@ -8,10 +8,9 @@ import tarfile
 import time
 from urllib import parse as urlparse
 
-from tqdm import tqdm
-
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
+from gdc_client.parcel.utils import tqdm, tqdm_file
 
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 from gdc_client.utils import build_url
@@ -255,9 +254,11 @@ class GDCHTTPDownloadClient(HTTPClient):
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
-        with open(tarfile_name, "wb") as f:
+        with open(tarfile_name, "wb") as f, \
+                tqdm_file(desc="Downloading group as tar", ncols=50) as pbar:
             for chunk in r:
                 f.write(chunk)
+                pbar.update(len(chunk))
 
         r.close()
 
@@ -275,16 +276,15 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         groupings_len = len(smalls)
 
-        for i, s in tqdm(iterable=enumerate(smalls), total=len(smalls),
-                         desc="Downloading small groups",
-                         unit="group", ascii=True):
+        for i, small_group in tqdm(iterable=enumerate(smalls), total=len(smalls),
+                                   desc="Downloading small groups", unit="group"):
 
-            if len(s) == 0 or s == []:
+            if not small_group:
                 log.error("There are no files to download")
                 return [], 0
 
             log.debug("Saving grouping {0}/{1}".format(i + 1, groupings_len))
-            tarfile_name, error = self._download_tarfile(s)
+            tarfile_name, error = self._download_tarfile(small_group)
 
             # this will happen in the result of an
             # error that shouldn't be retried
@@ -296,7 +296,7 @@ class GDCHTTPDownloadClient(HTTPClient):
                 time.sleep(0.5)
                 continue
 
-            successful_count += len(s)
+            successful_count += len(small_group)
             members = self._untar_file(tarfile_name)
 
             if self.md5_check:

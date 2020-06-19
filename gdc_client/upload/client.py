@@ -15,8 +15,8 @@ import requests
 import yaml
 from lxml import etree
 from urllib import parse as urlparse
-from tqdm import tqdm
 
+from gdc_client.parcel.utils import tqdm, tqdm_file
 from gdc_client.upload import manifest
 
 log = logging.getLogger("upload")
@@ -424,18 +424,14 @@ class GDCUploadClient(object):
                     log.error("Can't upload: {}".format(r.content))
                     return
 
-                pbar = tqdm(
-                    total=self.file_size,
-                    unit_scale=True,
-                    desc="Regular Upload",
-                    unit="B",
-                    ascii=True,
-                )
+                pbar = tqdm_file(total=self.file_size, desc="Regular Upload")
+
                 stream = Stream(f, pbar, self.file_size)
 
                 r = requests.put(
                     self.url, data=stream, headers=self.headers, verify=self.verify
                 )
+
                 if r.status_code != 200:
                     log.error("Upload failed {}".format(r.content))
                     return
@@ -558,24 +554,18 @@ class GDCUploadClient(object):
         if self.total_parts == 0:
             return
 
-        pbar = tqdm(
-            total=len(args_list),
-            unit="part",
-            desc="Multipart Upload",
-            ascii=True,
-        )
+        with ThreadPoolExecutor(max_workers=self.processes) as executor, \
+                tqdm(total=len(args_list), unit="part", desc="Multipart Upload") as pbar:
 
-        with ThreadPoolExecutor(max_workers=self.processes) as executor:
             future_to_part_number = {
                 executor.submit(upload_multipart, *payload): payload[5]
                 for payload in args_list
             }
+
             for future in as_completed(future_to_part_number):
                 part_number = future_to_part_number[future]
                 log.debug("Part: {} is done".format(part_number))
                 pbar.update()
-
-        pbar.close()
 
     def list_parts(self):
         r = requests.get(
