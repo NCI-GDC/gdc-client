@@ -44,5 +44,5 @@ jobs:
       shell: bash
     - uses: actions/upload-artifact@v2
       with:
-        name: py${{ matrix.python }}-${{ env.GDC_CLIENT_ZIP }}
+        name: ${{ env.GDC_CLIENT_ZIP }}-py${{ matrix.python }}.zip
         path: bin/gdc-client_*.zip
