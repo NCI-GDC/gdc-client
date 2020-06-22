@@ -4,15 +4,13 @@ import logging
 import os
 import re
 import requests
-import sys
 import tarfile
 import time
 from urllib import parse as urlparse
 
-
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
-from progressbar import ETA, Bar, FileTransferSpeed, Percentage, ProgressBar
+from gdc_client.parcel.utils import tqdm, tqdm_file
 
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 from gdc_client.utils import build_url
@@ -67,7 +65,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
         self.gdc_index_client = index_client
         self.base_directory = kwargs.get("directory")
-        self.verify = None
+        self.verify = kwargs.get("verify")
 
         super(GDCHTTPDownloadClient, self).__init__(self.data_uri, *args, **kwargs)
 
@@ -256,9 +254,11 @@ class GDCHTTPDownloadClient(HTTPClient):
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
-        with open(tarfile_name, "wb") as f:
+        with open(tarfile_name, "wb") as f, \
+                tqdm_file(desc="Downloading group as tar", ncols=50) as pbar:
             for chunk in r:
                 f.write(chunk)
+                pbar.update(len(chunk))
 
         r.close()
 
@@ -276,29 +276,15 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         groupings_len = len(smalls)
 
-        for i, s in enumerate(smalls):
-            if len(s) == 0 or s == []:
+        for i, small_group in tqdm(iterable=enumerate(smalls), total=len(smalls),
+                                   desc="Downloading small groups", unit="group"):
+
+            if not small_group:
                 log.error("There are no files to download")
                 return [], 0
 
-            pbar = ProgressBar(
-                widgets=[
-                    Percentage(),
-                    " ",
-                    Bar(marker="#", left="[", right="]"),
-                    " ",
-                    ETA(),
-                    " ",
-                    FileTransferSpeed(),
-                    " ",
-                ],
-                maxval=1,
-                fd=sys.stdout,
-            )
-            pbar.start()
-
             log.debug("Saving grouping {0}/{1}".format(i + 1, groupings_len))
-            tarfile_name, error = self._download_tarfile(s)
+            tarfile_name, error = self._download_tarfile(small_group)
 
             # this will happen in the result of an
             # error that shouldn't be retried
@@ -310,13 +296,11 @@ class GDCHTTPDownloadClient(HTTPClient):
                 time.sleep(0.5)
                 continue
 
-            successful_count += len(s)
+            successful_count += len(small_group)
             members = self._untar_file(tarfile_name)
 
             if self.md5_check:
                 errors += self._md5_members(members)
-            pbar.update(1)
-            pbar.finish()
 
         return errors, successful_count
 
@@ -331,7 +315,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             try:
                 self.download_related_files(file_id)
             except Exception as e:
-                log.warn(
+                log.warning(
                     "Unable to download related files for {0}: {1}".format(file_id, e)
                 )
                 if self.debug:
@@ -341,7 +325,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             try:
                 self.download_annotations(file_id)
             except Exception as e:
-                log.warn(
+                log.warning(
                     "Unable to download annotations for {0}: {1}".format(file_id, e)
                 )
                 if self.debug:

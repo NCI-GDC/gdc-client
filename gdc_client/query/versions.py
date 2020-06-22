@@ -10,7 +10,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 
-def get_latest_versions(url, uuids):
+def get_latest_versions(url, uuids, verify=True):
     """Get the latest version of a UUID according to the api.
 
     Args:
@@ -27,7 +27,7 @@ def get_latest_versions(url, uuids):
 
     # Make multiple queries in an attempt to balance the load on the server.
     for chunk in _chunk_list(uuids):
-        resp = requests.post(versions_url, json={"ids": chunk})
+        resp = requests.post(versions_url, json={"ids": chunk}, verify=verify)
 
         # Parse the results of the chunked query.
         for result in resp.json():

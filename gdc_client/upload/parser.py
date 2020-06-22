@@ -14,7 +14,7 @@ def validate_args(parser, args):
     """ Validate argparse namespace.
     """
     if args.part_size:
-        log.warn("[--part-size] is DEPRECATED in favor of [--upload-part-size]")
+        log.warning("[--part-size] is DEPRECATED in favor of [--upload-part-size]")
         args.upload_part_size = args.part_size
 
     if not args.token_file:
