@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - develop
+      - release/**
+      - hotfix/**
       - feat/dev-245-build-binaries
     tags:
       - "*"
