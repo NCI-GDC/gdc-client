@@ -105,15 +105,16 @@ echo "Testing produced binary..."
 echo "Zipping binary..."
 cd dist
 
-ZIP_NAME="gdc-client_${VERSION}_${TARGET_ENVIRONMENT}_x64"
+PRE_ZIP_NAME="gdc-client_${VERSION}_${TARGET_ENVIRONMENT}_x64"
 if [ -n "${DATE}" ]; then
-    ZIP_NAME="gdc-client_${VERSION}_${DATE}_${TARGET_ENVIRONMENT}_x64"
+    PRE_ZIP_NAME="gdc-client_${VERSION}_${DATE}_${TARGET_ENVIRONMENT}_x64"
 fi
 
-echo "The output zip file will be called ${ZIP_NAME}.zip"
-compress "$ZIP_NAME.zip" "$BINARY_NAME"
-mv "$ZIP_NAME.zip" ..
+ZIP_NAME="$PRE_ZIP_NAME.zip"
+echo "The output zip file will be called ${ZIP_NAME}"
+compress "$ZIP_NAME" "$BINARY_NAME"
+mv "$ZIP_NAME" ..
 cd ..
 
 cleanup
-export GDC_CLIENT_ZIP="$ZIP_NAME"
+export GDC_CLIENT_ZIP="$PRE_ZIP_NAME"
