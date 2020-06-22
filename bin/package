@@ -80,6 +80,9 @@ echo "Building for ${TARGET_ENVIRONMENT}..."
 # Make sure the correct version of pyinstaller and setuptools are installed
 pip install -U "PyInstaller==3.5"
 
+# Ran into ModuleNotFoundError: No module named 'pkg_resources.py2_warn' with higher versions of setuptools
+pip install --upgrade 'setuptools<45.0.0'
+
 # Get version
 VERSION=$(python -c "
 import gdc_client.version
@@ -113,3 +116,4 @@ mv "$ZIP_NAME" ..
 cd ..
 
 cleanup
+export GDC_CLIENT_ZIP="$ZIP_NAME"
