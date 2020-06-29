@@ -55,9 +55,7 @@ def get_pbar(file_id, maxval, start_val=0, desc="Downloading"):
     """
     log.debug("Downloading {0}:".format(file_id))
     pbar = tqdm_file(
-        total=maxval,
-        initial=start_val,
-        desc="{} {}".format(desc, file_id),
+        total=maxval, initial=start_val, desc="{} {}".format(desc, file_id),
     )
     return pbar
 
@@ -154,11 +152,9 @@ def md5sum_whole_file(fname):
     hash_md5 = hashlib.md5()
     file_size = os.stat(fname).st_size
 
-    with open(fname, "rb") as f, get_pbar(fname, file_size,
-                                          desc="Validating md5sum") as pbar:
+    with open(fname, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
-            pbar.update(len(chunk))
 
     return hash_md5.hexdigest()
 

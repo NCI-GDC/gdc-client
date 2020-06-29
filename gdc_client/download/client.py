@@ -254,11 +254,9 @@ class GDCHTTPDownloadClient(HTTPClient):
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
-        with open(tarfile_name, "wb") as f, \
-                tqdm_file(desc="Downloading group as tar", ncols=50) as pbar:
+        with open(tarfile_name, "wb") as f:
             for chunk in r:
                 f.write(chunk)
-                pbar.update(len(chunk))
 
         r.close()
 
@@ -276,8 +274,9 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         groupings_len = len(smalls)
 
-        for i, small_group in tqdm(iterable=enumerate(smalls), total=len(smalls),
-                                   desc="Downloading small groups", unit="group"):
+        for i, small_group in tqdm(
+            iterable=enumerate(smalls), total=len(smalls), unit="group"
+        ):
 
             if not small_group:
                 log.error("There are no files to download")
