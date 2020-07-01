@@ -10,7 +10,7 @@ from urllib import parse as urlparse
 
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
-from gdc_client.parcel.utils import tqdm, tqdm_file
+from gdc_client.parcel.utils import get_percentage_pbar
 
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 from gdc_client.utils import build_url
@@ -274,9 +274,10 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         groupings_len = len(smalls)
 
-        for i, small_group in tqdm(
-            iterable=enumerate(smalls), total=len(smalls), unit="group"
-        ):
+        pbar = get_percentage_pbar(len(smalls))
+
+        for i, small_group in enumerate(smalls):
+            pbar.update(i + 1)
 
             if not small_group:
                 log.error("There are no files to download")
@@ -300,6 +301,8 @@ class GDCHTTPDownloadClient(HTTPClient):
 
             if self.md5_check:
                 errors += self._md5_members(members)
+
+        pbar.finish()
 
         return errors, successful_count
 
