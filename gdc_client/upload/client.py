@@ -16,7 +16,7 @@ import yaml
 from lxml import etree
 from urllib import parse as urlparse
 
-from gdc_client.parcel.utils import tqdm, tqdm_file
+from gdc_client.parcel.utils import get_file_transfer_pbar, get_percentage_pbar
 from gdc_client.upload import manifest
 
 log = logging.getLogger("upload")
@@ -51,7 +51,7 @@ log = logging.getLogger("upload-client")
 
 
 class Stream(object):
-    def __init__(self, file, pbar: tqdm, filesize: int):
+    def __init__(self, file, pbar, filesize: int):
         self._file = file
         self.pbar = pbar
         self.filesize = filesize
@@ -63,7 +63,8 @@ class Stream(object):
         chunk = self._file.read(num)
 
         if self.pbar:
-            self.pbar.update(len(chunk))
+            pbar_value = min(self.pbar.value + len(chunk), self.filesize)
+            self.pbar.update(pbar_value)
 
         return chunk
 
@@ -431,7 +432,7 @@ class GDCUploadClient(object):
                     log.error("Can't upload: {}".format(r.content))
                     return
 
-                pbar = tqdm_file(total=self.file_size)
+                pbar = get_file_transfer_pbar(self.file_path, self.file_size, desc="Uploading")
 
                 stream = Stream(f, pbar, self.file_size)
 
@@ -442,7 +443,8 @@ class GDCUploadClient(object):
                 if r.status_code != 200:
                     log.error("Upload failed {}".format(r.content))
                     return
-                pbar.close()
+
+                pbar.finish()
 
                 self.cleanup()
                 log.info("Upload finished for file {}".format(self.node_id))
@@ -563,9 +565,9 @@ class GDCUploadClient(object):
         if self.total_parts == 0:
             return
 
-        with ThreadPoolExecutor(max_workers=self.processes) as executor, tqdm(
-            total=len(args_list), unit="part", desc="Multipart Upload"
-        ) as pbar:
+        pbar = get_percentage_pbar(len(args_list))
+
+        with ThreadPoolExecutor(max_workers=self.processes) as executor:
 
             future_to_part_number = {
                 executor.submit(upload_multipart, *payload): payload[5]
@@ -575,7 +577,8 @@ class GDCUploadClient(object):
             for future in as_completed(future_to_part_number):
                 part_number = future_to_part_number[future]
                 log.debug("Part: {} is done".format(part_number))
-                pbar.update()
+                pbar.update(self.ns.completed)
+        pbar.finish()
 
     def list_parts(self):
         r = requests.get(
