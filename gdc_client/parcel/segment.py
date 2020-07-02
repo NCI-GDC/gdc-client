@@ -97,8 +97,7 @@ class SegmentProducer(object):
         pbar = get_percentage_pbar(len(intervals))
 
         with mmap_open(path or self.download.path) as data:
-            for i, interval in enumerate(intervals):
-                pbar.update(i + 1)
+            for interval in pbar(intervals):
                 log.debug("Checking segment md5: {0}".format(interval))
                 if not interval.data or "md5sum" not in interval.data:
                     log.error(
@@ -119,8 +118,6 @@ class SegmentProducer(object):
                     )
                     corrupt_segments += 1
                     self.completed.remove(interval)
-
-        pbar.finish()
 
         if corrupt_segments:
             log.warning("Redownloading {0} currupt segments.".format(corrupt_segments))

@@ -274,16 +274,16 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         groupings_len = len(smalls)
 
-        pbar = get_percentage_pbar(len(smalls))
-
         for i, small_group in enumerate(smalls):
-            pbar.update(i + 1)
 
             if not small_group:
                 log.error("There are no files to download")
                 return [], 0
 
             log.debug("Saving grouping {0}/{1}".format(i + 1, groupings_len))
+
+            pbar = get_percentage_pbar(1)
+
             tarfile_name, error = self._download_tarfile(small_group)
 
             # this will happen in the result of an
@@ -302,7 +302,8 @@ class GDCHTTPDownloadClient(HTTPClient):
             if self.md5_check:
                 errors += self._md5_members(members)
 
-        pbar.finish()
+            pbar.update(1)
+            pbar.finish()
 
         return errors, successful_count
 

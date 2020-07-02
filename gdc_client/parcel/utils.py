@@ -54,7 +54,7 @@ def get_file_transfer_pbar(
     """Create and initialize a custom progressbar
 
     Args:
-        file_id: file_id to include info about
+        file_id: file_id to include in the debug message
         maxval: maximum value for the progress bar
         start_val: initial value for the progress bar
         desc: additional debug message before the file_id
