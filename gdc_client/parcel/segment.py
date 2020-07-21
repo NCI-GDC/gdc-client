@@ -16,7 +16,6 @@ import time
 import sys
 
 from intervaltree import Interval, IntervalTree
-from progressbar import ProgressBar, Percentage, Bar, ETA
 
 from gdc_client.parcel.portability import OS_WINDOWS
 from gdc_client.parcel.utils import (
@@ -25,12 +24,13 @@ from gdc_client.parcel.utils import (
     mmap_open,
     STRIP,
     check_file_existence_and_size,
+    tqdm,
 )
 from gdc_client.parcel.const import SAVE_INTERVAL
 
 if OS_WINDOWS:
     WINDOWS = True
-    from six.moves.queue import Queue
+    from queue import Queue
 else:
     # if we are running on a posix system, then we will be
     # communicating across processes, and will need
@@ -54,6 +54,7 @@ class SegmentProducer(object):
 
         self.download = download
         self.n_procs = n_procs
+        self.pbar = None
 
         # Initialize producer
         self.load_state()
@@ -63,7 +64,6 @@ class SegmentProducer(object):
         self.schedule()
 
     def _setup_pbar(self):
-        self.pbar = None
         self.pbar = get_pbar(self.download.url, self.download.size)
 
     def _setup_work(self):
@@ -91,19 +91,15 @@ class SegmentProducer(object):
             return True
         corrupt_segments = 0
         intervals = sorted(self.completed.items())
+
         log.debug("Checksumming {0}:".format(self.download.url))
-        pbar = ProgressBar(
-            widgets=[
-                Percentage(),
-                " ",
-                Bar(marker="#", left="[", right="]"),
-                " ",
-                ETA(),
-            ],
-            fd=sys.stdout,
+
+        pbar = tqdm(
+            iterable=intervals, desc="Segment md5sum validation", file=sys.stdout,
         )
+
         with mmap_open(path or self.download.path) as data:
-            for interval in pbar(intervals):
+            for interval in pbar:
                 log.debug("Checking segment md5: {0}".format(interval))
                 if not interval.data or "md5sum" not in interval.data:
                     log.error(
@@ -125,7 +121,7 @@ class SegmentProducer(object):
                     corrupt_segments += 1
                     self.completed.remove(interval)
         if corrupt_segments:
-            log.warn("Redownloading {0} currupt segments.".format(corrupt_segments))
+            log.warning("Redownloading {0} currupt segments.".format(corrupt_segments))
 
     def load_state(self):
         # Establish default intervals
@@ -136,7 +132,7 @@ class SegmentProducer(object):
             os.path.isfile(self.download.path)
             or os.path.isfile(self.download.temp_path)
         ):
-            log.warn(
+            log.warning(
                 STRIP(
                     """A file named '{0} was found but no state file was found at at
                 '{1}'. Either this file was downloaded to a different
@@ -170,7 +166,7 @@ class SegmentProducer(object):
         if not os.path.isfile(self.download.path) and not os.path.isfile(
             self.download.temp_path
         ):
-            log.warn(
+            log.warning(
                 STRIP(
                     """State file found at '{0}' but no file for {1}.
                 Restarting entire download.""".format(
@@ -252,7 +248,7 @@ class SegmentProducer(object):
                 os.rename(temp.name, self.download.state_path)
 
         except KeyboardInterrupt:
-            log.warn("Keyboard interrupt. removing temp save file".format(temp.name))
+            log.warning("Keyboard interrupt. removing temp save file".format(temp.name))
             temp.close()
             os.remove(temp.name)
         except Exception as e:
@@ -276,14 +272,6 @@ class SegmentProducer(object):
         end = min(interval.end, start + self.block_size)
         self.work_pool.chop(start, end)
         return Interval(start, end)
-
-    def print_progress(self):
-        if not self.pbar:
-            return
-        try:
-            self.pbar.update(self.size_complete)
-        except Exception as e:
-            log.debug("Unable to update pbar: {0}".format(str(e)))
 
     def check_file_exists_and_size(self):
         if self.download.is_regular_file:
@@ -317,8 +305,7 @@ class SegmentProducer(object):
             time.sleep(0.1)
 
         # Finish the progressbar
-        if self.pbar:
-            self.pbar.finish()
+        self.pbar.close()
 
     def wait_for_completion(self):
         try:
@@ -327,12 +314,16 @@ class SegmentProducer(object):
                 while since_save < self.save_interval:
                     interval = self.q_complete.get()
                     self.completed.add(interval)
-                    if self.is_complete():
-                        break
+
+                    # Get bytes downloaded and update progress bar
                     this_size = interval.end - interval.begin
                     self.size_complete += this_size
                     since_save += this_size
-                    self.print_progress()
+                    self.pbar.update(this_size)
+
+                    if self.is_complete():
+                        break
+
                 since_save = 0
                 self.save_state()
         finally:

@@ -15,7 +15,7 @@ from intervaltree import Interval
 import os
 import requests
 import time
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 class DownloadStream(object):
@@ -66,7 +66,7 @@ class DownloadStream(object):
         try:
             utils.set_file_length(self.temp_path, self.size)
         except:
-            self.log.warn(
+            self.log.warning(
                 utils.STRIP(
                     """Unable to set file length. File appears to
                 be a {0} file, attempting to proceed.

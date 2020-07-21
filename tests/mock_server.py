@@ -1,7 +1,6 @@
 from flask import Flask, Response, jsonify, request
 from conftest import uuids, make_tarfile
 
-import six
 import json
 import os
 
@@ -114,12 +113,15 @@ def download(ids=""):
     if args:
         ids = args.get("ids")
 
-    if type(ids) in [str, six.text_type]:
+    if isinstance(ids, str):
         ids = [ids]
 
     for i in ids:
         if i not in uuids.keys():
-            return "{0} does not exist in {1}".format(i, uuids.keys())
+            return (
+                jsonify({"message": "{0} not found in {1}".format(i, uuids.keys())}),
+                404,
+            )
 
     is_tarfile = request.args.get("tarfile") is not None
     is_compress = request.args.get("compress") is not None or len(ids) > 1

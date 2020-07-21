@@ -121,7 +121,7 @@ class Client(object):
         if not stream.is_regular_file:
             raise Exception("Not a regular file")
 
-        if stream.md5sum is None:
+        if not stream.md5sum:
             raise Exception(
                 "Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error."
             )
@@ -139,7 +139,7 @@ class Client(object):
 
         # Short circuit if no urls given
         if not urls:
-            log.warn("No file urls given.")
+            log.warning("No file urls given.")
             return
 
         self.raise_for_write_permissions(self.directory)
@@ -167,8 +167,8 @@ class Client(object):
             # Handle file download error, store error to print out later
             except Exception as e:
                 errors[url] = str(e)
-                log.exception(e)
                 if self.debug:
+                    log.exception(e)
                     raise
 
             finally:

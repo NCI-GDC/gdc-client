@@ -55,7 +55,7 @@ def read_token_file(path):
 
     if invalid_permissions:
         permissions_msg = PERMISSIONS_MSG.format(token_file=abspath,)
-        log.warn(permissions_msg)
+        log.warning(permissions_msg)
         # FIXME convert to error after investigation on windows
         # raise argparse.ArgumentTypeError(permissions_msg)
 

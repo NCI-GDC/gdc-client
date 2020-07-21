@@ -6,5 +6,5 @@ setup(
     version=__version__,
     packages=find_packages(),
     package_data={},
-    scripts=["bin/gdc-client",],
+    scripts=["bin/gdc-client"],
 )

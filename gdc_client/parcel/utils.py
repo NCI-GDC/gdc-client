@@ -7,16 +7,15 @@
 # ***************************************************************************************
 
 from contextlib import contextmanager
+from functools import partial
 import hashlib
 import logging
 import mmap
 import os
 import requests
 import stat
-import sys
 
-from progressbar import ProgressBar, Percentage, Bar, ETA, FileTransferSpeed
-
+from tqdm import tqdm as std_tqdm
 
 # Logging
 log = logging.getLogger("utils")
@@ -26,6 +25,9 @@ try:
     requests.packages.urllib3.disable_warnings()
 except Exception as e:
     log.debug("Unable to silence requests warnings: {0}".format(str(e)))
+
+tqdm = partial(std_tqdm, ascii=True)
+tqdm_file = partial(std_tqdm, ascii=True, unit="B", unit_scale=True)
 
 
 def check_transfer_size(actual, expected):
@@ -39,30 +41,24 @@ def check_transfer_size(actual, expected):
     return actual == expected
 
 
-def get_pbar(file_id, maxval, start_val=0):
+def get_pbar(file_id, maxval, start_val=0, desc="Downloading"):
     """Create and initialize a custom progressbar
 
-    :param str title: The text of the progress bar
-    "param int maxva': The maximumum value of the progress bar
+    Args:
+        file_id: file_id to include info about
+        maxval: maximum value for the progress bar
+        start_val: initial value for the progress bar
+        desc: display message next to the file_id
 
+    Returns:
+        tqdm: progress bar instance
     """
     log.debug("Downloading {0}:".format(file_id))
-    pbar = ProgressBar(
-        widgets=[
-            Percentage(),
-            " ",
-            Bar(marker="#", left="[", right="]"),
-            " ",
-            ETA(),
-            " ",
-            FileTransferSpeed(),
-            " ",
-        ],
-        initial_value=start_val,
-        maxval=maxval,
-        fd=sys.stdout,
+    pbar = tqdm_file(
+        total=maxval,
+        initial=start_val,
+        desc="{} {}".format(desc, file_id),
     )
-    pbar.start()
     return pbar
 
 
@@ -104,8 +100,8 @@ def set_file_length(path, length):
 def remove_partial_extension(path):
     try:
         if not path.endswith(".partial"):
-            log.warn("No partial extension found")
-            log.warn("Got {0}".format(path))
+            log.warning("No partial extension found")
+            log.warning("Got {0}".format(path))
             return
         log.debug("renaming to {0}".format(path.replace(".partial", "")))
         os.rename(path, path.replace(".partial", ""))
@@ -156,9 +152,14 @@ def md5sum(block):
 
 def md5sum_whole_file(fname):
     hash_md5 = hashlib.md5()
-    with open(fname, "rb") as f:
+    file_size = os.stat(fname).st_size
+
+    with open(fname, "rb") as f, get_pbar(fname, file_size,
+                                          desc="Validating md5sum") as pbar:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
+            pbar.update(len(chunk))
+
     return hash_md5.hexdigest()
 
 

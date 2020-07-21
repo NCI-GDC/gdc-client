@@ -1,7 +1,6 @@
 import logging
 import time
-from six.moves.urllib import parse as urlparse
-from six.moves import input
+from urllib import parse as urlparse
 from functools import partial
 
 from gdc_client.parcel import colored, manifest
@@ -66,7 +65,7 @@ def download(parser, args):
 
     # Query the api to get the latest version of a file(s) according to the gdc.
     # Return OLD_ID => NEW_ID mapping
-    ids_map = get_latest_versions(args.server, ids)
+    ids_map = get_latest_versions(args.server, ids, verify=not args.no_verify)
 
     if args.latest:
         log.info("Downloading LATEST versions of files")
@@ -76,7 +75,9 @@ def download(parser, args):
             log.info("Latest version for {} ==> {}".format(file_id, latest_id))
             continue
         if latest_id is not None and file_id != latest_id:
-            log.warn('The file "{}" was superseded by "{}"'.format(file_id, latest_id))
+            log.warning(
+                'The file "{}" was superseded by "{}"'.format(file_id, latest_id)
+            )
 
     ids = ids_map.values() if args.latest else ids_map.keys()
 
@@ -247,6 +248,7 @@ def config(parser, download_defaults):
         "frequent printout but lower performance.",
     )
     parser.add_argument(
+        "-k",
         "--no-verify",
         dest="no_verify",
         action="store_true",
