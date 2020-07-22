@@ -4,7 +4,7 @@ pytest-cov==2.7.1
 codacy-coverage==1.3.11
 requests-mock==1.5.2
 tox==3.13.2
-black==19.10b0;python_version>="3.6"
-pre-commit==2.2.0;python_version>="3.6"
+pre-commit==1.21.0
+cfgv==2.0.1
 moto~=1.3.14
 httmock~=1.3.0

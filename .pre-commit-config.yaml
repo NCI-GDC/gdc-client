@@ -8,3 +8,8 @@
   rev: 19.10b0
   hooks:
     - id: black
+-   repo: git@github.com:Yelp/detect-secrets
+    rev: v0.13.0
+    hooks:
+    -   id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
