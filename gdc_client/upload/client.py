@@ -571,10 +571,10 @@ class GDCUploadClient(object):
             for future in as_completed(future_to_part_number):
                 part_number = future_to_part_number[future]
                 if future.result():
-                    log.debug(f"Part: {part_number} is done")
+                    log.debug("Part: {} is done".format(part_number))
                     pbar.update()
                 else:
-                    log.warning(f"Part: {part_number} failed")
+                    log.warning("Part: {} failed".format(part_number))
 
     def list_parts(self):
         r = requests.get(
