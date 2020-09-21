@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import contextlib
 import copy
 import logging
@@ -6,18 +5,19 @@ import math
 import os
 import platform
 import random
-import time
-from collections import deque
-from mmap import PAGESIZE, mmap
-from multiprocessing import Manager
-
 import requests
+import time
 import yaml
-from lxml import etree
-from urllib import parse as urlparse
 
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from gdc_client.parcel.utils import tqdm, tqdm_file
 from gdc_client.upload import manifest
+from lxml import etree
+from mmap import PAGESIZE, mmap
+from multiprocessing import Manager
+from urllib import parse as urlparse
+
 
 log = logging.getLogger("upload")
 
@@ -180,15 +180,16 @@ class GDCUploadClient(object):
         self.upload_id = None
         self.debug = debug
         self.processes = processes
-        self.upload_part_size = int(
-            max(upload_part_size, MIN_PARTSIZE) / PAGESIZE + 1
-        ) * PAGESIZE
+        self.upload_part_size = (
+            int(max(upload_part_size, MIN_PARTSIZE) / PAGESIZE + 1) * PAGESIZE
+        )
         self._metadata = {}
         self.resume_path = "resume_{}".format(self.manifest_name)
         self.graphql_url = urlparse.urljoin(self.server, "v0/submission/graphql")
 
-    def _get_node_metadata_via_graphql(self, node_id, node_type="node",
-                                       fields=("project_id", "file_name")):
+    def _get_node_metadata_via_graphql(
+        self, node_id, node_type="node", fields=("project_id", "file_name")
+    ):
 
         query_template = 'query Files { %s (id: "%s") { %s } }'
         query = {
@@ -196,10 +197,7 @@ class GDCUploadClient(object):
         }
 
         response = requests.post(
-            self.graphql_url,
-            json=query,
-            headers=self.headers,
-            verify=self.verify,
+            self.graphql_url, json=query, headers=self.headers, verify=self.verify,
         )
         return response
 
@@ -232,13 +230,15 @@ class GDCUploadClient(object):
 
         file_type = self._get_node_type(node_id)
 
-        fields = DEFAULT_METADATA if field in DEFAULT_METADATA else DEFAULT_METADATA + (field, )
+        fields = (
+            DEFAULT_METADATA
+            if field in DEFAULT_METADATA
+            else DEFAULT_METADATA + (field,)
+        )
 
         # get metadata about file_type
         r = self._get_node_metadata_via_graphql(
-            node_id,
-            node_type=file_type,
-            fields=fields,
+            node_id, node_type=file_type, fields=fields,
         )
 
         if r.status_code != 200:
@@ -268,7 +268,9 @@ class GDCUploadClient(object):
                 file_id = f["id"]
                 file_entity.node_id = file_id
 
-                project_id = f.get("project_id") or self.get_metadata(file_id, "project_id")
+                project_id = f.get("project_id") or self.get_metadata(
+                    file_id, "project_id"
+                )
                 program, project = [part.upper() for part in project_id.split("-", 1)]
 
                 if not program or not project:
@@ -309,8 +311,9 @@ class GDCUploadClient(object):
                     f.get("path")
                     and file_id
                     and os.path.exists(
-                        os.path.join(f.get("path"),
-                                     self.get_metadata(file_id, "file_name"))
+                        os.path.join(
+                            f.get("path"), self.get_metadata(file_id, "file_name")
+                        )
                     )
                 ):
                     file_entity.file_path = os.path.join(
@@ -358,7 +361,7 @@ class GDCUploadClient(object):
         """
         if os.path.isfile(self.resume_path):
             use_resume = input(
-                "Found an {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(
+                "Found a {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(
                     self.resume_path
                 )
             )
@@ -397,7 +400,9 @@ class GDCUploadClient(object):
                 verify=self.verify,
             )
             if r.status_code not in [204, 404]:
-                raise Exception("Fail to abort multipart upload: \n{}".format(r.content))
+                raise Exception(
+                    "Fail to abort multipart upload: \n{}".format(r.content)
+                )
             else:
                 log.warning("Abort multipart upload {}".format(self.upload_id))
 
@@ -410,7 +415,9 @@ class GDCUploadClient(object):
             if r.status_code == 204:
                 log.info("Delete file {}".format(self.node_id))
             else:
-                log.warning("Fail to delete file {}: {}".format(self.node_id, r.content))
+                log.warning(
+                    "Fail to delete file {}: {}".format(self.node_id, r.content)
+                )
 
     def _upload(self):
         """Simple S3 PUT"""
@@ -452,12 +459,10 @@ class GDCUploadClient(object):
                 self.upload_parts()
                 self.check_multipart()
 
-                # try again in case some parts failed
-                if self.ns.completed != self.total_parts:
-                    self.upload_parts()
-
                 if self.debug:
-                    log.debug("Completed: {}/{}".format(self.ns.completed, self.total_parts))
+                    log.debug(
+                        "Completed: {}/{}".format(self.ns.completed, self.total_parts)
+                    )
 
                 self.complete()
 
@@ -554,8 +559,9 @@ class GDCUploadClient(object):
         if self.total_parts == 0:
             return
 
-        with ThreadPoolExecutor(max_workers=self.processes) as executor, \
-                tqdm(total=len(args_list), unit="part", desc="Multipart Upload") as pbar:
+        with ThreadPoolExecutor(max_workers=self.processes) as executor, tqdm(
+            total=len(args_list), unit="part", desc="Multipart Upload"
+        ) as pbar:
 
             future_to_part_number = {
                 executor.submit(upload_multipart, *payload): payload[5]
@@ -564,8 +570,11 @@ class GDCUploadClient(object):
 
             for future in as_completed(future_to_part_number):
                 part_number = future_to_part_number[future]
-                log.debug("Part: {} is done".format(part_number))
-                pbar.update()
+                if future.result():
+                    log.debug(f"Part: {part_number} is done")
+                    pbar.update()
+                else:
+                    log.warning(f"Part: {part_number} failed")
 
     def list_parts(self):
         r = requests.get(
@@ -663,5 +672,5 @@ class XMLResponse(object):
         elements = self.root.findall("{%s}%s" % (self.namespace, key))
         keys = []
         for element in elements:
-            keys.append({ele.tag.split('}')[-1]: ele.text for ele in element})
+            keys.append({ele.tag.split("}")[-1]: ele.text for ele in element})
         return keys

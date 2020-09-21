@@ -1,23 +1,20 @@
-from collections import namedtuple
+import boto3
+import httmock
 import json
 import os
+import pytest
 import re
+
+from collections import namedtuple
+from gdc_client.upload import client
+from lxml import etree
 from typing import Optional
 from urllib.parse import parse_qs
 from xml.etree.ElementTree import Element
-
-import boto3
-import httmock
-from lxml import etree
-import pytest
 from xmltodict import parse
-
-from gdc_client.upload import GDCUploadClient
-from gdc_client.upload.client import create_resume_path
 
 
 QueryParts = namedtuple("QueryParts", field_names=["node_type", "node_id", "fields"])
-
 FIVE_MB = 5 * 1024 * 1024
 
 
@@ -38,9 +35,39 @@ def parse_graphql_query(query: str) -> Optional[QueryParts]:
         return None
 
     return QueryParts(
-        parts.group("node_type"),
-        parts.group("node_id"),
-        parts.group("fields"),
+        parts.group("node_type"), parts.group("node_id"), parts.group("fields"),
+    )
+
+
+@pytest.fixture
+def mock_simple_upload_client(mock_dir_path):
+    return client.GDCUploadClient(
+        token="dummy",
+        processes=2,
+        server="localhost",
+        upload_part_size=FIVE_MB,
+        multipart=False,
+        files=[
+            {"id": "file-id-2", "path": mock_dir_path},
+            {"id": "file-id-1", "project_id": "GDC-MISC", "path": mock_dir_path},
+        ],
+        debug=False,
+    )
+
+
+@pytest.fixture
+def mock_mp_upload_client(mock_dir_path):
+    return client.GDCUploadClient(
+        token="dummy",
+        processes=2,
+        server="localhost",
+        upload_part_size=FIVE_MB,
+        multipart=True,
+        files=[
+            {"id": "file-id-2", "path": mock_dir_path},
+            {"id": "file-id-1", "project_id": "GDC-MISC", "path": mock_dir_path},
+        ],
+        debug=False,
     )
 
 
@@ -176,7 +203,9 @@ def get_key(url):
     return url.replace("/v0/submission/", "").replace("/files", "")
 
 
-@httmock.urlmatch(netloc="localhost", method="POST", path="/v0/submission/GDC/MISC/files/.*")
+@httmock.urlmatch(
+    netloc="localhost", method="POST", path="/v0/submission/GDC/MISC/files/.*"
+)
 def handle_post_mp(url, req):
     """Handle POST requests to S3
 
@@ -208,10 +237,12 @@ def handle_post_mp(url, req):
             for elem in mp_request.findall("Part"):
                 ordered_dict = parse(etree.tostring(elem))
                 part_meta = ordered_dict["Part"]
-                parts.append({
-                    "ETag": part_meta["ETag"],
-                    "PartNumber": int(part_meta["PartNumber"]),
-                })
+                parts.append(
+                    {
+                        "ETag": part_meta["ETag"],
+                        "PartNumber": int(part_meta["PartNumber"]),
+                    }
+                )
 
             result = client.complete_multipart_upload(
                 Bucket="test-bucket",
@@ -222,7 +253,7 @@ def handle_post_mp(url, req):
 
             return httmock.response(
                 result["ResponseMetadata"]["HTTPStatusCode"],
-                to_xml_response("CompleteMultipartUploadResult", result)
+                to_xml_response("CompleteMultipartUploadResult", result),
             )
 
         return httmock.response(400, "unable to process uploadId request")
@@ -230,7 +261,9 @@ def handle_post_mp(url, req):
     return httmock.response(400, "cannot process request")
 
 
-@httmock.urlmatch(netloc="localhost", method="GET", path="/v0/submission/GDC/MISC/files/.*")
+@httmock.urlmatch(
+    netloc="localhost", method="GET", path="/v0/submission/GDC/MISC/files/.*"
+)
 def handle_list_mp(url, _):
     """Handle GET requests to S3
 
@@ -246,11 +279,7 @@ def handle_list_mp(url, _):
 
     upload_id = parsed_qs["uploadId"][0]
 
-    result = client.list_parts(
-        Bucket="test-bucket",
-        Key=key,
-        UploadId=upload_id,
-    )
+    result = client.list_parts(Bucket="test-bucket", Key=key, UploadId=upload_id,)
 
     if "Parts" in result:
         result["Part"] = result.pop("Parts")
@@ -261,8 +290,10 @@ def handle_list_mp(url, _):
     )
 
 
-@httmock.urlmatch(netloc="localhost", method="PUT", path="/v0/submission/GDC/MISC/files/.*")
-def handle_put_parts(url, req):
+@httmock.urlmatch(
+    netloc="localhost", method="PUT", path="/v0/submission/GDC/MISC/files/.*"
+)
+def handle_put_mp(url, req):
     """Handle PUT requests to S3
 
     Handle "upload_part" request:
@@ -296,6 +327,27 @@ def handle_put_parts(url, req):
     )
 
 
+@httmock.urlmatch(
+    netloc="localhost", method="PUT", path="/v0/submission/GDC/MISC/files/.*"
+)
+def handle_put_simple(url, req):
+    """Handle PUT requests to S3
+
+    Handle simple upload requests
+    """
+    client = boto3.client("s3")
+    key = get_key(url.path)
+
+    # for simple upload, return 200 for initial dry_run request
+    if "dry_run" in url.path:
+        return httmock.response(200, "OK")
+
+    # simple upload
+    data = req.body.read(req.body.filesize)
+    result = client.put_object(Body=data, Bucket="test-bucket", Key=key)
+    return httmock.response(200, "OK")
+
+
 @httmock.urlmatch(netloc="localhost", method="DELETE")
 def handle_delete_mp(url, _):
     client = boto3.client("s3")
@@ -305,9 +357,7 @@ def handle_delete_mp(url, _):
 
     upload_id = parsed_qs["uploadId"][0]
     result = client.abort_multipart_upload(
-        Bucket="test-bucket",
-        Key=key,
-        UploadId=upload_id,
+        Bucket="test-bucket", Key=key, UploadId=upload_id,
     )
 
     return httmock.response(
@@ -317,13 +367,24 @@ def handle_delete_mp(url, _):
 
 
 @pytest.fixture
-def s3_proxy_handlers(mock_s3_bucket, mock_s3_conn):
-    return handle_post_mp, handle_list_mp, handle_put_parts, handle_delete_mp
+def s3_proxy_handlers_mp(mock_s3_bucket, mock_s3_conn):
+    return handle_post_mp, handle_list_mp, handle_put_mp, handle_delete_mp
 
 
-@pytest.fixture(autouse=True)
-def mock_submission_server(mock_graphql_responses, s3_proxy_handlers):
-    with httmock.HTTMock(mock_graphql_responses, *s3_proxy_handlers):
+@pytest.fixture
+def s3_proxy_handlers_simple(mock_s3_bucket, mock_s3_conn):
+    return handle_put_simple
+
+
+@pytest.fixture
+def mock_submission_server_mp(mock_graphql_responses, s3_proxy_handlers_mp):
+    with httmock.HTTMock(mock_graphql_responses, *s3_proxy_handlers_mp):
+        yield
+
+
+@pytest.fixture
+def mock_submission_server_simple(mock_graphql_responses, s3_proxy_handlers_simple):
+    with httmock.HTTMock(mock_graphql_responses, s3_proxy_handlers_simple):
         yield
 
 
@@ -332,12 +393,27 @@ def complete_multipart_side_effect(monkeypatch):
     def complete_side_effect(*_, **__):
         raise Exception("Interrupt completion")
 
-    monkeypatch.setattr(GDCUploadClient, "complete", complete_side_effect)
+    monkeypatch.setattr(client.GDCUploadClient, "complete", complete_side_effect)
+
+
+@pytest.fixture
+def upload_multipart_side_effect(monkeypatch):
+    def upload_multipart_side_effect(*_, **__):
+        return False
+
+    monkeypatch.setattr(client, "upload_multipart", upload_multipart_side_effect)
+
+
+@pytest.fixture
+def _upload_side_effect(monkeypatch):
+    def _upload_side_effect(*_, **__):
+        return
+
+    monkeypatch.setattr(client.GDCUploadClient, "_upload", _upload_side_effect)
 
 
 @pytest.fixture(autouse=True)
 def cleanup_resume():
-
     yield
 
     if os.path.isfile("resume_None"):
@@ -349,31 +425,24 @@ def s3_client(mock_s3_conn, mock_s3_bucket):
     return boto3.client("s3")
 
 
-def test_create_resume_path():
-    # don't need to test if there's no file given
-    # that is checked in multipart_upload()
-    tests = ["/path/to/file.yml", "path/to/file.yml", "file.yml"]
-    results = [
-        "/path/to/resume_file.yml",
-        "path/to/resume_file.yml",
-        "resume_file.yml",
-    ]
-    for i, t in enumerate(tests):
-        assert create_resume_path(t) == results[i]
+def assert_common_unsuccessful_scenario(s3_client, client):
+    assert len(client.incompleted) == 0
+    with pytest.raises(Exception, match=".*(NoSuchKey).*"):
+        s3_client.get_object(Bucket="test-bucket", Key="GDC/MISC/file-id-1")
+
+    with pytest.raises(Exception, match=".*(NoSuchKey).*"):
+        s3_client.get_object(Bucket="test-bucket", Key="GDC/MISC/file-id-2")
+
+    assert len(client.file_entities) == 2
+    assert len(client._metadata) == 2
 
 
-@pytest.mark.usefixtures("mock_files")
-def test_multipart_upload__successful_scenario(mock_dir_path, s3_client):
-    client = GDCUploadClient(
-        token="dummy", processes=2, server="localhost", upload_part_size=FIVE_MB,
-        files=[
-            {"id": "file-id-2", "path": mock_dir_path},
-            {"id": "file-id-1", "project_id": "GDC-MISC", "path": mock_dir_path},
-        ],
-        debug=True
-    )
-    client.upload()
+def assert_mp_unsuccessful_scenario(s3_client, client):
+    assert os.path.isfile("resume_None")
+    assert_common_unsuccessful_scenario(s3_client, client)
 
+
+def assert_successful_scenario(s3_client, client):
     assert len(client.file_entities) == 2
     assert len(client._metadata) == 2
     assert not os.path.isfile("resume_None")
@@ -386,27 +455,63 @@ def test_multipart_upload__successful_scenario(mock_dir_path, s3_client):
     assert obj2["Body"].read(64).decode() == "b" * 64
 
 
-@pytest.mark.usefixtures("mock_files", "complete_multipart_side_effect")
-def test_multipart_upload__complete_call_failed(mock_dir_path, s3_client):
-    client = GDCUploadClient(
-        token="dummy", processes=2, server="localhost", upload_part_size=FIVE_MB,
-        files=[
-            {"id": "file-id-2", "path": mock_dir_path},
-            {"id": "file-id-1", "project_id": "GDC-MISC", "path": mock_dir_path},
-        ],
-        debug=True
-    )
+def test_create_resume_path():
+    # don't need to test if there's no file given
+    # that is checked in multipart_upload()
+    tests = ["/path/to/file.yml", "path/to/file.yml", "file.yml"]
+    results = [
+        "/path/to/resume_file.yml",
+        "path/to/resume_file.yml",
+        "resume_file.yml",
+    ]
+    for i, t in enumerate(tests):
+        assert client.create_resume_path(t) == results[i]
 
-    with pytest.raises(Exception, match="Interrupt completion"):
-        client.upload()
 
-    with pytest.raises(Exception, match=".*(NoSuchKey).*"):
-        s3_client.get_object(Bucket="test-bucket", Key="GDC/MISC/file-id-1")
+@pytest.mark.usefixtures(
+    "mock_files", "mock_submission_server_simple", "mock_simple_upload_client"
+)
+def test_simple_upload__success(s3_client, mock_simple_upload_client):
+    mock_simple_upload_client.upload()
+    assert_successful_scenario(s3_client, mock_simple_upload_client)
 
-    with pytest.raises(Exception, match=".*(NoSuchKey).*"):
-        s3_client.get_object(Bucket="test-bucket", Key="GDC/MISC/file-id-2")
 
-    assert len(client.file_entities) == 2
-    assert len(client._metadata) == 2
-    assert len(client.incompleted) == 2
-    assert os.path.isfile("resume_None")
+@pytest.mark.usefixtures(
+    "mock_files", "mock_submission_server_mp", "mock_mp_upload_client"
+)
+def test_mp_upload__success(s3_client, mock_mp_upload_client):
+    mock_mp_upload_client.upload()
+    assert_successful_scenario(s3_client, mock_mp_upload_client)
+
+
+@pytest.mark.usefixtures(
+    "mock_files",
+    "mock_submission_server_simple",
+    "mock_simple_upload_client",
+    "_upload_side_effect",
+)
+def test_simple_upload__unsuccessful(s3_client, mock_simple_upload_client):
+    mock_simple_upload_client.upload()
+    assert_common_unsuccessful_scenario(s3_client, mock_simple_upload_client)
+
+
+@pytest.mark.usefixtures(
+    "mock_files",
+    "mock_submission_server_mp",
+    "mock_mp_upload_client",
+    "complete_multipart_side_effect",
+)
+def test_mp_upload__complete_call_failed(s3_client, mock_mp_upload_client):
+    mock_mp_upload_client.upload()
+    assert_mp_unsuccessful_scenario(s3_client, mock_mp_upload_client)
+
+
+@pytest.mark.usefixtures(
+    "mock_files",
+    "mock_submission_server_mp",
+    "mock_mp_upload_client",
+    "upload_multipart_side_effect",
+)
+def test_mp_upload__upload_multipart_call_failed(s3_client, mock_mp_upload_client):
+    mock_mp_upload_client.upload()
+    assert_mp_unsuccessful_scenario(s3_client, mock_mp_upload_client)
