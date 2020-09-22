@@ -570,6 +570,11 @@ class GDCUploadClient(object):
 
             for future in as_completed(future_to_part_number):
                 part_number = future_to_part_number[future]
+                """
+                    upload_multipart() returns True on success or False on failure
+                    upload_multipart() is responsible for catching exceptions,
+                    so no exception should be re-raised here
+                """
                 if future.result():
                     log.debug("Part: {} is done".format(part_number))
                     pbar.update()

@@ -56,7 +56,7 @@ def mock_simple_upload_client(mock_dir_path):
 
 
 @pytest.fixture
-def mock_mp_upload_client(mock_dir_path):
+def mock_multipart_upload_client(mock_dir_path):
     return client.GDCUploadClient(
         token="dummy",
         processes=2,
@@ -206,7 +206,7 @@ def get_key(url):
 @httmock.urlmatch(
     netloc="localhost", method="POST", path="/v0/submission/GDC/MISC/files/.*"
 )
-def handle_post_mp(url, req):
+def handle_post_multipart(url, req):
     """Handle POST requests to S3
 
     Mainly handle "initiate_multipart" and "complete_multipart" uploads. The first
@@ -264,7 +264,7 @@ def handle_post_mp(url, req):
 @httmock.urlmatch(
     netloc="localhost", method="GET", path="/v0/submission/GDC/MISC/files/.*"
 )
-def handle_list_mp(url, _):
+def handle_list_multipart(url, _):
     """Handle GET requests to S3
 
     List parts for a given multipart uploadId
@@ -293,7 +293,7 @@ def handle_list_mp(url, _):
 @httmock.urlmatch(
     netloc="localhost", method="PUT", path="/v0/submission/GDC/MISC/files/.*"
 )
-def handle_put_mp(url, req):
+def handle_put_multipart(url, req):
     """Handle PUT requests to S3
 
     Handle "upload_part" request:
@@ -349,7 +349,7 @@ def handle_put_simple(url, req):
 
 
 @httmock.urlmatch(netloc="localhost", method="DELETE")
-def handle_delete_mp(url, _):
+def handle_delete_multipart(url, _):
     client = boto3.client("s3")
     key = get_key(url.path)
 
@@ -367,8 +367,13 @@ def handle_delete_mp(url, _):
 
 
 @pytest.fixture
-def s3_proxy_handlers_mp(mock_s3_bucket, mock_s3_conn):
-    return handle_post_mp, handle_list_mp, handle_put_mp, handle_delete_mp
+def s3_proxy_handlers_multipart(mock_s3_bucket, mock_s3_conn):
+    return (
+        handle_post_multipart,
+        handle_list_multipart,
+        handle_put_multipart,
+        handle_delete_multipart,
+    )
 
 
 @pytest.fixture
@@ -377,8 +382,10 @@ def s3_proxy_handlers_simple(mock_s3_bucket, mock_s3_conn):
 
 
 @pytest.fixture
-def mock_submission_server_mp(mock_graphql_responses, s3_proxy_handlers_mp):
-    with httmock.HTTMock(mock_graphql_responses, *s3_proxy_handlers_mp):
+def mock_submission_server_multipart(
+    mock_graphql_responses, s3_proxy_handlers_multipart
+):
+    with httmock.HTTMock(mock_graphql_responses, *s3_proxy_handlers_multipart):
         yield
 
 
@@ -437,7 +444,7 @@ def assert_common_unsuccessful_scenario(s3_client, client):
     assert len(client._metadata) == 2
 
 
-def assert_mp_unsuccessful_scenario(s3_client, client):
+def assert_multipart_unsuccessful_scenario(s3_client, client):
     assert os.path.isfile("resume_None")
     assert_common_unsuccessful_scenario(s3_client, client)
 
@@ -477,11 +484,11 @@ def test_simple_upload__success(s3_client, mock_simple_upload_client):
 
 
 @pytest.mark.usefixtures(
-    "mock_files", "mock_submission_server_mp", "mock_mp_upload_client"
+    "mock_files", "mock_submission_server_multipart", "mock_multipart_upload_client"
 )
-def test_mp_upload__success(s3_client, mock_mp_upload_client):
-    mock_mp_upload_client.upload()
-    assert_successful_scenario(s3_client, mock_mp_upload_client)
+def test_multipart_upload__success(s3_client, mock_multipart_upload_client):
+    mock_multipart_upload_client.upload()
+    assert_successful_scenario(s3_client, mock_multipart_upload_client)
 
 
 @pytest.mark.usefixtures(
@@ -497,21 +504,53 @@ def test_simple_upload__unsuccessful(s3_client, mock_simple_upload_client):
 
 @pytest.mark.usefixtures(
     "mock_files",
-    "mock_submission_server_mp",
-    "mock_mp_upload_client",
+    "mock_submission_server_multipart",
+    "mock_multipart_upload_client",
     "complete_multipart_side_effect",
 )
-def test_mp_upload__complete_call_failed(s3_client, mock_mp_upload_client):
-    mock_mp_upload_client.upload()
-    assert_mp_unsuccessful_scenario(s3_client, mock_mp_upload_client)
+def test_multipart_upload__complete_call_failed(
+    s3_client, mock_multipart_upload_client
+):
+    mock_multipart_upload_client.upload()
+    assert_multipart_unsuccessful_scenario(s3_client, mock_multipart_upload_client)
 
 
 @pytest.mark.usefixtures(
     "mock_files",
-    "mock_submission_server_mp",
-    "mock_mp_upload_client",
+    "mock_submission_server_multipart",
+    "mock_multipart_upload_client",
     "upload_multipart_side_effect",
 )
-def test_mp_upload__upload_multipart_call_failed(s3_client, mock_mp_upload_client):
-    mock_mp_upload_client.upload()
-    assert_mp_unsuccessful_scenario(s3_client, mock_mp_upload_client)
+def test_multipart_upload__upload_multipart_call_failed(
+    s3_client, mock_multipart_upload_client, caplog
+):
+    mock_multipart_upload_client.upload()
+    assert_multipart_unsuccessful_scenario(s3_client, mock_multipart_upload_client)
+
+    # verify log output for each multipart fileupload
+    file_id_1_expected_logs = [
+        "Part: 1 failed",
+        "Part: 2 failed",
+        "Saving unfinished upload file",
+        """Failure: Multipart upload failed for file file-id-1:
+                completed parts: 0, total parts: 2, please try to resume""",
+    ]
+
+    file_id_2_expected_logs = [
+        "Part: 1 failed",
+        "Part: 2 failed",
+        "Part: 3 failed",
+        "Saving unfinished upload file",
+        """Failure: Multipart upload failed for file file-id-2:
+                completed parts: 0, total parts: 3, please try to resume""",
+    ]
+
+    assert len(caplog.records) == 9
+
+    # verify file-id-2 logs
+    for log in caplog.records[:5]:
+        assert log.getMessage().strip() in file_id_2_expected_logs
+
+    # verify file-id-1 logs
+    for log in caplog.records[5:]:
+        assert log.getMessage().strip() in file_id_1_expected_logs
