@@ -344,7 +344,7 @@ def handle_put_simple(url, req):
 
     # simple upload
     data = req.body.read(req.body.filesize)
-    result = client.put_object(Body=data, Bucket="test-bucket", Key=key)
+    client.put_object(Body=data, Bucket="test-bucket", Key=key)
     return httmock.response(200, "OK")
 
 
