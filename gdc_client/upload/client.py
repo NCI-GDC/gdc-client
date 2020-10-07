@@ -515,10 +515,11 @@ class GDCUploadClient(object):
     def upload_parts(self):
         args_list = []
         self.completed = 0
+        self.total_parts = 0
 
         part_amount = int(math.ceil(self.file_size / float(self.upload_part_size)))
+        previously_uploaded = 0
 
-        self.total_parts = part_amount
         for i in range(part_amount):
             offset = i * self.upload_part_size
             num_bytes = min(self.file_size - offset, self.upload_part_size)
@@ -537,11 +538,13 @@ class GDCUploadClient(object):
                     ]
                 )
             else:
-                self.total_parts -= 1
+                previously_uploaded += 1
 
-        if self.total_parts == 0:
+        # all parts have been uploaded, no need to continue
+        if previously_uploaded == part_amount:
             return
 
+        self.total_parts = len(args_list)
         with ThreadPoolExecutor(max_workers=self.processes) as executor, tqdm(
             total=len(args_list), unit="part", desc="Multipart Upload"
         ) as pbar:
