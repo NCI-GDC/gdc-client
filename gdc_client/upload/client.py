@@ -35,8 +35,6 @@ else:
     # needed for forking to work
     freeze_support()
 
-    from multiprocessing.pool import ThreadPool as Pool
-
     from mmap import ALLOCATIONGRANULARITY as PAGESIZE
     from mmap import ACCESS_READ
 
