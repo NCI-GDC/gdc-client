@@ -16,7 +16,7 @@ import yaml
 from lxml import etree
 from urllib import parse as urlparse
 
-from gdc_client.parcel.utils import tqdm, tqdm_file
+from gdc_client.parcel.utils import get_file_transfer_pbar, get_percentage_pbar
 from gdc_client.upload import manifest
 
 log = logging.getLogger("upload")
@@ -51,7 +51,7 @@ log = logging.getLogger("upload-client")
 
 
 class Stream(object):
-    def __init__(self, file, pbar: tqdm, filesize: int):
+    def __init__(self, file, pbar, filesize: int):
         self._file = file
         self.pbar = pbar
         self.filesize = filesize
@@ -63,7 +63,8 @@ class Stream(object):
         chunk = self._file.read(num)
 
         if self.pbar:
-            self.pbar.update(len(chunk))
+            pbar_value = min(self.pbar.value + len(chunk), self.filesize)
+            self.pbar.update(pbar_value)
 
         return chunk
 
@@ -180,15 +181,16 @@ class GDCUploadClient(object):
         self.upload_id = None
         self.debug = debug
         self.processes = processes
-        self.upload_part_size = int(
-            max(upload_part_size, MIN_PARTSIZE) / PAGESIZE + 1
-        ) * PAGESIZE
+        self.upload_part_size = (
+            int(max(upload_part_size, MIN_PARTSIZE) / PAGESIZE + 1) * PAGESIZE
+        )
         self._metadata = {}
         self.resume_path = "resume_{}".format(self.manifest_name)
         self.graphql_url = urlparse.urljoin(self.server, "v0/submission/graphql")
 
-    def _get_node_metadata_via_graphql(self, node_id, node_type="node",
-                                       fields=("project_id", "file_name")):
+    def _get_node_metadata_via_graphql(
+        self, node_id, node_type="node", fields=("project_id", "file_name")
+    ):
 
         query_template = 'query Files { %s (id: "%s") { %s } }'
         query = {
@@ -196,10 +198,7 @@ class GDCUploadClient(object):
         }
 
         response = requests.post(
-            self.graphql_url,
-            json=query,
-            headers=self.headers,
-            verify=self.verify,
+            self.graphql_url, json=query, headers=self.headers, verify=self.verify,
         )
         return response
 
@@ -232,13 +231,15 @@ class GDCUploadClient(object):
 
         file_type = self._get_node_type(node_id)
 
-        fields = DEFAULT_METADATA if field in DEFAULT_METADATA else DEFAULT_METADATA + (field, )
+        fields = (
+            DEFAULT_METADATA
+            if field in DEFAULT_METADATA
+            else DEFAULT_METADATA + (field,)
+        )
 
         # get metadata about file_type
         r = self._get_node_metadata_via_graphql(
-            node_id,
-            node_type=file_type,
-            fields=fields,
+            node_id, node_type=file_type, fields=fields,
         )
 
         if r.status_code != 200:
@@ -268,7 +269,9 @@ class GDCUploadClient(object):
                 file_id = f["id"]
                 file_entity.node_id = file_id
 
-                project_id = f.get("project_id") or self.get_metadata(file_id, "project_id")
+                project_id = f.get("project_id") or self.get_metadata(
+                    file_id, "project_id"
+                )
                 program, project = [part.upper() for part in project_id.split("-", 1)]
 
                 if not program or not project:
@@ -309,8 +312,9 @@ class GDCUploadClient(object):
                     f.get("path")
                     and file_id
                     and os.path.exists(
-                        os.path.join(f.get("path"),
-                                     self.get_metadata(file_id, "file_name"))
+                        os.path.join(
+                            f.get("path"), self.get_metadata(file_id, "file_name")
+                        )
                     )
                 ):
                     file_entity.file_path = os.path.join(
@@ -397,7 +401,9 @@ class GDCUploadClient(object):
                 verify=self.verify,
             )
             if r.status_code not in [204, 404]:
-                raise Exception("Fail to abort multipart upload: \n{}".format(r.content))
+                raise Exception(
+                    "Fail to abort multipart upload: \n{}".format(r.content)
+                )
             else:
                 log.warning("Abort multipart upload {}".format(self.upload_id))
 
@@ -410,7 +416,9 @@ class GDCUploadClient(object):
             if r.status_code == 204:
                 log.info("Delete file {}".format(self.node_id))
             else:
-                log.warning("Fail to delete file {}: {}".format(self.node_id, r.content))
+                log.warning(
+                    "Fail to delete file {}: {}".format(self.node_id, r.content)
+                )
 
     def _upload(self):
         """Simple S3 PUT"""
@@ -424,7 +432,7 @@ class GDCUploadClient(object):
                     log.error("Can't upload: {}".format(r.content))
                     return
 
-                pbar = tqdm_file(total=self.file_size, desc="Regular Upload")
+                pbar = get_file_transfer_pbar(self.file_path, self.file_size, desc="Uploading")
 
                 stream = Stream(f, pbar, self.file_size)
 
@@ -435,7 +443,8 @@ class GDCUploadClient(object):
                 if r.status_code != 200:
                     log.error("Upload failed {}".format(r.content))
                     return
-                pbar.close()
+
+                pbar.finish()
 
                 self.cleanup()
                 log.info("Upload finished for file {}".format(self.node_id))
@@ -457,7 +466,9 @@ class GDCUploadClient(object):
                     self.upload_parts()
 
                 if self.debug:
-                    log.debug("Completed: {}/{}".format(self.ns.completed, self.total_parts))
+                    log.debug(
+                        "Completed: {}/{}".format(self.ns.completed, self.total_parts)
+                    )
 
                 self.complete()
 
@@ -554,8 +565,9 @@ class GDCUploadClient(object):
         if self.total_parts == 0:
             return
 
-        with ThreadPoolExecutor(max_workers=self.processes) as executor, \
-                tqdm(total=len(args_list), unit="part", desc="Multipart Upload") as pbar:
+        pbar = get_percentage_pbar(len(args_list))
+
+        with ThreadPoolExecutor(max_workers=self.processes) as executor:
 
             future_to_part_number = {
                 executor.submit(upload_multipart, *payload): payload[5]
@@ -565,7 +577,8 @@ class GDCUploadClient(object):
             for future in as_completed(future_to_part_number):
                 part_number = future_to_part_number[future]
                 log.debug("Part: {} is done".format(part_number))
-                pbar.update()
+                pbar.update(self.ns.completed)
+        pbar.finish()
 
     def list_parts(self):
         r = requests.get(
@@ -663,5 +676,5 @@ class XMLResponse(object):
         elements = self.root.findall("{%s}%s" % (self.namespace, key))
         keys = []
         for element in elements:
-            keys.append({ele.tag.split('}')[-1]: ele.text for ele in element})
+            keys.append({ele.tag.split("}")[-1]: ele.text for ele in element})
         return keys

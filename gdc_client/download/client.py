@@ -10,7 +10,7 @@ from urllib import parse as urlparse
 
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
-from gdc_client.parcel.utils import tqdm, tqdm_file
+from gdc_client.parcel.utils import get_percentage_pbar
 
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 from gdc_client.utils import build_url
@@ -254,11 +254,9 @@ class GDCHTTPDownloadClient(HTTPClient):
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
-        with open(tarfile_name, "wb") as f, \
-                tqdm_file(desc="Downloading group as tar", ncols=50) as pbar:
+        with open(tarfile_name, "wb") as f:
             for chunk in r:
                 f.write(chunk)
-                pbar.update(len(chunk))
 
         r.close()
 
@@ -276,14 +274,16 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         groupings_len = len(smalls)
 
-        for i, small_group in tqdm(iterable=enumerate(smalls), total=len(smalls),
-                                   desc="Downloading small groups", unit="group"):
+        for i, small_group in enumerate(smalls):
 
             if not small_group:
                 log.error("There are no files to download")
                 return [], 0
 
             log.debug("Saving grouping {0}/{1}".format(i + 1, groupings_len))
+
+            pbar = get_percentage_pbar(1)
+
             tarfile_name, error = self._download_tarfile(small_group)
 
             # this will happen in the result of an
@@ -301,6 +301,9 @@ class GDCHTTPDownloadClient(HTTPClient):
 
             if self.md5_check:
                 errors += self._md5_members(members)
+
+            pbar.update(1)
+            pbar.finish()
 
         return errors, successful_count
 
