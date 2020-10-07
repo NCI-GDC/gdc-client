@@ -1,18 +1,18 @@
-import boto3
-import httmock
 import json
 import os
-import pytest
 import re
-
 from collections import namedtuple
-from gdc_client.upload import client
-from lxml import etree
 from typing import Optional
 from urllib.parse import parse_qs
 from xml.etree.ElementTree import Element
+
+import boto3
+import httmock
+import pytest
+from lxml import etree
 from xmltodict import parse
 
+from gdc_client.upload import client
 
 QueryParts = namedtuple("QueryParts", field_names=["node_type", "node_id", "fields"])
 FIVE_MB = 5 * 1024 * 1024
@@ -39,36 +39,29 @@ def parse_graphql_query(query: str) -> Optional[QueryParts]:
     )
 
 
-@pytest.fixture
-def mock_simple_upload_client(mock_dir_path):
+def build_client(mock_dir_path: str, is_multipart: bool) -> client.GDCUploadClient:
     return client.GDCUploadClient(
         token="dummy",
         processes=2,
         server="localhost",
         upload_part_size=FIVE_MB,
-        multipart=False,
+        multipart=is_multipart,
         files=[
             {"id": "file-id-2", "path": mock_dir_path},
             {"id": "file-id-1", "project_id": "GDC-MISC", "path": mock_dir_path},
         ],
         debug=False,
     )
+
+
+@pytest.fixture
+def mock_simple_upload_client(mock_dir_path):
+    return build_client(mock_dir_path, is_multipart=False)
 
 
 @pytest.fixture
 def mock_multipart_upload_client(mock_dir_path):
-    return client.GDCUploadClient(
-        token="dummy",
-        processes=2,
-        server="localhost",
-        upload_part_size=FIVE_MB,
-        multipart=True,
-        files=[
-            {"id": "file-id-2", "path": mock_dir_path},
-            {"id": "file-id-1", "project_id": "GDC-MISC", "path": mock_dir_path},
-        ],
-        debug=False,
-    )
+    return build_client(mock_dir_path, is_multipart=True)
 
 
 @pytest.fixture

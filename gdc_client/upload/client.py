@@ -5,19 +5,18 @@ import math
 import os
 import platform
 import random
-import requests
 import time
-import yaml
-
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from gdc_client.parcel.utils import tqdm, tqdm_file
-from gdc_client.upload import manifest
-from lxml import etree
 from mmap import PAGESIZE, mmap
-from multiprocessing import Manager
 from urllib import parse as urlparse
 
+import requests
+import yaml
+from lxml import etree
+
+from gdc_client.parcel.utils import tqdm, tqdm_file
+from gdc_client.upload import manifest
 
 log = logging.getLogger("upload")
 
@@ -37,11 +36,6 @@ else:
     freeze_support()
 
     from multiprocessing.pool import ThreadPool as Pool
-
-    # Fake multiprocessing manager namespace
-    class FakeNamespace(object):
-        def __init__(self):
-            self.completed = 0
 
     from mmap import ALLOCATIONGRANULARITY as PAGESIZE
     from mmap import ACCESS_READ
@@ -77,7 +71,6 @@ def upload_multipart(
     part_number,
     headers,
     verify=True,
-    ns=None,
     debug=False,
 ):
     tries = MAX_RETRIES
@@ -112,10 +105,6 @@ def upload_multipart(
 
             if res.status_code == 200:
                 log.debug("Finish upload part {}".format(part_number))
-
-                if ns is not None:
-                    ns.completed += 1
-
                 return True
 
             time.sleep(get_sleep_time(tries))
@@ -461,7 +450,7 @@ class GDCUploadClient(object):
 
                 if self.debug:
                     log.debug(
-                        "Completed: {}/{}".format(self.ns.completed, self.total_parts)
+                        "Completed: {}/{}".format(self.completed, self.total_parts)
                     )
 
                 self.complete()
@@ -525,12 +514,7 @@ class GDCUploadClient(object):
 
     def upload_parts(self):
         args_list = []
-        if OS_WINDOWS:
-            self.ns = FakeNamespace()
-        else:
-            manager = Manager()
-            self.ns = manager.Namespace()
-            self.ns.completed = 0
+        self.completed = 0
 
         part_amount = int(math.ceil(self.file_size / float(self.upload_part_size)))
 
@@ -549,7 +533,6 @@ class GDCUploadClient(object):
                         i + 1,
                         self.headers,
                         self.verify,
-                        self.ns,
                         self.debug,
                     ]
                 )
@@ -577,6 +560,7 @@ class GDCUploadClient(object):
                 """
                 if future.result():
                     log.debug("Part: {} is done".format(part_number))
+                    self.completed += 1
                     pbar.update()
                 else:
                     log.warning("Part: {} failed".format(part_number))
@@ -596,11 +580,11 @@ class GDCUploadClient(object):
 
     def complete(self):
         self.check_multipart()
-        if self.ns.completed != self.total_parts:
+        if self.completed != self.total_parts:
             raise Exception(
                 """Multipart upload failed for file {}:
                 completed parts: {}, total parts: {}, please try to resume""".format(
-                    self.node_id, self.ns.completed, self.total_parts
+                    self.node_id, self.completed, self.total_parts
                 )
             )
 
