@@ -19,12 +19,12 @@ from intervaltree import Interval, IntervalTree
 
 from gdc_client.parcel.portability import OS_WINDOWS
 from gdc_client.parcel.utils import (
-    get_file_transfer_pbar,
-    get_percentage_pbar,
+    get_pbar,
     md5sum,
     mmap_open,
     STRIP,
     check_file_existence_and_size,
+    tqdm,
 )
 from gdc_client.parcel.const import SAVE_INTERVAL
 
@@ -64,7 +64,7 @@ class SegmentProducer(object):
         self.schedule()
 
     def _setup_pbar(self):
-        self.pbar = get_file_transfer_pbar(self.download.url, self.download.size)
+        self.pbar = get_pbar(self.download.url, self.download.size)
 
     def _setup_work(self):
         if self.is_complete():
@@ -94,10 +94,12 @@ class SegmentProducer(object):
 
         log.debug("Checksumming {0}:".format(self.download.url))
 
-        pbar = get_percentage_pbar(len(intervals))
+        pbar = tqdm(
+            iterable=intervals, desc="Segment md5sum validation", file=sys.stdout,
+        )
 
         with mmap_open(path or self.download.path) as data:
-            for interval in pbar(intervals):
+            for interval in pbar:
                 log.debug("Checking segment md5: {0}".format(interval))
                 if not interval.data or "md5sum" not in interval.data:
                     log.error(
@@ -118,7 +120,6 @@ class SegmentProducer(object):
                     )
                     corrupt_segments += 1
                     self.completed.remove(interval)
-
         if corrupt_segments:
             log.warning("Redownloading {0} currupt segments.".format(corrupt_segments))
 
@@ -272,17 +273,6 @@ class SegmentProducer(object):
         self.work_pool.chop(start, end)
         return Interval(start, end)
 
-    def print_progress(self):
-        if not self.pbar:
-            return
-
-        pbar_value = min(self.pbar.max_value, self.size_complete)
-
-        try:
-            self.pbar.update(pbar_value)
-        except Exception as e:
-            log.debug("Unable to update pbar: {}".format(str(e)))
-
     def check_file_exists_and_size(self):
         if self.download.is_regular_file:
             return check_file_existence_and_size(
@@ -315,7 +305,7 @@ class SegmentProducer(object):
             time.sleep(0.1)
 
         # Finish the progressbar
-        self.pbar.finish()
+        self.pbar.close()
 
     def wait_for_completion(self):
         try:
@@ -329,8 +319,7 @@ class SegmentProducer(object):
                     this_size = interval.end - interval.begin
                     self.size_complete += this_size
                     since_save += this_size
-
-                    self.print_progress()
+                    self.pbar.update(this_size)
 
                     if self.is_complete():
                         break

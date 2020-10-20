@@ -15,7 +15,7 @@ import requests
 import yaml
 from lxml import etree
 
-from gdc_client.parcel.utils import get_file_transfer_pbar, get_percentage_pbar
+from gdc_client.parcel.utils import tqdm, tqdm_file
 from gdc_client.upload import manifest
 
 log = logging.getLogger("upload")
@@ -43,7 +43,7 @@ log = logging.getLogger("upload-client")
 
 
 class Stream(object):
-    def __init__(self, file, pbar, filesize: int):
+    def __init__(self, file, pbar: tqdm, filesize: int):
         self._file = file
         self.pbar = pbar
         self.filesize = filesize
@@ -55,8 +55,7 @@ class Stream(object):
         chunk = self._file.read(num)
 
         if self.pbar:
-            pbar_value = min(self.pbar.value + len(chunk), self.filesize)
-            self.pbar.update(pbar_value)
+            self.pbar.update(len(chunk))
 
         return chunk
 
@@ -419,9 +418,7 @@ class GDCUploadClient(object):
                     log.error("Can't upload: {}".format(r.content))
                     return
 
-                pbar = get_file_transfer_pbar(
-                    self.file_path, self.file_size, desc="Uploading"
-                )
+                pbar = tqdm_file(total=self.file_size, desc="Regular Upload")
 
                 stream = Stream(f, pbar, self.file_size)
 
@@ -432,8 +429,7 @@ class GDCUploadClient(object):
                 if r.status_code != 200:
                     log.error("Upload failed {}".format(r.content))
                     return
-
-                pbar.finish()
+                pbar.close()
 
                 self.cleanup()
                 log.info("Upload finished for file {}".format(self.node_id))
@@ -550,6 +546,7 @@ class GDCUploadClient(object):
         with ThreadPoolExecutor(max_workers=self.processes) as executor, tqdm(
             total=len(args_list), unit="part", desc="Multipart Upload"
         ) as pbar:
+
             future_to_part_number = {
                 executor.submit(upload_multipart, *payload): payload[5]
                 for payload in args_list

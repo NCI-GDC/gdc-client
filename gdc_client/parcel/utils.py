@@ -14,15 +14,8 @@ import mmap
 import os
 import requests
 import stat
-import sys
 
-from progressbar import (
-    Bar,
-    ETA,
-    FileTransferSpeed,
-    Percentage,
-    ProgressBar,
-)
+from tqdm import tqdm as std_tqdm
 
 # Logging
 log = logging.getLogger("utils")
@@ -32,6 +25,9 @@ try:
     requests.packages.urllib3.disable_warnings()
 except Exception as e:
     log.debug("Unable to silence requests warnings: {0}".format(str(e)))
+
+tqdm = partial(std_tqdm, ascii=True)
+tqdm_file = partial(std_tqdm, ascii=True, unit="B", unit_scale=True)
 
 
 def check_transfer_size(actual, expected):
@@ -45,56 +41,24 @@ def check_transfer_size(actual, expected):
     return actual == expected
 
 
-def get_file_transfer_pbar(
-    file_id: str,
-    maxval: int,
-    start_val: int = 0,
-    desc: str = "Downloading",
-) -> ProgressBar:
+def get_pbar(file_id, maxval, start_val=0, desc="Downloading"):
     """Create and initialize a custom progressbar
 
     Args:
-        file_id: file_id to include in the debug message
+        file_id: file_id to include info about
         maxval: maximum value for the progress bar
         start_val: initial value for the progress bar
-        desc: additional debug message before the file_id
+        desc: display message next to the file_id
 
     Returns:
-        ProgressBar: progress bar instance
+        tqdm: progress bar instance
     """
-    log.debug("{} {}:".format(desc, file_id))
-
-    pbar = ProgressBar(
-        widgets=[
-            Percentage(),
-            " ",
-            Bar(marker="#", left="[", right="]"),
-            " ",
-            ETA(),
-            " ",
-            FileTransferSpeed(),
-            " ",
-        ],
-        max_value=maxval,
-        initial_value=start_val,
-        fd=sys.stdout,
+    log.debug("Downloading {0}:".format(file_id))
+    pbar = tqdm_file(
+        total=maxval,
+        initial=start_val,
+        desc="{} {}".format(desc, file_id),
     )
-    pbar.start()
-    return pbar
-
-
-def get_percentage_pbar(maxval: int):
-    """Create and initialize a simple percentage progressbar"""
-    pbar = ProgressBar(
-        widgets=[
-            Percentage(),
-            " ",
-            Bar(marker="#", left="[", right="]"),
-            " ",
-        ],
-        max_value=maxval,
-    )
-    pbar.start()
     return pbar
 
 
@@ -188,10 +152,13 @@ def md5sum(block):
 
 def md5sum_whole_file(fname):
     hash_md5 = hashlib.md5()
+    file_size = os.stat(fname).st_size
 
-    with open(fname, "rb") as f:
+    with open(fname, "rb") as f, get_pbar(fname, file_size,
+                                          desc="Validating md5sum") as pbar:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
+            pbar.update(len(chunk))
 
     return hash_md5.hexdigest()
 
