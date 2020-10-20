@@ -547,9 +547,9 @@ class GDCUploadClient(object):
             return
 
         self.total_parts = len(args_list)
-        with ThreadPoolExecutor(max_workers=self.processes) as executor, tqdm(
-            total=len(args_list), unit="part", desc="Multipart Upload"
-        ) as pbar:
+        pbar = get_percentage_pbar(len(args_list))
+
+        with ThreadPoolExecutor(max_workers=self.processes) as executor:
             future_to_part_number = {
                 executor.submit(upload_multipart, *payload): payload[5]
                 for payload in args_list
@@ -565,9 +565,10 @@ class GDCUploadClient(object):
                 if future.result():
                     log.debug("Part: {} is done".format(part_number))
                     self.completed += 1
-                    pbar.update()
+                    pbar.update(self.completed)
                 else:
                     log.warning("Part: {} failed".format(part_number))
+        pbar.finish()
 
     def list_parts(self):
         r = requests.get(
