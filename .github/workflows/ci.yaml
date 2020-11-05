@@ -6,6 +6,7 @@ on:
       - release/**
       - hotfix/**
       - feat/dev-245-build-binaries
+      - dev-401-multipart-upload-logging
     tags:
       - "*"
 

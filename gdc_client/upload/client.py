@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import contextlib
 import copy
 import logging
@@ -8,13 +7,13 @@ import platform
 import random
 import time
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from mmap import PAGESIZE, mmap
-from multiprocessing import Manager
+from urllib import parse as urlparse
 
 import requests
 import yaml
 from lxml import etree
-from urllib import parse as urlparse
 
 from gdc_client.parcel.utils import get_file_transfer_pbar, get_percentage_pbar
 from gdc_client.upload import manifest
@@ -35,13 +34,6 @@ else:
 
     # needed for forking to work
     freeze_support()
-
-    from multiprocessing.pool import ThreadPool as Pool
-
-    # Fake multiprocessing manager namespace
-    class FakeNamespace(object):
-        def __init__(self):
-            self.completed = 0
 
     from mmap import ALLOCATIONGRANULARITY as PAGESIZE
     from mmap import ACCESS_READ
@@ -78,7 +70,6 @@ def upload_multipart(
     part_number,
     headers,
     verify=True,
-    ns=None,
     debug=False,
 ):
     tries = MAX_RETRIES
@@ -113,10 +104,6 @@ def upload_multipart(
 
             if res.status_code == 200:
                 log.debug("Finish upload part {}".format(part_number))
-
-                if ns is not None:
-                    ns.completed += 1
-
                 return True
 
             time.sleep(get_sleep_time(tries))
@@ -362,7 +349,7 @@ class GDCUploadClient(object):
         """
         if os.path.isfile(self.resume_path):
             use_resume = input(
-                "Found an {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(
+                "Found a {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(
                     self.resume_path
                 )
             )
@@ -432,7 +419,9 @@ class GDCUploadClient(object):
                     log.error("Can't upload: {}".format(r.content))
                     return
 
-                pbar = get_file_transfer_pbar(self.file_path, self.file_size, desc="Uploading")
+                pbar = get_file_transfer_pbar(
+                    self.file_path, self.file_size, desc="Uploading"
+                )
 
                 stream = Stream(f, pbar, self.file_size)
 
@@ -461,13 +450,9 @@ class GDCUploadClient(object):
                 self.upload_parts()
                 self.check_multipart()
 
-                # try again in case some parts failed
-                if self.ns.completed != self.total_parts:
-                    self.upload_parts()
-
                 if self.debug:
                     log.debug(
-                        "Completed: {}/{}".format(self.ns.completed, self.total_parts)
+                        "Completed: {}/{}".format(self.completed, self.total_parts)
                     )
 
                 self.complete()
@@ -531,16 +516,12 @@ class GDCUploadClient(object):
 
     def upload_parts(self):
         args_list = []
-        if OS_WINDOWS:
-            self.ns = FakeNamespace()
-        else:
-            manager = Manager()
-            self.ns = manager.Namespace()
-            self.ns.completed = 0
+        self.completed = 0
+        self.total_parts = 0
 
         part_amount = int(math.ceil(self.file_size / float(self.upload_part_size)))
+        previously_uploaded = 0
 
-        self.total_parts = part_amount
         for i in range(part_amount):
             offset = i * self.upload_part_size
             num_bytes = min(self.file_size - offset, self.upload_part_size)
@@ -555,20 +536,20 @@ class GDCUploadClient(object):
                         i + 1,
                         self.headers,
                         self.verify,
-                        self.ns,
                         self.debug,
                     ]
                 )
             else:
-                self.total_parts -= 1
+                previously_uploaded += 1
 
-        if self.total_parts == 0:
+        # all parts have been uploaded, no need to continue
+        if previously_uploaded == part_amount:
             return
 
+        self.total_parts = len(args_list)
         pbar = get_percentage_pbar(len(args_list))
 
         with ThreadPoolExecutor(max_workers=self.processes) as executor:
-
             future_to_part_number = {
                 executor.submit(upload_multipart, *payload): payload[5]
                 for payload in args_list
@@ -576,8 +557,17 @@ class GDCUploadClient(object):
 
             for future in as_completed(future_to_part_number):
                 part_number = future_to_part_number[future]
-                log.debug("Part: {} is done".format(part_number))
-                pbar.update(self.ns.completed)
+                """
+                    upload_multipart() returns True on success or False on failure
+                    upload_multipart() is responsible for catching exceptions,
+                    so no exception should be re-raised here
+                """
+                if future.result():
+                    log.debug("Part: {} is done".format(part_number))
+                    self.completed += 1
+                    pbar.update(self.completed)
+                else:
+                    log.warning("Part: {} failed".format(part_number))
         pbar.finish()
 
     def list_parts(self):
@@ -595,11 +585,11 @@ class GDCUploadClient(object):
 
     def complete(self):
         self.check_multipart()
-        if self.ns.completed != self.total_parts:
+        if self.completed != self.total_parts:
             raise Exception(
                 """Multipart upload failed for file {}:
                 completed parts: {}, total parts: {}, please try to resume""".format(
-                    self.node_id, self.ns.completed, self.total_parts
+                    self.node_id, self.completed, self.total_parts
                 )
             )
 
