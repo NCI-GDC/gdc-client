@@ -7,6 +7,7 @@
 # ***************************************************************************************
 
 import logging
+import math
 import os
 import pickle
 import random
@@ -73,6 +74,8 @@ class SegmentProducer(object):
 
         work_size = self.integrate(self.work_pool)
         self.block_size = work_size // self.n_procs
+        self.total_tasks = math.ceil(work_size / self.block_size)
+        log.debug("Total number of tasks: {0}".format(self.total_tasks))
 
     def _setup_queues(self):
         if WINDOWS:
@@ -320,9 +323,19 @@ class SegmentProducer(object):
     def wait_for_completion(self):
         try:
             since_save = 0
-            while not self.is_complete():
+            num_tasks_completed = 0
+            while num_tasks_completed != self.total_tasks:
                 while since_save < self.save_interval:
                     interval = self.q_complete.get()
+                    # Once a process completes a tasks (sucess or failure),
+                    # it will return a sentinal value (None) to main process
+                    # to indicate that a task was completed
+                    if interval is None:
+                        num_tasks_completed += 1
+                        if num_tasks_completed == self.total_tasks:
+                            break
+                        continue
+
                     self.completed.add(interval)
 
                     # Get bytes downloaded and update progress bar
@@ -331,9 +344,6 @@ class SegmentProducer(object):
                     since_save += this_size
 
                     self.print_progress()
-
-                    if self.is_complete():
-                        break
 
                 since_save = 0
                 self.save_state()

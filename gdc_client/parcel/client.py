@@ -182,15 +182,11 @@ class Client(object):
         return downloaded, errors
 
     def serial_download(self, stream):
-        """Download file to directory serially.
-
-        """
+        """Download file to directory serially."""
         self._download(1, stream)
 
     def parallel_download(self, stream):
-        """Download file to directory in parallel.
-
-        """
+        """Download file to directory in parallel."""
         self._download(self.n_procs, stream)
 
     def _download(self, nprocs, stream):
@@ -223,12 +219,20 @@ class Client(object):
                     if segment is None:
                         return log.debug("Producer returned with no more work")
                     stream.write_segment(segment, producer.q_complete)
+                    # write_segment completed successfully, send sentinal value
+                    # to master process to indicate a task was completed
+                    producer.q_complete.put(None)
                 except Exception as e:
+                    # send sentinal value to master process even though
+                    # write_segment failed to indicate a task is "finished"
+                    producer.q_complete.put(None)
                     if self.debug:
                         raise
                     else:
                         log.error("Download aborted: {0}".format(str(e)))
-                        break
+                        # worker needs to stay alive until final sentinal value
+                        # from master process is received
+                        continue
 
         # Divide work amongst process pool
         pool = [Process(target=download_worker) for i in range(n_procs)]
