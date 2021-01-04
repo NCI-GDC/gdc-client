@@ -112,6 +112,16 @@ def versions_response(requests_mock):
 
 
 @pytest.fixture
+def versions_response_error(requests_mock):
+    def mock_response(url: str) -> None:
+        requests_mock.post(
+            url, content=bytes("<html>502 Bad Gateway</html>", "utf-8"),
+        )
+
+    return mock_response
+
+
+@pytest.fixture
 def mock_s3_conn():
     with mock_s3():
         conn = boto3.resource("s3")
