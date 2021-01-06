@@ -119,14 +119,17 @@ def test_get_latest_versions(
     assert result == expected
 
 
-@pytest.mark.parametrize(
-    "ids, latest_ids", [(["foo", "bar"], ["foo", "baz"])],
-)
-def test_get_latest_versions_error(
-    versions_response_error, ids: List[str], latest_ids: List[str],
-) -> None:
+@pytest.mark.parametrize("ids", [(["foo", "bar"])])
+def test_get_latest_versions_error(versions_response_error, ids: List[str],) -> None:
     url = "https://example.com"
     versions_response_error(url + "/files/versions")
 
-    with pytest.raises(Exception):
+    with pytest.raises(Exception) as e:
         _ = get_latest_versions(url, ids)
+
+    expected_err_msg = (
+        "The following request {0} for ids "
+        "{1} returned with status code: 502 and response content: "
+        "b'<html>502 Bad Gateway</html>'".format(url + "/files/versions", ids)
+    )
+    assert expected_err_msg in str(e)

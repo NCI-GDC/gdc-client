@@ -29,24 +29,26 @@ def get_latest_versions(url, uuids, verify=True):
     for chunk in _chunk_list(uuids):
         resp = requests.post(versions_url, json={"ids": chunk}, verify=verify)
 
-        # Parse the results of the chunked query.
-        try:
-            for result in resp.json():
-                file_id = result.get("id")
-                uuid = result.get("latest_id")
-                if uuid:
-                    latest_versions[file_id] = uuid
-                else:
-                    # Might happen for legacy files
-                    latest_versions[file_id] = file_id
-        except json.JSONDecodeError as e:
-            # json() will fail if response body is not valid JSON
-            logger.error(
-                "The following response content resulted from request {0} for ids {1}: \n{2}".format(
-                    versions_url, chunk, resp.content
+        # anything greater than or equal to a 400 status code is not allowed
+        if not resp.ok:
+            raise Exception(
+                (
+                    "The following request {0} for ids {1} returned with "
+                    "status code: {2} and response content: {3}"
+                ).format(
+                    versions_url, chunk, resp.status_code, resp.content,
                 )
             )
-            raise e
+
+        # Parse the results of the chunked query.
+        for result in resp.json():
+            file_id = result.get("id")
+            uuid = result.get("latest_id")
+            if uuid:
+                latest_versions[file_id] = uuid
+            else:
+                # Might happen for legacy files
+                latest_versions[file_id] = file_id
 
     return latest_versions
 

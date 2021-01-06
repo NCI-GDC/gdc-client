@@ -115,7 +115,9 @@ def versions_response(requests_mock):
 def versions_response_error(requests_mock):
     def mock_response(url: str) -> None:
         requests_mock.post(
-            url, content=bytes("<html>502 Bad Gateway</html>", "utf-8"),
+            url,
+            content=bytes("<html>502 Bad Gateway</html>", "utf-8"),
+            status_code=502,
         )
 
     return mock_response
