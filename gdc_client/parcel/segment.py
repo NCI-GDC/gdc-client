@@ -56,6 +56,7 @@ class SegmentProducer(object):
         self.download = download
         self.n_procs = n_procs
         self.pbar = None
+        self.total_tasks = 0
 
         # Initialize producer
         self.load_state()
