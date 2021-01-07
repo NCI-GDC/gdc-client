@@ -3,8 +3,9 @@
 Functionality related to versioning.
 """
 import logging
-import json
 import requests
+
+from gdc_client.exceptions import ServerError
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ def get_latest_versions(url, uuids, verify=True):
 
         # anything greater than or equal to a 400 status code is not allowed
         if not resp.ok:
-            raise Exception(
+            raise ServerError(
                 (
                     "The following request {0} for ids {1} returned with "
                     "status code: {2} and response content: {3}"

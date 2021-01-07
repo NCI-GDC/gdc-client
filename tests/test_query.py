@@ -1,7 +1,9 @@
 import pytest
+import re
 from typing import List, Iterable, Mapping
 
 from conftest import uuids
+from gdc_client.exceptions import ServerError
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.query.versions import _chunk_list, get_latest_versions
@@ -124,12 +126,13 @@ def test_get_latest_versions_error(versions_response_error, ids: List[str],) -> 
     url = "https://example.com"
     versions_response_error(url + "/files/versions")
 
-    with pytest.raises(Exception) as e:
-        _ = get_latest_versions(url, ids)
-
-    expected_err_msg = (
-        "The following request {0} for ids "
-        "{1} returned with status code: 502 and response content: "
-        "b'<html>502 Bad Gateway</html>'".format(url + "/files/versions", ids)
+    expected_err_msg = re.escape(
+        (
+            "The following request {0} for ids "
+            "{1} returned with status code: 502 and response content: "
+            "b'<html>502 Bad Gateway</html>'".format(url + "/files/versions", ids)
+        )
     )
-    assert expected_err_msg in str(e)
+
+    with pytest.raises(ServerError, match=expected_err_msg):
+        _ = get_latest_versions(url, ids)
