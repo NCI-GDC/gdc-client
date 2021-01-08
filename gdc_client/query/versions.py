@@ -30,7 +30,6 @@ def get_latest_versions(url, uuids, verify=True):
     for chunk in _chunk_list(uuids):
         resp = requests.post(versions_url, json={"ids": chunk}, verify=verify)
 
-        # anything greater than or equal to a 400 status code is not allowed
         if not resp.ok:
             raise ServerError(
                 (
