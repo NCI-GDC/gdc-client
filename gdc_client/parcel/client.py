@@ -110,7 +110,7 @@ class Client(object):
 
         log.debug("Download complete" + rate_info)
 
-    def validate_file_md5sum(self, stream):
+    def validate_file_md5sum(self, stream, file_path):
 
         if not stream.check_file_md5sum:
             log.debug("checksum validation disabled")
@@ -126,7 +126,7 @@ class Client(object):
                 "Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error."
             )
 
-        if utils.md5sum_whole_file(stream.path) != stream.md5sum:
+        if utils.md5sum_whole_file(file_path) != stream.md5sum:
             raise Exception("File checksum is invalid")
 
     def download_files(self, urls, *args, **kwargs):
@@ -158,10 +158,11 @@ class Client(object):
 
             # Download file
             try:
+                # validate temporary file before renaming to permanent file location
                 self.parallel_download(stream)
+                self.validate_file_md5sum(stream, stream.temp_path)
                 if os.path.isfile(stream.temp_path):
                     utils.remove_partial_extension(stream.temp_path)
-                self.validate_file_md5sum(stream)
                 downloaded.append(url)
 
             # Handle file download error, store error to print out later
