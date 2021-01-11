@@ -5,7 +5,7 @@ Functionality related to versioning.
 import logging
 import requests
 
-from gdc_client.exceptions import ServerError
+from gdc_client.exceptions import HTTPError
 
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def get_latest_versions(url, uuids, verify=True):
         resp = requests.post(versions_url, json={"ids": chunk}, verify=verify)
 
         if not resp.ok:
-            raise ServerError(
+            raise HTTPError(
                 (
                     "The following request {0} for ids {1} returned with "
                     "status code: {2} and response content: {3}"
