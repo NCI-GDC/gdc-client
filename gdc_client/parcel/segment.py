@@ -56,7 +56,6 @@ class SegmentProducer(object):
         self.download = download
         self.n_procs = n_procs
         self.pbar = None
-        self.total_tasks = 0
 
         # Initialize producer
         self.load_state()
@@ -124,60 +123,31 @@ class SegmentProducer(object):
                     self.completed.remove(interval)
 
         if corrupt_segments:
-            log.warning("Redownloading {0} currupt segments.".format(corrupt_segments))
+            log.warning("Redownloading {0} corrupt segments.".format(corrupt_segments))
 
     def load_state(self):
         # Establish default intervals
         self.work_pool = IntervalTree([Interval(0, self.download.size)])
         self.completed = IntervalTree()
         self.size_complete = 0
-        if not os.path.isfile(self.download.state_path) and (
-            os.path.isfile(self.download.path)
-            or os.path.isfile(self.download.temp_path)
-        ):
-            log.warning(
-                STRIP(
-                    """A file named '{0} was found but no state file was found at at
-                '{1}'. Either this file was downloaded to a different
-                location, the state file was moved, or the state file
-                was deleted.  Parcel refuses to claim the file has
-                been successfully downloaded and will restart the
-                download.\n"""
-                ).format(
-                    (
-                        self.download.path
-                        if os.path.isfile(self.download.path)
-                        else self.download.temp_path
-                    ),
-                    self.download.state_path,
-                )
-            )
-            return
+        self.total_tasks = 0
 
-        if not os.path.isfile(self.download.state_path):
+        state_file_exists = os.path.isfile(self.download.state_path)
+        download_file_exists = os.path.isfile(self.download.path)
+        temporary_file_exists = os.path.isfile(self.download.temp_path)
+
+        # If the state file does not exist, treat as first time run
+        # Create the temporary file and return
+        if not state_file_exists:
             self.download.setup_file()
             return
 
-        # If there is a file at load_path, attempt to remove
-        # downloaded sections from work_pool
         log.debug(
             "Found state file {0}, attempting to resume download".format(
                 self.download.state_path
             )
         )
-
-        if not os.path.isfile(self.download.path) and not os.path.isfile(
-            self.download.temp_path
-        ):
-            log.warning(
-                STRIP(
-                    """State file found at '{0}' but no file for {1}.
-                Restarting entire download.""".format(
-                        self.download.state_path, self.download.url
-                    )
-                )
-            )
-            return
+        # Attempt to load completed segments from state file
         try:
             with open(self.download.state_path, "rb") as f:
                 self.completed = pickle.load(f)
@@ -185,22 +155,58 @@ class SegmentProducer(object):
                 self.completed, IntervalTree
             ), "Bad save state: {0}".format(self.download.state_path)
         except Exception as e:
+            # An error has occured while loading state file.
+            # Treat as entire file download and recreate temporary file
             self.completed = IntervalTree()
-            log.error("Unable to resume file state: {0}".format(str(e)))
-        else:
-            self.validate_segment_md5sums(
-                (
-                    self.download.path
-                    if os.path.isfile(self.download.path)
-                    else self.download.temp_path
+            log.error(
+                "Unable to resume file state: {0}, will restart entire download".format(
+                    str(e)
                 )
             )
-            log.debug("Segments checksum validation complete")
-            self.size_complete = self.integrate(self.completed)
-            log.debug("size complete: {0}".format(self.size_complete))
-            for interval in self.completed:
-                self.work_pool.chop(interval.begin, interval.end)
-            log.debug("State loaded")
+            self.download.setup_file()
+            return
+
+        # If the downloaded file exists, validate the downloaded file
+        # If the file is not complete and correct, retry the entire download
+        # Recreate the temporary file and return
+        if download_file_exists:
+            log.debug(
+                "A file named {0} found, will attempt to validate file".format(
+                    self.download.path
+                )
+            )
+
+            if utils.md5sum_whole_file(file_path) != self.download.md5sum:
+                log.warning(
+                    "Downloaded file does not have correct md5 hash, proceeding to restart entire download"
+                )
+                self.download.setup_file()
+                return
+
+            # downloaded file is correct, set completed flag in SegmentProducer
+            self.done = True
+            return
+
+        if not temporary_file_exists:
+            log.debug(
+                "State file exists but no previous partial file {0} detected. Restarting entire download.".format(
+                    self.download.temp_path
+                )
+            )
+            self.download.setup_file()
+            return
+
+        # If temporary file exists, means that a previous download of the file
+        # failed or was interrupted.
+        # Check completed segments md5 sums of each completed segment
+        self.validate_segment_md5sums(self.download.temp_path)
+        log.debug("Segments checksum validation complete")
+        self.size_complete = self.integrate(self.completed)
+        log.debug("size complete: {0}".format(self.size_complete))
+        # Remove already completed intervals from work_pool
+        for interval in self.completed:
+            self.work_pool.chop(interval.begin, interval.end)
+        log.debug("State loaded")
 
     def save_state(self):
         try:
