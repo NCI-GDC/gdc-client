@@ -20,6 +20,8 @@ def get_latest_versions(url, uuids, verify=True):
 
     Returns:
         dict: mapping for user requested file UUIDs potentially new versions
+    Raises:
+        ServerError: if request for files versions fails
     """
 
     uuids = list(uuids)
