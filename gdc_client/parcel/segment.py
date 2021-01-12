@@ -26,6 +26,7 @@ from gdc_client.parcel.utils import (
     mmap_open,
     STRIP,
     check_file_existence_and_size,
+    validate_file_md5sum,
 )
 from gdc_client.parcel.const import SAVE_INTERVAL
 
@@ -56,22 +57,20 @@ class SegmentProducer(object):
         self.download = download
         self.n_procs = n_procs
         self.pbar = None
+        self.done = False
 
         # Initialize producer
         self.load_state()
-        self._setup_pbar()
-        self._setup_queues()
-        self._setup_work()
-        self.schedule()
+        if not self.done:
+            self._setup_pbar()
+            self._setup_queues()
+            self._setup_work()
+            self.schedule()
 
     def _setup_pbar(self):
         self.pbar = get_file_transfer_pbar(self.download.url, self.download.size)
 
     def _setup_work(self):
-        if self.is_complete():
-            log.debug("File already complete.")
-            return
-
         work_size = self.integrate(self.work_pool)
         self.block_size = work_size // self.n_procs
         self.total_tasks = math.ceil(work_size / self.block_size)
@@ -139,6 +138,11 @@ class SegmentProducer(object):
         # If the state file does not exist, treat as first time run
         # Create the temporary file and return
         if not state_file_exists:
+            log.debug(
+                "State file {0} does not exist. Beginning new download...".format(
+                    self.download.state_path
+                )
+            )
             self.download.setup_file()
             return
 
@@ -176,14 +180,26 @@ class SegmentProducer(object):
                 )
             )
 
-            if utils.md5sum_whole_file(file_path) != self.download.md5sum:
+            if not self.is_complete(self.download.path):
                 log.warning(
-                    "Downloaded file does not have correct md5 hash, proceeding to restart entire download"
+                    "Downloaded file is not complete, proceeding to restart entire download"
+                )
+                self.download.setup_file()
+                return
+            # check md5 sum
+            try:
+                validate_file_md5sum(self.download, self.download.path)
+            except Exception as e:
+                log.error(
+                    "MD5 sum of downloaded file is incorrect due to following reason: {0}. Proceeding to restart entire download".format(
+                        str(e)
+                    )
                 )
                 self.download.setup_file()
                 return
 
-            # downloaded file is correct, set completed flag in SegmentProducer
+            log.debug("File is complete, will not attempt to re-download file.")
+            # downloaded file is correct, set done flag in SegmentProducer
             self.done = True
             return
 
@@ -196,6 +212,11 @@ class SegmentProducer(object):
             self.download.setup_file()
             return
 
+        log.debug(
+            "Partial file {0} detected. Validating already downloaded segments".format(
+                self.download.temp_path
+            )
+        )
         # If temporary file exists, means that a previous download of the file
         # failed or was interrupted.
         # Check completed segments md5 sums of each completed segment
@@ -293,22 +314,17 @@ class SegmentProducer(object):
         except Exception as e:
             log.debug("Unable to update pbar: {}".format(str(e)))
 
-    def check_file_exists_and_size(self):
+    def check_file_exists_and_size(self, file_path):
         if self.download.is_regular_file:
-            return check_file_existence_and_size(
-                self.download.path, self.download.size
-            ) or check_file_existence_and_size(
-                self.download.temp_path, self.download.size
-            )
+            return check_file_existence_and_size(file_path, self.download.size)
         else:
             log.debug("File is not a regular file, refusing to check size.")
-            return os.path.exists(self.download.path)
+            return os.path.exists(file_path)
 
-    def is_complete(self):
-        return (
-            self.integrate(self.completed) == self.download.size
-            and self.check_file_exists_and_size()
-        )
+    def is_complete(self, file_path):
+        return self.integrate(
+            self.completed
+        ) == self.download.size and self.check_file_exists_and_size(file_path)
 
     def finish_download(self):
         # Tell the children there is no more work, each child should

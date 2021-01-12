@@ -46,10 +46,7 @@ def check_transfer_size(actual, expected):
 
 
 def get_file_transfer_pbar(
-    file_id: str,
-    maxval: int,
-    start_val: int = 0,
-    desc: str = "Downloading",
+    file_id: str, maxval: int, start_val: int = 0, desc: str = "Downloading",
 ) -> ProgressBar:
     """Create and initialize a custom progressbar
 
@@ -86,12 +83,7 @@ def get_file_transfer_pbar(
 def get_percentage_pbar(maxval: int):
     """Create and initialize a simple percentage progressbar"""
     pbar = ProgressBar(
-        widgets=[
-            Percentage(),
-            " ",
-            Bar(marker="#", left="[", right="]"),
-            " ",
-        ],
+        widgets=[Percentage(), " ", Bar(marker="#", left="[", right="]"), " ",],
         max_value=maxval,
     )
     pbar.start()
@@ -194,6 +186,23 @@ def md5sum_whole_file(fname):
             hash_md5.update(chunk)
 
     return hash_md5.hexdigest()
+
+
+def validate_file_md5sum(stream, file_path):
+    if not stream.check_file_md5sum:
+        log.debug("checksum validation disabled")
+        return
+
+    log.debug("Validating checksum...")
+    if not stream.is_regular_file:
+        raise Exception("Not a regular file")
+
+    if not stream.md5sum:
+        raise Exception(
+            "Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error."
+        )
+    if md5sum_whole_file(file_path) != stream.md5sum:
+        raise Exception("File checksum is invalid")
 
 
 @contextmanager
