@@ -191,7 +191,7 @@ class SegmentProducer(object):
                 validate_file_md5sum(self.download, self.download.path)
             except Exception as e:
                 log.error(
-                    "MD5 sum of downloaded file is incorrect due to following reason: {0}. Proceeding to restart entire download".format(
+                    "MD5 check of downloaded file failed due to following reason: {0}. Proceeding to restart entire download".format(
                         str(e)
                     )
                 )
