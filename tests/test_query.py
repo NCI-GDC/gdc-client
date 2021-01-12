@@ -3,7 +3,8 @@ import re
 from typing import List, Iterable, Mapping
 
 from conftest import uuids
-from gdc_client.exceptions import HTTPError
+from requests.exceptions import HTTPError
+
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.query.versions import _chunk_list, get_latest_versions

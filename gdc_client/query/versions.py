@@ -5,8 +5,7 @@ Functionality related to versioning.
 import logging
 import requests
 
-from gdc_client.exceptions import HTTPError
-
+from requests.exceptions import HTTPError
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +36,8 @@ def get_latest_versions(url, uuids, verify=True):
                 (
                     "The following request {0} for ids {1} returned with "
                     "status code: {2} and response content: {3}"
-                ).format(
-                    versions_url, chunk, resp.status_code, resp.content,
-                )
+                ).format(versions_url, chunk, resp.status_code, resp.content,),
+                response=resp,
             )
 
         # Parse the results of the chunked query.
