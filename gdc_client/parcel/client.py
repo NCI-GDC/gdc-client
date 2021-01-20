@@ -207,20 +207,21 @@ class Client(object):
                 try:
                     segment = producer.q_work.get()
                     if segment is None:
-                        return log.debug("Producer returned with no more work")
+                        log.debug("Producer returned with no more work")
+                        return
                     stream.write_segment(segment, producer.q_complete)
-                    # write_segment completed successfully, send sentinal value
+                    # write_segment completed successfully, send sentinel value
                     # to master process to indicate a task was completed
                     producer.q_complete.put(None)
                 except Exception as e:
-                    # send sentinal value to master process even though
+                    # send sentinel value to master process even though
                     # write_segment failed to indicate a task is "finished"
                     producer.q_complete.put(None)
                     if self.debug:
                         raise
                     else:
                         log.error("Download aborted: {0}".format(str(e)))
-                        # worker needs to stay alive until final sentinal value
+                        # worker needs to stay alive until final sentinel value
                         # from master process is received
                         continue
 

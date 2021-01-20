@@ -351,7 +351,7 @@ class SegmentProducer(object):
                 while since_save < self.save_interval:
                     interval = self.q_complete.get()
                     # Once a process completes a tasks (sucess or failure),
-                    # it will return a sentinal value (None) to main process
+                    # it will return a sentinel value (None) to main process
                     # to indicate that a task was completed
                     if interval is None:
                         num_tasks_completed += 1
