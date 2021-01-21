@@ -124,27 +124,20 @@ class SegmentProducer(object):
         if corrupt_segments:
             log.warning("Redownloading {0} corrupt segments.".format(corrupt_segments))
 
-    def load_state(self):
-        # Establish default intervals
-        self.work_pool = IntervalTree([Interval(0, self.download.size)])
-        self.completed = IntervalTree()
-        self.size_complete = 0
-        self.total_tasks = 0
-
+    def recover_intervals(self):
+        """Recreate list of completed intervals adcalculate remaining work pool"""
         state_file_exists = os.path.isfile(self.download.state_path)
         download_file_exists = os.path.isfile(self.download.path)
         temporary_file_exists = os.path.isfile(self.download.temp_path)
 
-        # If the state file does not exist, treat as first time run
-        # Create the temporary file and return
+        # If the state file does not exist, treat as first time download
         if not state_file_exists:
             log.debug(
                 "State file {0} does not exist. Beginning new download...".format(
                     self.download.state_path
                 )
             )
-            self.download.setup_file()
-            return
+            return False
 
         log.debug(
             "Found state file {0}, attempting to resume download".format(
@@ -161,14 +154,12 @@ class SegmentProducer(object):
         except Exception as e:
             # An error has occured while loading state file.
             # Treat as entire file download and recreate temporary file
-            self.completed = IntervalTree()
             log.error(
                 "Unable to resume file state: {0}, will restart entire download".format(
                     str(e)
                 )
             )
-            self.download.setup_file()
-            return
+            return False
 
         # If the downloaded file exists, validate the downloaded file
         # If the file is not complete and correct, retry the entire download
@@ -184,8 +175,7 @@ class SegmentProducer(object):
                 log.warning(
                     "Downloaded file is not complete, proceeding to restart entire download"
                 )
-                self.download.setup_file()
-                return
+                return False
             # check md5 sum
             try:
                 validate_file_md5sum(self.download, self.download.path)
@@ -195,13 +185,12 @@ class SegmentProducer(object):
                         str(e)
                     )
                 )
-                self.download.setup_file()
-                return
+                return False
 
             log.debug("File is complete, will not attempt to re-download file.")
             # downloaded file is correct, set done flag in SegmentProducer
             self.done = True
-            return
+            return True
 
         if not temporary_file_exists:
             log.debug(
@@ -209,14 +198,14 @@ class SegmentProducer(object):
                     self.download.temp_path
                 )
             )
-            self.download.setup_file()
-            return
+            return False
 
         log.debug(
             "Partial file {0} detected. Validating already downloaded segments".format(
                 self.download.temp_path
             )
         )
+
         # If temporary file exists, means that a previous download of the file
         # failed or was interrupted.
         # Check completed segments md5 sums of each completed segment
@@ -227,7 +216,23 @@ class SegmentProducer(object):
         # Remove already completed intervals from work_pool
         for interval in self.completed:
             self.work_pool.chop(interval.begin, interval.end)
-        log.debug("State loaded")
+
+        return True
+
+    def load_state(self):
+        # Establish default intervals
+        self.work_pool = IntervalTree([Interval(0, self.download.size)])
+        self.completed = IntervalTree()
+        self.size_complete = 0
+        self.total_tasks = 0
+
+        if not self.recover_intervals():
+            # Recovery failed, treat as new download
+            self.download.setup_file()
+            self.completed = IntervalTree()
+            return
+
+        log.debug("State loaded successfully")
 
     def save_state(self):
         try:
