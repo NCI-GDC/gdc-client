@@ -125,7 +125,7 @@ class SegmentProducer(object):
             log.warning("Redownloading {0} corrupt segments.".format(corrupt_segments))
 
     def recover_intervals(self):
-        """Recreate list of completed intervals adcalculate remaining work pool"""
+        """Recreate list of completed intervals and calculate remaining work pool"""
         state_file_exists = os.path.isfile(self.download.state_path)
         download_file_exists = os.path.isfile(self.download.path)
         temporary_file_exists = os.path.isfile(self.download.temp_path)
