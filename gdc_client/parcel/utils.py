@@ -24,6 +24,8 @@ from progressbar import (
     ProgressBar,
 )
 
+from gdc_client.exceptions import MD5ValidationError
+
 # Logging
 log = logging.getLogger("utils")
 
@@ -195,14 +197,14 @@ def validate_file_md5sum(stream, file_path):
 
     log.debug("Validating checksum...")
     if not stream.is_regular_file:
-        raise Exception("Not a regular file")
+        raise MD5ValidationError("Not a regular file")
 
     if not stream.md5sum:
-        raise Exception(
+        raise MD5ValidationError(
             "Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error."
         )
     if md5sum_whole_file(file_path) != stream.md5sum:
-        raise Exception("File checksum is invalid")
+        raise MD5ValidationError("File checksum is invalid")
 
 
 @contextmanager
