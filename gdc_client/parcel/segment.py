@@ -190,6 +190,7 @@ class SegmentProducer(object):
             log.debug("File is complete, will not attempt to re-download file.")
             # downloaded file is correct, set done flag in SegmentProducer
             self.done = True
+            self.work_pool = IntervalTree()
             return True
 
         if not temporary_file_exists:
