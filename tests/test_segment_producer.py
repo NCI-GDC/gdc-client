@@ -54,7 +54,7 @@ def mock_download_stream(monkeypatch, setup_directories: typing.NamedTuple):
 
     download_stream = stream.DownloadStream(
         url="https://localhost:80/data/test",
-        directory=setup_directories.base_directory.resolve(),
+        directory=str(setup_directories.base_directory.resolve()),
         token=None,
     )
     download_stream.init()
