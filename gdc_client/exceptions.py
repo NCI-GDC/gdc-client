@@ -1,3 +1,2 @@
 class ClientError(Exception):
-    """ Base client error.
-    """
+    """Base client error."""
