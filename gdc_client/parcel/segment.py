@@ -58,7 +58,6 @@ class SegmentProducer(object):
         self.n_procs = n_procs
         self.pbar = None
         self.done = False
-
         # Initialize producer
         self.load_state()
         if not self.done:
@@ -218,19 +217,28 @@ class SegmentProducer(object):
         for interval in self.completed:
             self.work_pool.chop(interval.begin, interval.end)
 
+        # If work_pool is empty by this point, something bad has happened with the download
+        # In this case, retry entire download
+        if self.work_pool.is_empty():
+            log.debug("Partial file has been corrupted. Restarting entire download.")
+            return False
+
         return True
 
-    def load_state(self):
-        # Establish default intervals
+    def set_default_intervals(self):
+        """Establish default intervals and variables for dividing up work"""
         self.work_pool = IntervalTree([Interval(0, self.download.size)])
         self.completed = IntervalTree()
         self.size_complete = 0
         self.total_tasks = 0
 
+    def load_state(self):
+        self.set_default_intervals()
+
         if not self.recover_intervals():
             # Recovery failed, treat as new download
             self.download.setup_file()
-            self.completed = IntervalTree()
+            self.set_default_intervals()
             return
 
         log.debug("State loaded successfully")

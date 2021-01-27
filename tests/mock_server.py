@@ -7,6 +7,33 @@ import os
 app = Flask(__name__)
 
 
+# @app.route("/files/versions", methods=["POST"])
+# @app.route("/v0/files/versions", methods=["POST"])
+# def files_versions():
+#     args = request.json
+#     if not args:
+#         return jsonify({"message": "Send non-empty JSON body"}), 400
+#     if "ids" not in args:
+#         return (
+#             jsonify({"message": "Pass in object with ids as key and list as value"}),
+#             400,
+#         )
+
+#     ids = args["ids"]
+#     if not isinstance(ids, list):
+#         return jsonify({"message": "Pass in a list of uuids"}), 400
+
+#     result = []
+#     files = uuids.keys()
+#     for i in ids:
+#         if i not in files:
+#             return jsonify({"message": "{0} not found in {1}".format(i, files)}), 404
+#         else:
+#             result.append({"id": i, "latest_id": i})
+
+#     return jsonify(result)
+
+
 @app.route("/v0/files", methods=["POST"])
 @app.route("/files", methods=["POST"])
 @app.route("/legacy/files", methods=["POST"])
@@ -125,6 +152,7 @@ def download(ids=""):
 
     is_tarfile = request.args.get("tarfile") is not None
     is_compress = request.args.get("compress") is not None or len(ids) > 1
+    # md5sum = ""
 
     if is_tarfile:
         filename = "test_file.tar"
@@ -147,9 +175,12 @@ def download(ids=""):
 
     else:
         data = uuids[ids[0]]["contents"]
+        # md5sum = uuids[ids[0]]["md5sum"]
 
     resp = Response(data)
     resp.headers["Content-Disposition"] = "attachment; filename={0}".format(filename)
-
     resp.headers["Content-Type"] = "application/octet-stream"
+    # if md5sum:
+    #     resp.headers["content-md5"] = md5sum
+
     return resp
