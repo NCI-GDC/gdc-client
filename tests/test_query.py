@@ -1,7 +1,10 @@
 import pytest
+import re
 from typing import List, Iterable, Mapping
 
 from conftest import uuids
+from requests.exceptions import HTTPError
+
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.query.versions import _chunk_list, get_latest_versions
@@ -55,7 +58,7 @@ class TestQueryIndex:
         expected_bigs: List[str],
         expected_smalls: List[List[str]],
     ) -> None:
-        """ Currently if a file has related or annotation files
+        """Currently if a file has related or annotation files
         the dtt processes it as if it were a big file so that
         it goes through the old method of downloading,
         regardless of size.
@@ -76,7 +79,7 @@ class TestQueryIndex:
         self.assert_invalid_index()
 
     def test_small_invalid_separate_small_files(self) -> None:
-        """ If no metadata can be found about a file, attempt a
+        """If no metadata can be found about a file, attempt a
         download using the big file method
         """
 
@@ -90,7 +93,9 @@ class TestQueryIndex:
         assert smalls == []
 
 
-@pytest.mark.parametrize("case", [range(1), range(499), range(500), range(1000),])
+@pytest.mark.parametrize(
+    "case", [range(1), range(499), range(500), range(1000),],
+)
 def test_chunk_list(case: Iterable[int]) -> None:
     assert all(len(chunk) <= 500 for chunk in _chunk_list(case))
 
@@ -115,3 +120,20 @@ def test_get_latest_versions(
     result = get_latest_versions(url, ids)
 
     assert result == expected
+
+
+@pytest.mark.parametrize("ids", [(["foo", "bar"])])
+def test_get_latest_versions_error(versions_response_error, ids: List[str],) -> None:
+    url = "https://example.com"
+    versions_response_error(url + "/files/versions")
+
+    expected_err_msg = re.escape(
+        (
+            "The following request {0} for ids "
+            "{1} returned with status code: 502 and response content: "
+            "b'<html>502 Bad Gateway</html>'".format(url + "/files/versions", ids)
+        )
+    )
+
+    with pytest.raises(HTTPError, match=expected_err_msg):
+        _ = get_latest_versions(url, ids)
