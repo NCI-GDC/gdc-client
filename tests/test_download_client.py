@@ -23,84 +23,6 @@ from gdc_client.query.index import GDCIndexClient
 BASE_URL = "http://127.0.0.1:5000"
 
 
-def negative_data_responses(
-    num_exceptions: int = 50,
-) -> Union[requests.exceptions.ReadTimeout, bool]:
-    print("generator!")
-    count = 0
-    while count < num_exceptions:
-        print("returning read timeout with count: {}".format(count))
-        yield requests.exceptions.ReadTimeout()
-        count += 1
-    while True:
-        print("returning true")
-        yield True
-
-
-generator = negative_data_responses()
-
-
-def mock_requests_get(*args, **kwargs) -> requests.Response:
-    headers = kwargs["headers"]
-    print(headers)
-    if "Range" in headers:
-        interval = headers["Range"]
-        interval = interval.split("=")
-        interval = interval[1].split("-")
-        start = int(interval[0])
-        end = int(interval[1])
-
-        ret = next(generator)
-        if not isinstance(ret, requests.exceptions.ReadTimeout):
-            # store as binary
-            data = uuids["big_no_friends"]["contents"][start:end].encode()
-
-            resp = MagicMock(spec=requests.Response)
-            headers = {}
-            resp.status_code = 200
-            resp.content.return_value = data
-            headers["content-disposition"] = "attachment; filename={0}".format(
-                "test_file.txt"
-            )
-            headers["content-type"] = "application/octet-stream"
-            headers["Content-Length"] = end - start
-            resp.headers = headers
-
-            def mock_iter_content(chunk_size=1):
-                return data
-
-            resp.iter_content = mock_iter_content
-
-            return resp
-        else:
-            print("raising timeout")
-            raise ret
-    else:
-        # query from DownloadStream.get_information()
-        # need to make sure to set response header for content-md5
-        data = uuids["big_no_friends"]["contents"].encode()
-        md5sum = uuids["big_no_friends"]["md5sum"]
-
-        resp = MagicMock(spec=requests.Response)
-        headers = {}
-        resp.status_code = 200
-        resp.content.return_value = data
-        headers["content-disposition"] = "attachment; filename={0}".format(
-            "test_file.txt"
-        )
-        headers["content-type"] = "application/octet-stream"
-        headers["Content-Length"] = len(data)
-        headers["content-md5"] = md5sum
-        resp.headers = headers
-
-        def mock_iter_content(chunk_size=1):
-            return data
-
-        resp.iter_content = mock_iter_content
-
-        return resp
-
-
 @pytest.mark.usefixtures("setup_mock_server")
 class TestDownloadClient:
     @pytest.fixture(autouse=True)
@@ -247,23 +169,22 @@ class TestDownloadClient:
 
         assert DownloadStream.check_segment_md5sums is check_segments
 
-    @patch("requests.sessions.Session.get", side_effect=mock_requests_get)
-    @patch("gdc_client.download.parser.get_latest_versions")
-    def test_retry_entire_download(
-        self, mock_get_latest_versions: MagicMock, mock_get: MagicMock
-    ) -> None:
+    @patch("gdc_client.parcel.download_stream.max_timeout", 2)
+    def test_retry_entire_download(self) -> None:
         file_ids = ["big_no_friends"]
-        mock_get_latest_versions.return_value = {id: id for id in file_ids}
         self.argparse_args.file_ids = file_ids
         parser = GDCClientArgumentParser()
 
         download(parser, self.argparse_args)
-        print(mock_get.call_count)
         file_path = self.tmp_path / file_ids[0] / "test_file.txt"
+        temp_file_path = self.tmp_path / file_ids[0] / "test_file.txt.partial"
         assert file_path.exists(), "Failed to write test_file.txt"
         assert (
             file_path.read_text() == uuids["big_no_friends"]["contents"]
         ), "File contents of test_file.txt are incorrect"
+        assert (
+            not temp_file_path.exists()
+        ), "test_file.txt.partial should not exist on successful download"
 
 
 def test_fix_url() -> None:
