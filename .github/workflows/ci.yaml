@@ -16,9 +16,11 @@ jobs:
     strategy:
       matrix:
         os:
-          - macos-latest
-          - ubuntu-latest
+          - macos-10.15
+          - macos-11.0
+          - ubuntu-20.04
           - ubuntu-16.04
+          - ubuntu-18.04
           - windows-latest
         python:
           - 3.7
@@ -41,7 +43,7 @@ jobs:
         cd bin
         pip install virtualenv
         . ./package
-        echo ::set-env name=GDC_CLIENT_ZIP::$GDC_CLIENT_ZIP
+        echo "GDC_CLIENT_ZIP=$GDC_CLIENT_ZIP" >> $GITHUB_ENV
       shell: bash
     - uses: actions/upload-artifact@v2
       with:
