@@ -25,6 +25,7 @@ from progressbar import (
 )
 
 from gdc_client.exceptions import MD5ValidationError
+from gdc_client.parcel.download_stream import DownloadStream
 
 # Logging
 log = logging.getLogger("utils")
@@ -190,7 +191,16 @@ def md5sum_whole_file(fname):
     return hash_md5.hexdigest()
 
 
-def validate_file_md5sum(stream, file_path):
+def validate_file_md5sum(stream: DownloadStream, file_path: str) -> None:
+    """Function to validate md5sum for given file if prerequisite checks pass
+
+    Args:
+        stream: initialized DownloadStream object
+        file_path: file to validate
+    Raises:
+        MD5ValidationError: if correct DownloadStream flags are not set or
+                            md5sum does not have given md5sum
+    """
     if not stream.check_file_md5sum:
         log.debug("checksum validation disabled")
         return
