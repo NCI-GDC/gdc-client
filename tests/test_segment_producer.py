@@ -3,10 +3,10 @@ import logging
 import os
 import pathlib
 import pickle
-import pytest
-import typing
+from typing import NamedTuple
 
-import intervaltree as itree
+import intervaltree
+import pytest
 
 import gdc_client.parcel.segment as segment
 import gdc_client.parcel.download_stream as stream
@@ -43,12 +43,12 @@ def incomplete_data():
 
 
 @pytest.fixture()
-def mock_download_stream(monkeypatch, setup_directories: typing.NamedTuple):
+def mock_download_stream(monkeypatch, setup_directories: NamedTuple):
     def mock_init(self):
         self.initialized = True
         self.name = "test.txt"
         self.size = 1024
-        self.md5sum = "d47b127bc2de2d687ddc82dac354c415"
+        self.md5sum = "d47b127bc2de2d687ddc82dac354c415"  # pragma: allowlist secret
 
     monkeypatch.setattr(stream.DownloadStream, "init", mock_init)
 
@@ -74,31 +74,27 @@ def mock_schedule(monkeypatch):
 
 @pytest.fixture()
 def mock_complete_download_file(
-    setup_directories: typing.NamedTuple, complete_data: typing.NamedTuple
+    setup_directories: NamedTuple, complete_data: NamedTuple
 ):
     write_data_file(setup_directories.data_directory, "test.txt", complete_data.data)
 
 
 @pytest.fixture()
 def mock_incomplete_download_file(
-    setup_directories: typing.NamedTuple, incomplete_data: typing.NamedTuple
+    setup_directories: NamedTuple, incomplete_data: NamedTuple
 ):
     write_data_file(setup_directories.data_directory, "test.txt", incomplete_data.data)
 
 
 @pytest.fixture()
-def mock_temporary_file(
-    setup_directories: typing.NamedTuple, incomplete_data: typing.NamedTuple
-):
+def mock_temporary_file(setup_directories: NamedTuple, incomplete_data: NamedTuple):
     write_data_file(
         setup_directories.data_directory, "test.txt.partial", incomplete_data.data
     )
 
 
 @pytest.fixture()
-def mock_complete_state_file(
-    setup_directories: typing.NamedTuple, complete_data: typing.NamedTuple
-):
+def mock_complete_state_file(setup_directories: NamedTuple, complete_data: NamedTuple):
     write_state_file(
         setup_directories.state_directory, "test.txt.parcel", complete_data
     )
@@ -106,7 +102,7 @@ def mock_complete_state_file(
 
 @pytest.fixture()
 def mock_incomplete_state_file(
-    setup_directories: typing.NamedTuple, incomplete_data: typing.NamedTuple
+    setup_directories: NamedTuple, incomplete_data: NamedTuple
 ):
     write_state_file(
         setup_directories.state_directory, "test.txt.parcel", incomplete_data
@@ -119,10 +115,10 @@ def write_data_file(directory: pathlib.Path, file_name: str, data: bytes):
         f.write(data)
 
 
-def write_state_file(directory: pathlib.Path, file_name: str, data: typing.NamedTuple):
+def write_state_file(directory: pathlib.Path, file_name: str, data: NamedTuple):
     file_path = directory.joinpath(file_name)
-    interval = itree.Interval(0, len(data.data), {"md5sum": data.md5sum})
-    completed = itree.IntervalTree([interval])
+    interval = intervaltree.Interval(0, len(data.data), {"md5sum": data.md5sum})
+    completed = intervaltree.IntervalTree([interval])
     with file_path.open("wb") as f:
         pickle.dump(completed, f)
 
@@ -130,7 +126,7 @@ def write_state_file(directory: pathlib.Path, file_name: str, data: typing.Named
 def test_load_state_no_state_file(
     # test when no state file is present
     mock_download_stream: stream.DownloadStream,
-    complete_data: typing.NamedTuple,
+    complete_data: NamedTuple,
 ):
     producer = segment.SegmentProducer(mock_download_stream, 2)
     assert os.path.isfile(mock_download_stream.temp_path)
@@ -144,7 +140,7 @@ def test_load_state_no_state_file(
 
 @pytest.mark.usefixtures("mock_complete_state_file", "mock_complete_download_file")
 def test_load_state_complete_download_exists(
-    mock_download_stream: stream.DownloadStream, complete_data: typing.NamedTuple
+    mock_download_stream: stream.DownloadStream, complete_data: NamedTuple
 ):
     # test when state file is present and download file is present and complete
     producer = segment.SegmentProducer(mock_download_stream, 2)
@@ -162,8 +158,8 @@ def test_load_state_complete_download_exists(
 def test_load_state_incomplete_download_exists(
     # test when state file is present and download file is present and is incomplete
     mock_download_stream: stream.DownloadStream,
-    complete_data: typing.NamedTuple,
-    incomplete_data: typing.NamedTuple,
+    complete_data: NamedTuple,
+    incomplete_data: NamedTuple,
 ):
     producer = segment.SegmentProducer(mock_download_stream, 2)
     assert os.path.isfile(mock_download_stream.temp_path)
@@ -178,8 +174,8 @@ def test_load_state_incomplete_download_exists(
 @pytest.mark.usefixtures("mock_incomplete_state_file", "mock_temporary_file")
 def test_load_state_state_temp_exist(
     mock_download_stream: stream.DownloadStream,
-    complete_data: typing.NamedTuple,
-    incomplete_data: typing.NamedTuple,
+    complete_data: NamedTuple,
+    incomplete_data: NamedTuple,
 ):
     # test when state file is present and temporary file is present
     producer = segment.SegmentProducer(mock_download_stream, 2)
