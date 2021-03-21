@@ -124,8 +124,18 @@ class SegmentProducer(object):
         if corrupt_segments:
             log.warning("Redownloading {0} corrupt segments.".format(corrupt_segments))
 
-    def recover_intervals(self):
-        """Recreate list of completed intervals and calculate remaining work pool"""
+    def recover_intervals(self) -> bool:
+        """Recreate list of completed intervals and calculate remaining work pool
+
+        This method checks the status of the following files:
+            - state_file (*.parcel)
+            - download_file
+            - partial temporary file (*.partial)
+
+        Returns:
+            bool: True if recovery occured, otherwise False (which indicates that
+            the a complete retry of the file download will occur)
+        """
         state_file_exists = os.path.isfile(self.download.state_path)
         download_file_exists = os.path.isfile(self.download.path)
         temporary_file_exists = os.path.isfile(self.download.temp_path)
