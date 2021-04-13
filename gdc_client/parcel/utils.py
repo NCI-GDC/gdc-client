@@ -24,6 +24,9 @@ from progressbar import (
     ProgressBar,
 )
 
+from gdc_client.exceptions import MD5ValidationError
+from gdc_client.parcel.download_stream import DownloadStream
+
 # Logging
 log = logging.getLogger("utils")
 
@@ -46,10 +49,7 @@ def check_transfer_size(actual, expected):
 
 
 def get_file_transfer_pbar(
-    file_id: str,
-    maxval: int,
-    start_val: int = 0,
-    desc: str = "Downloading",
+    file_id: str, maxval: int, start_val: int = 0, desc: str = "Downloading",
 ) -> ProgressBar:
     """Create and initialize a custom progressbar
 
@@ -86,12 +86,7 @@ def get_file_transfer_pbar(
 def get_percentage_pbar(maxval: int):
     """Create and initialize a simple percentage progressbar"""
     pbar = ProgressBar(
-        widgets=[
-            Percentage(),
-            " ",
-            Bar(marker="#", left="[", right="]"),
-            " ",
-        ],
+        widgets=[Percentage(), " ", Bar(marker="#", left="[", right="]"), " ",],
         max_value=maxval,
     )
     pbar.start()
@@ -194,6 +189,32 @@ def md5sum_whole_file(fname):
             hash_md5.update(chunk)
 
     return hash_md5.hexdigest()
+
+
+def validate_file_md5sum(stream: DownloadStream, file_path: str) -> None:
+    """Function to validate md5sum for given file if prerequisite checks pass
+
+    Args:
+        stream: initialized DownloadStream object
+        file_path: file to validate
+    Raises:
+        MD5ValidationError: if correct DownloadStream flags are not set or
+                            md5sum does not have given md5sum
+    """
+    if not stream.check_file_md5sum:
+        log.debug("checksum validation disabled")
+        return
+
+    log.debug("Validating checksum...")
+    if not stream.is_regular_file:
+        raise MD5ValidationError("Not a regular file")
+
+    if not stream.md5sum:
+        raise MD5ValidationError(
+            "Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error."
+        )
+    if md5sum_whole_file(file_path) != stream.md5sum:
+        raise MD5ValidationError("File checksum is invalid")
 
 
 @contextmanager

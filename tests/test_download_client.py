@@ -1,15 +1,19 @@
+import argparse
 from multiprocessing import cpu_count
 import os
 from pathlib import Path
 import pytest
 import tarfile
 from typing import List
+from unittest.mock import patch
 
+from gdc_client.common.config import GDCClientArgumentParser
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
 from gdc_client.parcel.download_stream import DownloadStream
 
 from conftest import make_tarfile, md5, uuids
 from gdc_client.download.client import GDCHTTPDownloadClient, fix_url
+from gdc_client.download.parser import download
 from gdc_client.query.index import GDCIndexClient
 
 BASE_URL = "http://127.0.0.1:5000"
@@ -24,6 +28,7 @@ class TestDownloadClient:
         # use str version to be 3.5 compatible
         self.client_kwargs = self.get_client_kwargs(str(self.tmp_path))
         self.client = self.get_download_client()
+        self.argparse_args = self.get_argparse_args(str(self.tmp_path))
 
     def get_client_kwargs(self, path: str) -> dict:
         return {
@@ -41,6 +46,33 @@ class TestDownloadClient:
             "retry_amount": 5,
             "verify": True,
         }
+
+    def get_argparse_args(self, path: str) -> argparse.Namespace:
+        cmd_line_args = {
+            "server": BASE_URL,
+            "n_processes": 1,
+            "dir": path,
+            "save_interval": SAVE_INTERVAL,
+            "http_chunk_size": HTTP_CHUNK_SIZE,
+            "no_segment_md5sums": False,
+            "no_file_md5sum": False,
+            "no_verify": False,
+            "no_related_files": False,
+            "no_annotations": False,
+            "no_auto_retry": False,
+            "retry_amount": 1,
+            "wait_time": 5.0,
+            "latest": False,
+            "color_off": False,
+            "file_ids": [],
+            "manifest": [],
+            "token_file": "valid token",
+            "debug": True,
+        }
+        args = argparse.Namespace()
+        args.__dict__.update(cmd_line_args)
+
+        return args
 
     def get_download_client(self, uuids: List[str] = None) -> GDCHTTPDownloadClient:
         if uuids is not None:
@@ -132,6 +164,23 @@ class TestDownloadClient:
         self.get_download_client()
 
         assert DownloadStream.check_segment_md5sums is check_segments
+
+    @patch("gdc_client.parcel.download_stream.max_timeout", 1)
+    def test_retry_entire_download(self) -> None:
+        file_ids = ["big_no_friends"]
+        self.argparse_args.file_ids = file_ids
+        parser = GDCClientArgumentParser()
+
+        download(parser, self.argparse_args)
+        file_path = self.tmp_path / file_ids[0] / "test_file.txt"
+        temp_file_path = self.tmp_path / file_ids[0] / "test_file.txt.partial"
+        assert file_path.exists(), "Failed to write test_file.txt"
+        assert (
+            file_path.read_text() == uuids["big_no_friends"]["contents"]
+        ), "File contents of test_file.txt are incorrect"
+        assert (
+            not temp_file_path.exists()
+        ), "test_file.txt.partial should not exist on successful download"
 
 
 def test_fix_url() -> None:

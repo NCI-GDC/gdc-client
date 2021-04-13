@@ -40,7 +40,7 @@ class GDCClientConfigShared(object):
         "n_processes": ConfigParser.getint,
         "retry_amount": ConfigParser.getint,
         "wait_time": ConfigParser.getfloat,
-        "no_segment_md5sum": ConfigParser.getboolean,
+        "no_segment_md5sums": ConfigParser.getboolean,
         "no_file_md5sum": ConfigParser.getboolean,
         "no_verify": ConfigParser.getboolean,
         "no_related_files": ConfigParser.getboolean,
@@ -49,6 +49,7 @@ class GDCClientConfigShared(object):
         "insecure": ConfigParser.getboolean,
         "disable_multipart": ConfigParser.getboolean,
         "path": ConfigParser.get,
+        "latest": ConfigParser.getboolean,
     }
 
     def __init__(self, config_path=None):
@@ -71,7 +72,7 @@ class GDCClientConfigShared(object):
                 "dir": ".",
                 "save_interval": SAVE_INTERVAL,
                 "http_chunk_size": HTTP_CHUNK_SIZE,
-                "no_segment_md5sum": False,
+                "no_segment_md5sums": False,
                 "no_file_md5sum": False,
                 "no_verify": False,
                 "no_related_files": False,
@@ -79,6 +80,7 @@ class GDCClientConfigShared(object):
                 "no_auto_retry": False,
                 "retry_amount": 1,
                 "wait_time": 5.0,
+                "latest": False,
             },
             "upload": {
                 "path": ".",

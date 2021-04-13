@@ -3,8 +3,50 @@ from conftest import uuids, make_tarfile
 
 import json
 import os
+import time
+import typing
 
 app = Flask(__name__)
+
+
+def generate_sleep_intervals(num_exceptions: int = 6) -> int:
+    """Generator to return sleep times for the first num_exceptions"""
+    count = 0
+    while count < num_exceptions:
+        yield 5
+        count += 1
+    while True:
+        yield 0
+
+
+generator = generate_sleep_intervals()
+
+
+@app.route("/files/versions", methods=["POST"])
+@app.route("/v0/files/versions", methods=["POST"])
+def files_versions():
+    args = request.json
+    if not args:
+        return jsonify({"message": "Send non-empty JSON body"}), 400
+    if "ids" not in args:
+        return (
+            jsonify({"message": "Pass in object with ids as key and list as value"}),
+            400,
+        )
+
+    ids = args["ids"]
+    if not isinstance(ids, list):
+        return jsonify({"message": "Pass in a list of uuids"}), 400
+
+    result = []
+    files = uuids.keys()
+    for i in ids:
+        if i not in files:
+            return jsonify({"message": "{0} not found in {1}".format(i, files)}), 404
+        else:
+            result.append({"id": i, "latest_id": i})
+
+    return jsonify(result)
 
 
 @app.route("/v0/files", methods=["POST"])
@@ -109,6 +151,7 @@ def download(ids=""):
     ids = ids.split(",")
 
     args = request.json
+    headers = request.headers
 
     if args:
         ids = args.get("ids")
@@ -123,8 +166,13 @@ def download(ids=""):
                 404,
             )
 
+    # determine if this is a stream range data request
+    if "Range" in headers:
+        return handle_range_request(ids=ids, headers=headers, filename=filename)
+
     is_tarfile = request.args.get("tarfile") is not None
     is_compress = request.args.get("compress") is not None or len(ids) > 1
+    md5sum = ""
 
     if is_tarfile:
         filename = "test_file.tar"
@@ -147,9 +195,35 @@ def download(ids=""):
 
     else:
         data = uuids[ids[0]]["contents"]
+        md5sum = uuids[ids[0]]["md5sum"]
 
     resp = Response(data)
     resp.headers["Content-Disposition"] = "attachment; filename={0}".format(filename)
-
     resp.headers["Content-Type"] = "application/octet-stream"
+    resp.headers["Content-Length"] = len(data)
+    if md5sum:
+        resp.headers["Content-Md5"] = md5sum
+
+    return resp
+
+
+def handle_range_request(
+    ids: typing.List[str], headers: dict, filename: str
+) -> Response:
+    interval = headers["Range"]
+    interval = interval.split("=")
+    interval = interval[1].split("-")
+    start = int(interval[0])
+    end = int(interval[1]) + 1
+
+    sleep_time = next(generator)
+    # Long sleep times purposefully set to cause ReadTimeout in client
+    time.sleep(sleep_time)
+
+    data = uuids[ids[0]]["contents"][start:end]
+    resp = Response(data)
+    resp.headers["Content-Disposition"] = "attachment; filename={0}".format(filename)
+    resp.headers["Content-Type"] = "application/octet-stream"
+    resp.headers["Content-Length"] = len(data)
+
     return resp

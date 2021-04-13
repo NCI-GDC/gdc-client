@@ -110,25 +110,6 @@ class Client(object):
 
         log.debug("Download complete" + rate_info)
 
-    def validate_file_md5sum(self, stream):
-
-        if not stream.check_file_md5sum:
-            log.debug("checksum validation disabled")
-            return
-
-        log.debug("Validating checksum...")
-
-        if not stream.is_regular_file:
-            raise Exception("Not a regular file")
-
-        if not stream.md5sum:
-            raise Exception(
-                "Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error."
-            )
-
-        if utils.md5sum_whole_file(stream.path) != stream.md5sum:
-            raise Exception("File checksum is invalid")
-
     def download_files(self, urls, *args, **kwargs):
         """Download a list of files.
 
@@ -158,10 +139,16 @@ class Client(object):
 
             # Download file
             try:
+                # validate temporary file before renaming to permanent file location
                 self.parallel_download(stream)
+                utils.validate_file_md5sum(
+                    stream,
+                    stream.temp_path
+                    if os.path.isfile(stream.temp_path)
+                    else stream.path,
+                )
                 if os.path.isfile(stream.temp_path):
                     utils.remove_partial_extension(stream.temp_path)
-                self.validate_file_md5sum(stream)
                 downloaded.append(url)
 
             # Handle file download error, store error to print out later
@@ -182,15 +169,11 @@ class Client(object):
         return downloaded, errors
 
     def serial_download(self, stream):
-        """Download file to directory serially.
-
-        """
+        """Download file to directory serially."""
         self._download(1, stream)
 
     def parallel_download(self, stream):
-        """Download file to directory in parallel.
-
-        """
+        """Download file to directory in parallel."""
         self._download(self.n_procs, stream)
 
     def _download(self, nprocs, stream):
@@ -216,19 +199,31 @@ class Client(object):
         n_procs = 1 if stream.size < 0.01 * const.GB else nprocs
         producer = SegmentProducer(stream, n_procs)
 
+        if producer.done:
+            return
+
         def download_worker():
             while True:
                 try:
                     segment = producer.q_work.get()
                     if segment is None:
-                        return log.debug("Producer returned with no more work")
+                        log.debug("Producer returned with no more work")
+                        return
                     stream.write_segment(segment, producer.q_complete)
+                    # write_segment completed successfully, send sentinel value
+                    # to master process to indicate a task was completed
+                    producer.q_complete.put(None)
                 except Exception as e:
+                    # send sentinel value to master process even though
+                    # write_segment failed to indicate a task is "finished"
+                    producer.q_complete.put(None)
                     if self.debug:
                         raise
                     else:
                         log.error("Download aborted: {0}".format(str(e)))
-                        break
+                        # worker needs to stay alive until final sentinel value
+                        # from master process is received
+                        continue
 
         # Divide work amongst process pool
         pool = [Process(target=download_worker) for i in range(n_procs)]
