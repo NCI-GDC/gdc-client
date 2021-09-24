@@ -2,7 +2,7 @@ cryptography==2.8
 jsonschema==2.6.0
 lxml==4.4.2
 ndg-httpsclient==0.5.0
-pyasn1==0.4.3
+pyasn1==0.4.5
 pyOpenSSL==18.0.0
 PyYAML==3.13
 intervaltree==3.0.2
