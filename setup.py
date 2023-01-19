@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-from gdc_client.version import __version__
 
 setup(
     name="gdc_client",
-    version=__version__,
+    use_scm_version={"local_scheme": "dirty-tag",},
+    setup_requires=["setuptools_scm<6"],
     packages=find_packages(),
     package_data={},
     scripts=["bin/gdc-client"],
@@ -16,6 +16,7 @@ setup(
         "pyOpenSSL~=18.0.0",
         "PyYAML>=5.1",
         "intervaltree~=3.0.2",
+        "importlib_metadata; python_version<'3.8'",
         "termcolor~=1.1.0",
         "requests~=2.22.0",
         "progressbar2~=3.43.1",
