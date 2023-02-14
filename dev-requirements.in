@@ -1,0 +1,13 @@
+-c requirements.txt
+
+flask~=1.0.2
+pytest~=4.6.2
+pytest-cov~=2.7.1
+requests-mock~=1.5.2
+moto~=1.3.14
+python-jose<3.3.0       # lower the requirements for cryptography, so python3.5 could work
+httmock~=1.3.0
+
+ # required by moto, limit version for jsonschema
+cfn-lint<0.22.0
+aws-sam-translator<1.12.0

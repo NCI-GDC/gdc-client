@@ -1,1 +1,3 @@
-__version__ = "v1.6.1"
+from importlib_metadata import version
+
+__version__ = version("gdc_client")
