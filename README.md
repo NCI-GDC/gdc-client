@@ -32,6 +32,14 @@ Building on Windows requires the installation of [git](https://git-scm.com/downl
 cd bin
 # Then just execute the package script. The result will be a zip file containing your executable.
 ./package
+# Or you can choose to install it use conda env
+conda create -n gdc python=3.7
+conda activate gdc
+git clone https://github.com/NCI-GDC/gdc-client
+cd gdc-client
+pip install -r requirements.txt
+vim bin/gdc-client #修改 import OpenSSL为import ssl
+python setup.py install 2>&1 | tee -a install.log
 ```
 
 ## Executing unit tests
