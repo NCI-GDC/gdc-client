@@ -7,7 +7,7 @@ repos:
       - id: no-commit-to-branch
         args: [--branch, develop, --branch, master, --pattern, release/.*]
   - repo: https://github.com/psf/black
-    rev: 19.10b0
+    rev: 24.1.1
     hooks:
       - id: black
   - repo: git@github.com:Yelp/detect-secrets

@@ -11,8 +11,7 @@ log = logging.getLogger("gdc-upload")
 
 
 def validate_args(parser, args):
-    """ Validate argparse namespace.
-    """
+    """Validate argparse namespace."""
     if args.part_size:
         log.warning("[--part-size] is DEPRECATED in favor of [--upload-part-size]")
         args.upload_part_size = args.part_size
@@ -27,8 +26,7 @@ def validate_args(parser, args):
 
 
 def upload(parser, args):
-    """ Upload data to the GDC.
-    """
+    """Upload data to the GDC."""
 
     validate_args(parser, args)
 
@@ -71,8 +69,7 @@ def upload(parser, args):
 
 
 def config(parser, upload_defaults):
-    """ Configure a parser for upload.
-    """
+    """Configure a parser for upload."""
     func = partial(upload, parser)
     upload_defaults["func"] = func
 

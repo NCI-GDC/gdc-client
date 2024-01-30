@@ -27,8 +27,7 @@ PERMISSIONS_MSG = " ".join(
 
 
 def read_token_file(path):
-    """ Safely open, read and close a token file.
-    """
+    """Safely open, read and close a token file."""
 
     # there's a circular dependency on setting up logging to process this arg
     # but also needing the logs to be set up before you can process args
@@ -54,7 +53,9 @@ def read_token_file(path):
     )
 
     if invalid_permissions:
-        permissions_msg = PERMISSIONS_MSG.format(token_file=abspath,)
+        permissions_msg = PERMISSIONS_MSG.format(
+            token_file=abspath,
+        )
         log.warning(permissions_msg)
         # FIXME convert to error after investigation on windows
         # raise argparse.ArgumentTypeError(permissions_msg)
@@ -69,9 +70,11 @@ def read_token_file(path):
 
 
 def config(parser):
-    """ Configure argparse parser for GDC auth token parsing.
-    """
+    """Configure argparse parser for GDC auth token parsing."""
 
     parser.add_argument(
-        "-t", "--token-file", type=read_token_file, help="GDC API auth token file",
+        "-t",
+        "--token-file",
+        type=read_token_file,
+        help="GDC API auth token file",
     )

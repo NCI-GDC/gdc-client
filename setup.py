@@ -2,7 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name="gdc_client",
-    use_scm_version={"local_scheme": "dirty-tag",},
+    use_scm_version={
+        "local_scheme": "dirty-tag",
+    },
     setup_requires=["setuptools_scm<6"],
     packages=find_packages(),
     package_data={},

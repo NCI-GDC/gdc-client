@@ -94,7 +94,13 @@ class TestQueryIndex:
 
 
 @pytest.mark.parametrize(
-    "case", [range(1), range(499), range(500), range(1000),],
+    "case",
+    [
+        range(1),
+        range(499),
+        range(500),
+        range(1000),
+    ],
 )
 def test_chunk_list(case: Iterable[int]) -> None:
     assert all(len(chunk) <= 500 for chunk in _chunk_list(case))
@@ -123,7 +129,10 @@ def test_get_latest_versions(
 
 
 @pytest.mark.parametrize("ids", [(["foo", "bar"])])
-def test_get_latest_versions_error(versions_response_error, ids: List[str],) -> None:
+def test_get_latest_versions_error(
+    versions_response_error,
+    ids: List[str],
+) -> None:
     url = "https://example.com"
     versions_response_error(url + "/files/versions")
 

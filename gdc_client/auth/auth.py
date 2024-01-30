@@ -2,8 +2,7 @@ import requests
 
 
 class GDCTokenAuth(requests.auth.AuthBase):
-    """ GDC Token Authentication
-    """
+    """GDC Token Authentication"""
 
     def __init__(self, token):
         self.token = token

@@ -222,7 +222,6 @@ class DownloadStream(object):
         return self.name, self.size
 
     def write_segment(self, segment, q_complete, retries=5):
-
         """Read data from the data server and write it to a file.
 
         :param str file_id: The id of the file

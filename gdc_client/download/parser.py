@@ -14,8 +14,7 @@ log = logging.getLogger("gdc-download")
 
 
 def validate_args(parser, args):
-    """ Validate argparse namespace.
-    """
+    """Validate argparse namespace."""
     if not args.file_ids and not args.manifest:
         msg = "must specify either --manifest or file_id"
         parser.error(msg)
@@ -42,12 +41,12 @@ def get_client(args, index_client):
 
 
 def download(parser, args):
-    """ Downloads data from the GDC.
+    """Downloads data from the GDC.
 
-        Combine the smaller files (~KB range) into a grouped download.
-        The API now supports combining UUID's into one uncompressed tarfile
-        using the ?tarfile url parameter. Combining many smaller files into one
-        download decreases the number of open connections we have to make
+    Combine the smaller files (~KB range) into a grouped download.
+    The API now supports combining UUID's into one uncompressed tarfile
+    using the ?tarfile url parameter. Combining many smaller files into one
+    download decreases the number of open connections we have to make
     """
     successful_count = 0
     unsuccessful_count = 0
@@ -194,8 +193,7 @@ def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
 
 
 def config(parser, download_defaults):
-    """ Configure a parser for download.
-    """
+    """Configure a parser for download."""
     func = partial(download, parser)
     download_defaults["func"] = func
 

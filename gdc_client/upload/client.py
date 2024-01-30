@@ -127,7 +127,7 @@ def get_sleep_time(tries):
 
 
 def create_resume_path(file_path):
-    """ in case the user enters a path, you want to create
+    """in case the user enters a path, you want to create
     a resume_filename.yml inside the same directory as the manifest.yml
     """
 
@@ -185,7 +185,10 @@ class GDCUploadClient(object):
         }
 
         response = requests.post(
-            self.graphql_url, json=query, headers=self.headers, verify=self.verify,
+            self.graphql_url,
+            json=query,
+            headers=self.headers,
+            verify=self.verify,
         )
         return response
 
@@ -226,7 +229,9 @@ class GDCUploadClient(object):
 
         # get metadata about file_type
         r = self._get_node_metadata_via_graphql(
-            node_id, node_type=file_type, fields=fields,
+            node_id,
+            node_type=file_type,
+            fields=fields,
         )
 
         if r.status_code != 200:
@@ -345,8 +350,7 @@ class GDCUploadClient(object):
         self.__dict__.update(file_entity.__dict__)
 
     def upload(self):
-        """ Upload files to the GDC.
-        """
+        """Upload files to the GDC."""
         if os.path.isfile(self.resume_path):
             use_resume = input(
                 "Found a {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(
@@ -378,7 +382,7 @@ class GDCUploadClient(object):
             self.incompleted.popleft()
 
     def abort(self):
-        """ Abort multipart upload"""
+        """Abort multipart upload"""
         self.get_files()
         for f in self.file_entities:
             self.load_file(f)

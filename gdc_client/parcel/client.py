@@ -143,9 +143,11 @@ class Client(object):
                 self.parallel_download(stream)
                 utils.validate_file_md5sum(
                     stream,
-                    stream.temp_path
-                    if os.path.isfile(stream.temp_path)
-                    else stream.path,
+                    (
+                        stream.temp_path
+                        if os.path.isfile(stream.temp_path)
+                        else stream.path
+                    ),
                 )
                 if os.path.isfile(stream.temp_path):
                     utils.remove_partial_extension(stream.temp_path)
