@@ -2,6 +2,7 @@
 
 Functionality related to versioning.
 """
+
 import logging
 import requests
 
@@ -36,7 +37,12 @@ def get_latest_versions(url, uuids, verify=True):
                 (
                     "The following request {0} for ids {1} returned with "
                     "status code: {2} and response content: {3}"
-                ).format(versions_url, chunk, resp.status_code, resp.content,),
+                ).format(
+                    versions_url,
+                    chunk,
+                    resp.status_code,
+                    resp.content,
+                ),
                 response=resp,
             )
 

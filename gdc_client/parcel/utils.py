@@ -49,7 +49,10 @@ def check_transfer_size(actual, expected):
 
 
 def get_file_transfer_pbar(
-    file_id: str, maxval: int, start_val: int = 0, desc: str = "Downloading",
+    file_id: str,
+    maxval: int,
+    start_val: int = 0,
+    desc: str = "Downloading",
 ) -> ProgressBar:
     """Create and initialize a custom progressbar
 
@@ -86,7 +89,12 @@ def get_file_transfer_pbar(
 def get_percentage_pbar(maxval: int):
     """Create and initialize a simple percentage progressbar"""
     pbar = ProgressBar(
-        widgets=[Percentage(), " ", Bar(marker="#", left="[", right="]"), " ",],
+        widgets=[
+            Percentage(),
+            " ",
+            Bar(marker="#", left="[", right="]"),
+            " ",
+        ],
         max_value=maxval,
     )
     pbar.start()

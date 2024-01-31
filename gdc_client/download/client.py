@@ -20,10 +20,10 @@ log = logging.getLogger("gdc-download")
 
 def fix_url(url):
     # type: (str) -> str
-    """ Fix a url to be used in the rest of the program
+    """Fix a url to be used in the rest of the program
 
-        example:
-            api.gdc.cancer.gov -> https://api.gdc.cancer.gov/
+    example:
+        api.gdc.cancer.gov -> https://api.gdc.cancer.gov/
     """
     if not url.endswith("/"):
         url = "{0}/".format(url)
@@ -47,7 +47,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         *args,
         **kwargs
     ):
-        """ GDC parcel client that overrides parallel download
+        """GDC parcel client that overrides parallel download
         Args:
             uri (str):
             download_related_files (bool):
@@ -135,7 +135,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
     def _untar_file(self, tarfile_name):
         # type: (str) -> list[str]
-        """ untar the file and return all the file names inside the tarfile """
+        """untar the file and return all the file names inside the tarfile"""
 
         t = tarfile.open(tarfile_name)
         members = [m for m in t.getmembers() if m.name != "MANIFEST.txt"]
@@ -149,7 +149,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
     def _md5_members(self, members):
         # type: (list[str]) -> list[str]
-        """ Calculate md5 hash and compare them with values given by the API """
+        """Calculate md5 hash and compare them with values given by the API"""
 
         errors = []
         for m in members:
@@ -175,7 +175,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
     def _post(self, path, headers=None, json=None, stream=True):
         # type: (str, dict[str,str], dict[str,object], bool) -> requests.models.Response
-        """ custom post request that will query both active and legacy api
+        """custom post request that will query both active and legacy api
 
         return a python requests object to be handled by the method calling self._post
         """
@@ -210,7 +210,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
     def _download_tarfile(self, small_files):
         # type: (list[str]) -> tuple[str, object]
-        """ Make the request to the API for the tarfile downloads """
+        """Make the request to the API for the tarfile downloads"""
 
         errors = []
         headers = {
@@ -249,7 +249,8 @@ class GDCHTTPDownloadClient(HTTPClient):
 
         if content_filename:
             tarfile_name = os.path.join(
-                self.base_directory, content_filename.split("=")[1],
+                self.base_directory,
+                content_filename.split("=")[1],
             )
         else:
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
@@ -264,7 +265,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
     def download_small_groups(self, smalls):
         # type: (list[str]) -> tuple[list[str], int]
-        """ Download small groups
+        """Download small groups
 
         Smalls are predetermined groupings of smaller file size files.
         They are grouped to reduce the number of open connections per download.

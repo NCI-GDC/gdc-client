@@ -35,7 +35,9 @@ def parse_graphql_query(query: str) -> Optional[QueryParts]:
         return None
 
     return QueryParts(
-        parts.group("node_type"), parts.group("node_id"), parts.group("fields"),
+        parts.group("node_type"),
+        parts.group("node_id"),
+        parts.group("fields"),
     )
 
 
@@ -272,7 +274,11 @@ def handle_list_multipart(url, _):
 
     upload_id = parsed_qs["uploadId"][0]
 
-    result = client.list_parts(Bucket="test-bucket", Key=key, UploadId=upload_id,)
+    result = client.list_parts(
+        Bucket="test-bucket",
+        Key=key,
+        UploadId=upload_id,
+    )
 
     if "Parts" in result:
         result["Part"] = result.pop("Parts")
@@ -350,7 +356,9 @@ def handle_delete_multipart(url, _):
 
     upload_id = parsed_qs["uploadId"][0]
     result = client.abort_multipart_upload(
-        Bucket="test-bucket", Key=key, UploadId=upload_id,
+        Bucket="test-bucket",
+        Key=key,
+        UploadId=upload_id,
     )
 
     return httmock.response(

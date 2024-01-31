@@ -151,7 +151,7 @@ class GDCIndexClient(object):
         return self.metadata
 
     def separate_small_files(self, ids, chunk_size):
-        """ Separate big and small files
+        """Separate big and small files
 
         Separate the small files from the larger files in
         order to combine them into single grouped downloads. This will reduce

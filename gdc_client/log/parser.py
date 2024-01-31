@@ -8,8 +8,7 @@ from gdc_client.log.log import LogFormatter
 
 
 def setup_logging(args):
-    """ Set up logging given parsed logging arguments.
-    """
+    """Set up logging given parsed logging arguments."""
     log_level = min(args.log_levels) if hasattr(args, "log_levels") else logging.INFO
     color_off = args.color_off if hasattr(args, "color_off") else False
     log_file = args.log_file if hasattr(args, "log_file") else None
@@ -34,8 +33,7 @@ def setup_logging(args):
 
 
 def config(parser):
-    """ Configure an argparse parser for logging.
-    """
+    """Configure an argparse parser for logging."""
 
     parser.set_defaults(log_levels=[logging.INFO])
 

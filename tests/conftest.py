@@ -64,23 +64,53 @@ def get_big_content(n: int) -> str:
 uuids = {
     "invalid": generate_metadata_dict(None, None, [], []),
     "small": generate_metadata_dict(
-        "controlled", "small content 1", ["annotation 1"], ["related 1"],
+        "controlled",
+        "small content 1",
+        ["annotation 1"],
+        ["related 1"],
     ),
     "small_ann": generate_metadata_dict(
-        "open", "small content 2", ["annotations.txt"], [],
+        "open",
+        "small content 2",
+        ["annotations.txt"],
+        [],
     ),
-    "small_rel": generate_metadata_dict("open", "small content 3", [], ["related 3"],),
+    "small_rel": generate_metadata_dict(
+        "open",
+        "small content 3",
+        [],
+        ["related 3"],
+    ),
     "small_no_friends": generate_metadata_dict(
-        "controlled", "small content 4", [], [],
+        "controlled",
+        "small content 4",
+        [],
+        [],
     ),
     "big": generate_metadata_dict(
-        "controlled", get_big_content(1), ["annotation 1"], ["related 1"],
+        "controlled",
+        get_big_content(1),
+        ["annotation 1"],
+        ["related 1"],
     ),
     "big_ann": generate_metadata_dict(
-        "controlled", get_big_content(2), ["annotation 2"], [],
+        "controlled",
+        get_big_content(2),
+        ["annotation 2"],
+        [],
     ),
-    "big_rel": generate_metadata_dict("open", get_big_content(3), [], ["related 3"],),
-    "big_no_friends": generate_metadata_dict("open", get_big_content(4), [], [],),
+    "big_rel": generate_metadata_dict(
+        "open",
+        get_big_content(3),
+        [],
+        ["related 3"],
+    ),
+    "big_no_friends": generate_metadata_dict(
+        "open",
+        get_big_content(4),
+        [],
+        [],
+    ),
     "annotations.txt": {"contents": "id\tsubmitter_id\t\n123\t456\n"},
 }
 

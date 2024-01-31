@@ -5,8 +5,7 @@ GDC_API_PORT = 443
 
 
 def config(parser):
-    """ Configure an argparse parser for use with the GDC Client.
-    """
+    """Configure an argparse parser for use with the GDC Client."""
     parser.add_argument(
         "-H",
         "--host",

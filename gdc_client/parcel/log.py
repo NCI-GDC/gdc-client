@@ -17,8 +17,7 @@ loggers = {}
 
 # Logging
 def get_logger(name="parcel"):
-    """Create or return an existing logger with given name
-    """
+    """Create or return an existing logger with given name"""
 
     if name in loggers:
         return loggers[name]

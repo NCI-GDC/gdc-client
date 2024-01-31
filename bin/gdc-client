@@ -46,10 +46,14 @@ def log_version_header(log):
 
 if __name__ == "__main__":
 
-    parser = GDCClientArgumentParser(description=DESCRIPTION,)
+    parser = GDCClientArgumentParser(
+        description=DESCRIPTION,
+    )
 
     parser.add_argument(
-        "--version", action="version", version=version.__version__,
+        "--version",
+        action="version",
+        version=version.__version__,
     )
 
     conf_parser = argparse.ArgumentParser(add_help=False)
@@ -62,7 +66,9 @@ if __name__ == "__main__":
     # Generate template parser for use by all sub-commands. This will
     # contain any shared, top-level arguments and flags that will be
     # needed by most, if not all, subcommands.
-    template = GDCClientArgumentParser(add_help=False,)
+    template = GDCClientArgumentParser(
+        add_help=False,
+    )
 
     logger.parser.config(template)
     auth.parser.config(template)
@@ -76,17 +82,22 @@ if __name__ == "__main__":
     subparsers.required = True
 
     download_subparser = subparsers.add_parser(
-        "download", parents=[template], help="download data from the GDC",
+        "download",
+        parents=[template],
+        help="download data from the GDC",
     )
     download.parser.config(download_subparser, config_loader.to_dict("download"))
 
     upload_subparser = subparsers.add_parser(
-        "upload", parents=[template], help="upload data to the GDC",
+        "upload",
+        parents=[template],
+        help="upload data to the GDC",
     )
     upload.parser.config(upload_subparser, config_loader.to_dict("upload"))
 
     settings_subparser = subparsers.add_parser(
-        "settings", help="display default settings",
+        "settings",
+        help="display default settings",
     )
     settings.parser.config(settings_subparser, conf_parser_args.config)
 

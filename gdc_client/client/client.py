@@ -12,8 +12,7 @@ GDC_API_PORT = 443
 
 
 class GDCClient(object):
-    """ GDC API Requests Client
-    """
+    """GDC API Requests Client"""
 
     def __init__(self, host=GDC_API_HOST, port=GDC_API_PORT, token=None):
         self.host = host
@@ -35,12 +34,13 @@ class GDCClient(object):
 
     @contextmanager
     def request(self, verb, path, **kwargs):
-        """ Make a request to the GDC API.
-        """
+        """Make a request to the GDC API."""
         res = self.session.request(
             verb,
             "https://{host}:{port}{path}".format(
-                host=self.host, port=self.port, path=path,
+                host=self.host,
+                port=self.port,
+                path=path,
             ),
             auth=auth.GDCTokenAuth(self.token),
             **kwargs

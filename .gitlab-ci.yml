@@ -1,0 +1,29 @@
+---
+include:
+  - project: nci-gdc/gitlab-templates
+    ref: 0.6.2
+    file:
+      - templates/global/full.yaml
+      - templates/python/full.yaml
+      - templates/common/python.yaml
+
+tox:
+  parallel:
+    matrix:
+      - BUILD_PY_VERSION:
+          - python3.6
+          - python3.7
+  script:
+    - tox -r -e py
+
+
+release:
+  before_script:
+    # unshallow the git repo to resolve version with setuptools_scm.
+    - git fetch --unshallow || true
+    - |
+      if [ ${CI_COMMIT_TAG+x} ]; then
+        export TWINE_REPOSITORY_URL=https://nexus.osdc.io/repository/pypi-releases/
+      fi
+  variables:
+    RELEASE_PY_VERSION: python3.6
