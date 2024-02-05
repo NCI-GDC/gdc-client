@@ -15,9 +15,14 @@ from gdc_client.common.config import GDCClientConfigShared, GDCClientArgumentPar
 ####################################################
 # These packages are important but PyInstaller won't
 # bundle them unless they are imported
+# For CentOS with python3.7, pyOpenSSL version 18.0.0,
+# you need to use "import ssl" instead of "import OpenSSL"
+# to solve the error about "sslv3_server_method" occured  
+# when you try to run gdc-client 
 import cffi
 import cryptography
-import OpenSSL
+#import OpenSSL   
+import ssl
 import ndg.httpsclient
 import pyasn1
 
