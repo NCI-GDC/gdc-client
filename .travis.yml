@@ -1,24 +1,8 @@
-language: generic
+language: python
+python:
+  - "3.5"
+  - "3.6"
+  - "3.7"
 
-sudo: false
-
-before_install:
-  - unset PYENV_ROOT
-  - rm -rf ~/.pyenv
-  - curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
-  - export PATH="$HOME/.pyenv/bin:$PATH"
-
-install:
-  - virtualenv venv
-  - source venv/bin/activate
-  - pip install tox-travis tox-pyenv
-  - pyenv install 3.5.7
-  - pyenv install 3.6.9
-  - pyenv install 3.7.5
-
-script:
-  - pyenv local 3.5.7 3.6.9 3.7.5
-  - tox -e py35,py36,py37
-
-after_script:
-  - tox -e coverage
+install: pip install tox-travis
+script: tox

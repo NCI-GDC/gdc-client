@@ -5,7 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
-      - feat/dev-583-remove-set-env-in-github-actions
+      - feat/dev-2469-fix-github-action
     tags:
       - "*"
 

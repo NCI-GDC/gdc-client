@@ -8,12 +8,17 @@ include:
       - templates/common/python.yaml
 
 tox:
+  variables:
+    BASE_CONTAINER_VERSION: 1.2.0
   parallel:
     matrix:
       - BUILD_PY_VERSION:
-          - python3.6
-          - python3.7
+          - python35
+          - python36
+          - python37
   script:
+    # for python3.5 apt install libffi-dev
+    - apt-get update && apt-get install libffi-dev
     - tox -r -e py
 
 
