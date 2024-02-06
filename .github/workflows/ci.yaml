@@ -5,9 +5,9 @@ on:
       - develop
       - release/**
       - hotfix/**
-      - feat/dev-583-remove-set-env-in-github-actions
+      - feat/DEV-1185-fix-awg-download-related-files
     tags:
-      - "*"
+      - '*'
 
 jobs:
   build:
@@ -16,34 +16,34 @@ jobs:
       matrix:
         os:
           - macos-10.15
-          - ubuntu-20.04
-          - ubuntu-16.04
-          - ubuntu-18.04
-          - windows-latest
+          #- ubuntu-20.04
+          #- ubuntu-16.04
+          #- ubuntu-18.04
+          #- windows-latest
         python:
           - 3.7
     env:
-      GDC_CLIENT_ZIP: "gdc-client.zip"
+      GDC_CLIENT_ZIP: 'gdc-client.zip'
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python }}
-    - name: Run Tests
-      if: matrix.os != 'windows-latest'
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox
-        tox -e py
-    - name: Package
-      run: |
-        cd bin
-        pip install virtualenv
-        . ./package
-        echo "GDC_CLIENT_ZIP=$GDC_CLIENT_ZIP" >> $GITHUB_ENV
-      shell: bash
-    - uses: actions/upload-artifact@v2
-      with:
-        name: ${{ env.GDC_CLIENT_ZIP }}-py${{ matrix.python }}-${{ matrix.os }}
-        path: bin/gdc-client_*.zip
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run Tests
+        if: matrix.os != 'windows-latest'
+        run: |
+          python -m pip install --upgrade pip
+          pip install tox
+          tox -e py
+      - name: Package
+        run: |
+          cd bin
+          pip install virtualenv
+          . ./package
+          echo "GDC_CLIENT_ZIP=$GDC_CLIENT_ZIP" >> $GITHUB_ENV
+        shell: bash
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.GDC_CLIENT_ZIP }}-py${{ matrix.python }}-${{ matrix.os }}
+          path: bin/gdc-client_*.zip

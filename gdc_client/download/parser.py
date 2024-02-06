@@ -80,7 +80,9 @@ def download(parser, args):
 
     ids = ids_map.values() if args.latest else ids_map.keys()
 
-    index_client = GDCIndexClient(args.server, not args.no_verify)
+    index_client = GDCIndexClient(
+        uri=args.server, token=args.token_file, verify=not args.no_verify
+    )
     client = get_client(args, index_client)
 
     # separate the smaller files from the larger files
@@ -163,7 +165,6 @@ def download(parser, args):
 
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
-
     log.debug("Retrying download {0}".format(url))
 
     error = True
