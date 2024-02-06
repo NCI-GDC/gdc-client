@@ -13,9 +13,9 @@ tox:
   parallel:
     matrix:
       - BUILD_PY_VERSION:
-          - python3.5
-          - python3.6
-          - python3.7
+          - python35
+          - python36
+          - python37
   script:
     - tox -r -e py
 
