@@ -27,7 +27,7 @@ setup(
         "pyOpenSSL~=18.0.0",
         "PyYAML>=5.1",
         "intervaltree~=3.0.2",
-        "importlib_metadata; python_version<'3.8'",
+        "importlib_metadata<=2.1.3; python_version<'3.8'",  # 2.1.3 last support for py35
         "termcolor~=1.1.0",
         "requests~=2.22.0",
         "progressbar2~=3.43.1",

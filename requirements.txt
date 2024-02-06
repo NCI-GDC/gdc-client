@@ -16,7 +16,7 @@ cryptography==2.8
     #   pyopenssl
 idna==2.8
     # via requests
-importlib-metadata==4.8.3 ; python_version < "3.8"
+importlib-metadata==2.1.3 ; python_version < "3.8"
     # via gdc-client (setup.py)
 intervaltree==3.0.2
     # via gdc-client (setup.py)
@@ -54,8 +54,6 @@ sortedcontainers==2.4.0
     # via intervaltree
 termcolor==1.1.0
     # via gdc-client (setup.py)
-typing-extensions==4.1.1
-    # via importlib-metadata
 urllib3==1.25.11
     # via requests
 zipp==3.6.0
