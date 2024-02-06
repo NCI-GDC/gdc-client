@@ -31,5 +31,6 @@ setup(
         "termcolor~=1.1.0",
         "requests~=2.22.0",
         "progressbar2~=3.43.1",
+        "zipp<2",  # zipp < 2 for python3.5
     ],
 )

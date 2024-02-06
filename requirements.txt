@@ -56,5 +56,7 @@ termcolor==1.1.0
     # via gdc-client (setup.py)
 urllib3==1.25.11
     # via requests
-zipp==3.6.0
-    # via importlib-metadata
+zipp==1.2.0
+    # via
+    #   gdc-client (setup.py)
+    #   importlib-metadata
