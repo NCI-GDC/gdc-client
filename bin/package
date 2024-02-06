@@ -107,7 +107,7 @@ echo "Zipping binary..."
 cd dist
 
 PRE_ZIP_NAME="gdc-client_${VERSION}_${TARGET_ENVIRONMENT}_x64"
-if [ -n "${DATE}" ]; then
+if [ -n "${DATE+x}" ]; then
     PRE_ZIP_NAME="gdc-client_${VERSION}_${DATE}_${TARGET_ENVIRONMENT}_x64"
 fi
 
