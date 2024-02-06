@@ -8,9 +8,12 @@ include:
       - templates/common/python.yaml
 
 tox:
+  variables:
+    BASE_CONTAINER_VERSION: 1.2.0
   parallel:
     matrix:
       - BUILD_PY_VERSION:
+          - python3.5
           - python3.6
           - python3.7
   script:
