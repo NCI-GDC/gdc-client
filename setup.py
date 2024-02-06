@@ -5,6 +5,15 @@ setup(
     use_scm_version={
         "local_scheme": "dirty-tag",
     },
+    classifiers=[
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+    ],
+    python_requires=">=3.5",
     setup_requires=["setuptools_scm<6"],
     packages=find_packages(),
     package_data={},
