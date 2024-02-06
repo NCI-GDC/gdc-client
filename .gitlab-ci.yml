@@ -17,6 +17,8 @@ tox:
           - python36
           - python37
   script:
+    # for python3.5 apt install libffi-dev
+    - apt-get update && apt-get install libffi-dev
     - tox -r -e py
 
 
