@@ -18,7 +18,7 @@ setup(
         "pyOpenSSL~=18.0.0",
         "PyYAML>=5.1",
         "intervaltree~=3.0.2",
-        "importlib_metadata; python_version<'3.8'",
+        "importlib_metadata",
         "termcolor~=1.1.0",
         "requests~=2.22.0",
         "progressbar2~=3.43.1",

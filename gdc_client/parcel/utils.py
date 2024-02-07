@@ -34,7 +34,7 @@ log = logging.getLogger("utils")
 try:
     requests.packages.urllib3.disable_warnings()
 except Exception as e:
-    log.debug("Unable to silence requests warnings: {0}".format(str(e)))
+    log.debug(f"Unable to silence requests warnings: {str(e)}")
 
 
 def check_transfer_size(actual, expected):
@@ -65,7 +65,7 @@ def get_file_transfer_pbar(
     Returns:
         ProgressBar: progress bar instance
     """
-    log.debug("{} {}:".format(desc, file_id))
+    log.debug(f"{desc} {file_id}:")
 
     pbar = ProgressBar(
         widgets=[
@@ -103,15 +103,11 @@ def get_percentage_pbar(maxval: int):
 
 def print_opening_header(file_id):
     log.debug("")
-    log.debug(
-        "v{0}v".format("{s:{c}^{n}}".format(s=" {0} ".format(file_id), n=50, c="-"))
-    )
+    log.debug("v{}v".format("{s:{c}^{n}}".format(s=f" {file_id} ", n=50, c="-")))
 
 
 def print_closing_header(file_id):
-    log.debug(
-        "^{0}^".format("{s:{c}^{n}}".format(s=" {0} ".format(file_id), n=50, c="-"))
-    )
+    log.debug("^{}^".format("{s:{c}^{n}}".format(s=f" {file_id} ", n=50, c="-")))
 
 
 def write_offset(path, data, offset):
@@ -140,12 +136,12 @@ def remove_partial_extension(path):
     try:
         if not path.endswith(".partial"):
             log.warning("No partial extension found")
-            log.warning("Got {0}".format(path))
+            log.warning(f"Got {path}")
             return
-        log.debug("renaming to {0}".format(path.replace(".partial", "")))
+        log.debug("renaming to {}".format(path.replace(".partial", "")))
         os.rename(path, path.replace(".partial", ""))
     except Exception as e:
-        raise Exception("Unable to remove partial extension: {0}".format(str(e)))
+        raise Exception(f"Unable to remove partial extension: {str(e)}")
 
 
 def check_file_existence_and_size(path, size):
@@ -172,7 +168,7 @@ def get_file_type(path):
         else:
             return "unknown"
     except Exception as e:
-        raise RuntimeError("Unable to get file type: {0}".format(str(e)))
+        raise RuntimeError(f"Unable to get file type: {str(e)}")
 
 
 def calculate_segments(start, stop, block):
@@ -232,7 +228,7 @@ def mmap_open(path):
             mm = mmap.mmap(f.fileno(), 0)
             yield mm
     except Exception as e:
-        raise RuntimeError("Unable to get file type: {0}".format(str(e)))
+        raise RuntimeError(f"Unable to get file type: {str(e)}")
 
 
 def STRIP(comment):

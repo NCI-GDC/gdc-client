@@ -7,7 +7,7 @@ import requests
 log = logging.getLogger("query")
 
 
-class GDCIndexClient(object):
+class GDCIndexClient:
     def __init__(self, uri, verify=True):
         self.uri = uri
         self.active_meta_endpoint = "/v0/files"
@@ -245,12 +245,10 @@ class GDCIndexClient(object):
         total_count = len(bigs) + sum([len(s) for s in smalls])
         if len(potential_smalls) > total_count:
             log.warning("There are less files to download than originally given")
-            log.warning(
-                "Number of files originally given: {0}".format(len(potential_smalls))
-            )
+            log.warning(f"Number of files originally given: {len(potential_smalls)}")
 
-        log.debug("{0} total number of files to download".format(total_count))
-        log.debug("{0} groupings of files".format(len(smalls)))
+        log.debug(f"{total_count} total number of files to download")
+        log.debug(f"{len(smalls)} groupings of files")
 
         smalls = [s for s in smalls if s != []]
 

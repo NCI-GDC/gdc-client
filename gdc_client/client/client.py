@@ -11,7 +11,7 @@ GDC_API_HOST = "api.gdc.cancer.gov"
 GDC_API_PORT = 443
 
 
-class GDCClient(object):
+class GDCClient:
     """GDC API Requests Client"""
 
     def __init__(self, host=GDC_API_HOST, port=GDC_API_PORT, token=None):
@@ -23,7 +23,7 @@ class GDCClient(object):
 
         agent = " ".join(
             [
-                "GDC-Client/{version}".format(version=version.__version__),
+                f"GDC-Client/{version.__version__}",
                 self.session.headers.get("User-Agent", "Unknown"),
             ]
         )
@@ -43,7 +43,7 @@ class GDCClient(object):
                 path=path,
             ),
             auth=auth.GDCTokenAuth(self.token),
-            **kwargs
+            **kwargs,
         )
 
         with closing(res):

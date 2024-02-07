@@ -26,10 +26,10 @@ def fix_url(url):
         api.gdc.cancer.gov -> https://api.gdc.cancer.gov/
     """
     if not url.endswith("/"):
-        url = "{0}/".format(url)
+        url = f"{url}/"
 
     if not (url.startswith("https://") or url.startswith("http://")):
-        url = "https://{0}".format(url)
+        url = f"https://{url}"
 
     return url
 
@@ -45,7 +45,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         download_annotations=True,
         index_client=None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         """GDC parcel client that overrides parallel download
         Args:
@@ -67,7 +67,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         self.base_directory = kwargs.get("directory")
         self.verify = kwargs.get("verify")
 
-        super(GDCHTTPDownloadClient, self).__init__(self.data_uri, *args, **kwargs)
+        super().__init__(self.data_uri, *args, **kwargs)
 
     def download_related_files(self, file_id):
         # type: (str) -> None
@@ -81,12 +81,10 @@ class GDCHTTPDownloadClient(HTTPClient):
         related_files = self.gdc_index_client.get_related_files(file_id)
         if related_files:
 
-            log.debug(
-                "Found {0} related files for {1}.".format(len(related_files), file_id)
-            )
+            log.debug(f"Found {len(related_files)} related files for {file_id}.")
             for related_file in related_files:
 
-                log.debug("related file {0}".format(related_file))
+                log.debug(f"related file {related_file}")
                 related_file_url = urlparse.urljoin(self.data_uri, related_file)
                 stream = DownloadStream(related_file_url, directory, self.token)
 
@@ -95,7 +93,7 @@ class GDCHTTPDownloadClient(HTTPClient):
                 stream.directory = directory
 
                 # run original parallel download
-                super(GDCHTTPDownloadClient, self).parallel_download(stream)
+                super().parallel_download(stream)
 
                 if os.path.isfile(stream.temp_path):
                     utils.remove_partial_extension(stream.temp_path)
@@ -114,9 +112,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         annotations = self.gdc_index_client.get_annotations(file_id)
 
         if annotations:
-            log.debug(
-                "Found {0} annotations for {1}.".format(len(annotations), file_id)
-            )
+            log.debug(f"Found {len(annotations)} annotations for {file_id}.")
             # {'ids': ['id1', 'id2'..., 'idn']}
             ann_ids = {"ids": annotations}
 
@@ -131,7 +127,7 @@ class GDCHTTPDownloadClient(HTTPClient):
                 with open(path, "wb") as f:
                     f.write(ann)
 
-                log.debug("Wrote annotations to {0}.".format(path))
+                log.debug(f"Wrote annotations to {path}.")
 
     def _untar_file(self, tarfile_name):
         # type: (str) -> list[str]
@@ -160,7 +156,7 @@ class GDCHTTPDownloadClient(HTTPClient):
                 )
                 continue
             member_uuid = m.split("/")[0]
-            log.debug("Validating checksum for {0}...".format(member_uuid))
+            log.debug(f"Validating checksum for {member_uuid}...")
 
             md5sum = hashlib.md5()
             filename = os.path.join(self.base_directory, m)
@@ -168,7 +164,7 @@ class GDCHTTPDownloadClient(HTTPClient):
                 md5sum.update(f.read())
 
             if self.gdc_index_client.get_md5sum(member_uuid) != md5sum.hexdigest():
-                log.error("UUID {0} has invalid md5sum".format(member_uuid))
+                log.error(f"UUID {member_uuid} has invalid md5sum")
                 errors.append(member_uuid)
 
         return errors
@@ -184,7 +180,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         try:
             # try active
             active = urlparse.urljoin(self.base_uri, path)
-            legacy = urlparse.urljoin(self.base_uri, "legacy/{0}".format(path))
+            legacy = urlparse.urljoin(self.base_uri, f"legacy/{path}")
 
             r = requests.post(
                 active,
@@ -227,7 +223,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
         if r.status_code == requests.codes.bad:
             log.error("Unable to connect to the API")
-            log.error("Is this the correct URL? {0}".format(self.base_uri))
+            log.error(f"Is this the correct URL? {self.base_uri}")
 
         elif r.status_code == requests.codes.forbidden:
             # since the files are grouped by access control, that means
@@ -238,7 +234,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             return "", []
 
         if r.status_code not in [200, 203]:
-            log.warning("[{0}] Unable to download group".format(r.status_code))
+            log.warning(f"[{r.status_code}] Unable to download group")
             errors.append(ids["ids"])
             return "", errors
 
@@ -281,7 +277,7 @@ class GDCHTTPDownloadClient(HTTPClient):
                 log.error("There are no files to download")
                 return [], 0
 
-            log.debug("Saving grouping {0}/{1}".format(i + 1, groupings_len))
+            log.debug(f"Saving grouping {i + 1}/{groupings_len}")
 
             pbar = get_percentage_pbar(1)
 
@@ -313,15 +309,13 @@ class GDCHTTPDownloadClient(HTTPClient):
         # gdc-client calls parcel's parallel_download,
         # which is where most of the downloading takes place
         file_id = stream.url.split("/")[-1]
-        super(GDCHTTPDownloadClient, self).parallel_download(stream)
+        super().parallel_download(stream)
 
         if self.related_files:
             try:
                 self.download_related_files(file_id)
             except Exception as e:
-                log.warning(
-                    "Unable to download related files for {0}: {1}".format(file_id, e)
-                )
+                log.warning(f"Unable to download related files for {file_id}: {e}")
                 if self.debug:
                     raise
 
@@ -329,8 +323,6 @@ class GDCHTTPDownloadClient(HTTPClient):
             try:
                 self.download_annotations(file_id)
             except Exception as e:
-                log.warning(
-                    "Unable to download annotations for {0}: {1}".format(file_id, e)
-                )
+                log.warning(f"Unable to download annotations for {file_id}: {e}")
                 if self.debug:
                     raise
