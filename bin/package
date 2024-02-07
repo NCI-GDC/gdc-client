@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euox pipefail
 
 function cleanup() {
     # get rid of the virtualenv
@@ -33,6 +33,7 @@ while getopts ":d" opt; do
 	esac
 done
 
+DATE=${DATE-} # if date is not passed in, default DATE variable to empty string
 VENV_NAME="venv"
 BINARY_NAME="gdc-client"
 VENV_PATH="$VENV_NAME/bin/activate"
@@ -69,7 +70,9 @@ esac
 # setup.py is in previous dir
 cd ..
 
-python -m pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install --no-deps -r requirements.txt
+python -m pip install --no-deps .
 python setup.py install
 
 # go back go the ./gdc_client/bin dir
@@ -78,10 +81,10 @@ cd bin
 echo "Building for ${TARGET_ENVIRONMENT}..."
 
 # Make sure the correct version of pyinstaller and setuptools are installed
-pip install -U "PyInstaller==3.5"
+pip install -U PyInstaller
 
 # Ran into ModuleNotFoundError: No module named 'pkg_resources.py2_warn' with higher versions of setuptools
-pip install --upgrade 'setuptools<45.0.0'
+pip install --upgrade setuptools
 
 # Get version
 VERSION=$(python -c "
@@ -96,6 +99,7 @@ pyinstaller \
     --additional-hooks-dir=. \
     --noconfirm \
     --onefile \
+    --copy-metadata gdc-client \
     -c gdc-client
 
 echo "Testing produced binary..."

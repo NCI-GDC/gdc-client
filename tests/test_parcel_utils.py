@@ -76,7 +76,7 @@ def test__validate_file_md5sum_negative_validation_errors(
         "d47b127bc2de2d687ddc82dac354c415"  # pragma: allowlist secret
     )
 
-    with pytest.raises(exceptions.MD5ValidationError, match=r"{}".format(expected)):
+    with pytest.raises(exceptions.MD5ValidationError, match=rf"{expected}"):
         utils.validate_file_md5sum(stream, file_path)
 
 

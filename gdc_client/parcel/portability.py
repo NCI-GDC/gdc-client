@@ -8,6 +8,7 @@
 
 import platform
 from termcolor import colored as _colored
+import logging
 
 OS_WINDOWS = False
 OS_LINUX = False
@@ -22,7 +23,7 @@ elif platform.system() == "Linux":
     OS_LINUX = True
 
 # Are we running on windows?
-if OS_WINDOWS:
+if OS_WINDOWS or OS_OSX:
     from threading import Thread as Process
 else:
     # Assume a posix system

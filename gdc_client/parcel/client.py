@@ -23,7 +23,7 @@ import time
 log = logging.getLogger("client")
 
 
-class Client(object):
+class Client:
     def __init__(
         self, url, token, n_procs, directory=None, verify=True, debug=False, **kwargs
     ):
@@ -64,15 +64,15 @@ class Client(object):
 
         """
         if not (url.startswith("https://") or url.startswith("http://")):
-            url = "https://{0}".format(url)
+            url = f"https://{url}"
         return url
 
     @staticmethod
     def raise_for_write_permissions(directory):
         try:
             tempfile.NamedTemporaryFile(dir=directory).close()
-        except (OSError, IOError) as e:
-            raise IOError(
+        except OSError as e:
+            raise OSError(
                 utils.STRIP(
                     """Unable to write
             to download to directory '{directory}': {err}.  This
@@ -106,7 +106,7 @@ class Client(object):
         rate_info = ""
         if file_size and file_size > 0:
             rate = (int(file_size) * 8 / 1e9) / (self.stop_time - self.start_time)
-            rate_info = ": {0:.2f} Gbps average".format(rate)
+            rate_info = f": {rate:.2f} Gbps average"
 
         log.debug("Download complete" + rate_info)
 
@@ -127,7 +127,7 @@ class Client(object):
 
         # Log file ids
         for url in urls:
-            log.debug("Given url: {0}".format(url))
+            log.debug(f"Given url: {url}")
 
         # Download each file
         downloaded, errors = [], {}
@@ -166,7 +166,7 @@ class Client(object):
         # Print error messages
         for url, error in errors.items():
             file_id = url.split("/")[-1]
-            log.error("{0}: {1}".format(file_id, error))
+            log.error(f"{file_id}: {error}")
 
         return downloaded, errors
 
@@ -222,7 +222,7 @@ class Client(object):
                     if self.debug:
                         raise
                     else:
-                        log.error("Download aborted: {0}".format(str(e)))
+                        log.error(f"Download aborted: {str(e)}")
                         # worker needs to stay alive until final sentinel value
                         # from master process is received
                         continue
@@ -258,11 +258,11 @@ class Client(object):
 
             else:
                 raise Exception(
-                    "[{0}] Unable to download url {1}".format(r.status_code, stream.url)
+                    f"[{r.status_code}] Unable to download url {stream.url}"
                 )
 
             r.close()
 
         except Exception as e:
             log.error(e)
-            raise Exception("Unable to connect to {0}".format(stream.url))
+            raise Exception(f"Unable to connect to {stream.url}")

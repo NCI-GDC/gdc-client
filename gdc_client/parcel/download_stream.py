@@ -18,7 +18,7 @@ import time
 from urllib.parse import urlparse
 
 
-class DownloadStream(object):
+class DownloadStream:
 
     http_chunk_size = const.HTTP_CHUNK_SIZE
     check_segment_md5sums = True
@@ -69,7 +69,7 @@ class DownloadStream(object):
             self.log.warning(
                 utils.STRIP(
                     """Unable to set file length. File appears to
-                be a {0} file, attempting to proceed.
+                be a {} file, attempting to proceed.
                 """.format(
                         utils.get_file_type(self.path)
                     )
@@ -97,7 +97,7 @@ class DownloadStream(object):
 
         :returns: A string specifying the full temp path
         """
-        return os.path.join(self.directory, "{0}.partial".format(self.name))
+        return os.path.join(self.directory, f"{self.name}.partial")
 
     @property
     def state_path(self):
@@ -105,7 +105,7 @@ class DownloadStream(object):
 
         :returns: A string specifying the download state path
         """
-        return os.path.join(self.state_directory, "{0}.parcel".format(self.name))
+        return os.path.join(self.state_directory, f"{self.name}.parcel")
 
     @property
     def state_directory(self):
@@ -132,7 +132,7 @@ class DownloadStream(object):
             "X-Auth-Token": self.token,
         }
         if start is not None and end is not None:
-            header["Range"] = "bytes={0}-{1}".format(start, end)
+            header["Range"] = f"bytes={start}-{end}"
             # provide host because it's mandatory, range request
             # may not work otherwise
             scheme, host, path, params, q, frag = urlparse(self.url)
@@ -151,7 +151,7 @@ class DownloadStream(object):
         :returns: A `requests` response.
 
         """
-        self.log.debug("Request to {0}".format(self.url))
+        self.log.debug(f"Request to {self.url}")
 
         # Set urllib3 retries and mount for session
         a = requests.adapters.HTTPAdapter(max_retries=max_retries)
@@ -170,14 +170,14 @@ class DownloadStream(object):
         except Exception as e:
             raise RuntimeError(
                 (
-                    "Unable to connect to API: ({0}). Is this url correct: '{1}'? "
+                    "Unable to connect to API: ({}). Is this url correct: '{}'? "
                     "Is there a connection to the API? Is the server running?"
                 ).format(str(e), self.url)
             )
         try:
             r.raise_for_status()
         except Exception as e:
-            raise RuntimeError("{0}: {1}".format(str(e), r.text))
+            raise RuntimeError(f"{str(e)}: {r.text}")
 
         if close:
             r.close()
@@ -202,10 +202,10 @@ class DownloadStream(object):
             self.check_file_md5sum = False
         else:
             self.size = int(content_length)
-            self.log.debug("{0} bytes".format(self.size))
+            self.log.debug(f"{self.size} bytes")
 
         attachment = r.headers.get("content-disposition", None)
-        self.log.debug("Attachment:         : {}".format(attachment))
+        self.log.debug(f"Attachment:         : {attachment}")
 
         # Some of the filenames are set to be equal to an S3 key, which can
         # contain '/' characters and it breaks saving the file
@@ -246,7 +246,7 @@ class DownloadStream(object):
             r = self.request(self.header(start, end))
 
             # Iterate over the data stream
-            self.log.debug("Initializing segment: {0}-{1}".format(start, end))
+            self.log.debug(f"Initializing segment: {start}-{end}")
             for chunk in r.iter_content(chunk_size=self.http_chunk_size):
                 if not chunk:
                     continue  # Empty are keep-alives.
@@ -273,7 +273,7 @@ class DownloadStream(object):
             # TODO FIXME HACK create new segment to avoid duplicate downloads
             segment = Interval(segment.begin + written, segment.end, None)
 
-            self.log.debug("Unable to download part of file: {0}\n.".format(str(e)))
+            self.log.debug(f"Unable to download part of file: {str(e)}\n.")
             if retries > 0:
                 self.log.debug("Retrying download of this segment")
                 return self.write_segment(segment, q_complete, retries - 1)
@@ -287,7 +287,7 @@ class DownloadStream(object):
             segment = Interval(segment.begin + written, segment.end, None)
 
             self.log.debug(
-                "Segment corruption: {0}".format(
+                "Segment corruption: {}".format(
                     "(non-fatal) retrying" if retries else "max retries exceeded"
                 )
             )
@@ -300,15 +300,15 @@ class DownloadStream(object):
         return written
 
     def print_download_information(self):
-        self.log.debug("Starting download   : {0}".format(self.url))
-        self.log.debug("File name           : {0}".format(self.name))
+        self.log.debug(f"Starting download   : {self.url}")
+        self.log.debug(f"File name           : {self.name}")
 
         # some tarfiles will not come with Content-Length in the header
         if self.size:
             self.log.debug(
-                "Download size       : {0} B ({1:.2f} GB)".format(
+                "Download size       : {} B ({:.2f} GB)".format(
                     self.size, (self.size / float(const.GB))
                 )
             )
 
-        self.log.debug("Downloading file to : {0}".format(self.path))
+        self.log.debug(f"Downloading file to : {self.path}")

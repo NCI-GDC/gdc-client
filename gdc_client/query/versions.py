@@ -35,8 +35,8 @@ def get_latest_versions(url, uuids, verify=True):
         if not resp.ok:
             raise HTTPError(
                 (
-                    "The following request {0} for ids {1} returned with "
-                    "status code: {2} and response content: {3}"
+                    "The following request {} for ids {} returned with "
+                    "status code: {} and response content: {}"
                 ).format(
                     versions_url,
                     chunk,

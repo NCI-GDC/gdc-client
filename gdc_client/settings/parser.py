@@ -11,7 +11,7 @@ HELP = (
 )
 
 
-class SettingsResolver(object):
+class SettingsResolver:
     def __init__(self, config_file):
         self.config = GDCClientConfigShared(config_file)
 

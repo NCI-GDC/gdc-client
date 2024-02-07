@@ -71,12 +71,10 @@ def download(parser, args):
 
     for file_id, latest_id in ids_map.items():
         if args.latest:
-            log.info("Latest version for {} ==> {}".format(file_id, latest_id))
+            log.info(f"Latest version for {file_id} ==> {latest_id}")
             continue
         if latest_id is not None and file_id != latest_id:
-            log.warning(
-                'The file "{}" was superseded by "{}"'.format(file_id, latest_id)
-            )
+            log.warning(f'The file "{file_id}" was superseded by "{latest_id}"')
 
     ids = ids_map.values() if args.latest else ids_map.keys()
 
@@ -135,7 +133,7 @@ def download(parser, args):
 
         if big_errors:
             log.debug(
-                "Big files not downloaded: {0}".format(
+                "Big files not downloaded: {}".format(
                     ", ".join([b.split("/")[-1] for b in big_errors])
                 )
             )
@@ -146,7 +144,7 @@ def download(parser, args):
 
     msg = "Successfully downloaded"
     log.info(
-        "{0}: {1}".format(
+        "{}: {}".format(
             colored(msg, "green") if not args.color_off else msg, successful_count
         )
     )
@@ -154,7 +152,7 @@ def download(parser, args):
     if unsuccessful_count > 0:
         msg = "Failed downloads"
         log.info(
-            "{0}: {1}".format(
+            "{}: {}".format(
                 colored(msg, "red") if not args.color_off else msg, unsuccessful_count
             )
         )
@@ -164,31 +162,31 @@ def download(parser, args):
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
 
-    log.debug("Retrying download {0}".format(url))
+    log.debug(f"Retrying download {url}")
 
     error = True
     while 0 < retry_amount and error:
         if no_auto_retry:
-            should_retry = input("Retry download for {0}? (y/N): ".format(url))
+            should_retry = input(f"Retry download for {url}? (y/N): ")
         else:
             should_retry = "y"
 
         if should_retry.lower() == "y":
-            log.debug("{0} retries remaining...".format(retry_amount))
-            log.debug("Retrying download... {0} in {1} seconds".format(url, wait_time))
+            log.debug(f"{retry_amount} retries remaining...")
+            log.debug(f"Retrying download... {url} in {wait_time} seconds")
             retry_amount -= 1
             time.sleep(wait_time)
             # client.download_files accepts a list of urls to download
             # but we want to only try one at a time
             _, e = client.download_files([url])
             if not e:
-                log.debug("Successfully downloaded {0}!".format(url))
+                log.debug(f"Successfully downloaded {url}!")
                 return
         else:
             error = False
             retry_amount = 0
 
-    log.error("Unable to download file {0}".format(url))
+    log.error(f"Unable to download file {url}")
     return url
 
 

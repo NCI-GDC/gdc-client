@@ -11,4 +11,4 @@ from gdc_client.parcel.client import Client
 
 class HTTPClient(Client):
     def __init__(self, *args, **kwargs):
-        super(HTTPClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
