@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euox pipefail
 
 function cleanup() {
     # get rid of the virtualenv
@@ -69,8 +69,8 @@ esac
 # setup.py is in previous dir
 cd ..
 
-python -m pip install -r requirements.txt
-python setup.py install
+python -m pip install --no-deps -r requirements.txt
+python -m pip install --no-deps .
 
 # go back go the ./gdc_client/bin dir
 cd bin
@@ -78,7 +78,7 @@ cd bin
 echo "Building for ${TARGET_ENVIRONMENT}..."
 
 # Make sure the correct version of pyinstaller and setuptools are installed
-pip install -U "PyInstaller==3.5"
+pip install -U "PyInstaller>=4.10"
 
 # Ran into ModuleNotFoundError: No module named 'pkg_resources.py2_warn' with higher versions of setuptools
 pip install --upgrade 'setuptools<45.0.0'
@@ -96,6 +96,7 @@ pyinstaller \
     --additional-hooks-dir=. \
     --noconfirm \
     --onefile \
+    --copy-metadata gdc-client \
     -c gdc-client
 
 echo "Testing produced binary..."
@@ -106,7 +107,7 @@ echo "Zipping binary..."
 cd dist
 
 PRE_ZIP_NAME="gdc-client_${VERSION}_${TARGET_ENVIRONMENT}_x64"
-if [ -n "${DATE}" ]; then
+if [ -n "${DATE+x}" ]; then
     PRE_ZIP_NAME="gdc-client_${VERSION}_${DATE}_${TARGET_ENVIRONMENT}_x64"
 fi
 
