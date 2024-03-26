@@ -5,7 +5,6 @@ setup(
     use_scm_version={
         "local_scheme": "dirty-tag",
     },
-    setup_requires=["setuptools_scm<6"],
     packages=find_packages(),
     package_data={},
     scripts=["bin/gdc-client"],
