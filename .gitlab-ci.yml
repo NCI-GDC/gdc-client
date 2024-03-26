@@ -16,6 +16,8 @@ tox:
     - tox -r -e py
 
 release:
+  variables:
+    RELEASE_PY_VERSION: python3.8
   before_script:
     # unshallow the git repo to resolve version with setuptools_scm.
     - git fetch --unshallow || true
@@ -23,5 +25,9 @@ release:
       if [ ${CI_COMMIT_TAG+x} ]; then
         export TWINE_REPOSITORY_URL=https://nexus.osdc.io/repository/pypi-releases/
       fi
-  variables:
-    RELEASE_PY_VERSION: python3.8
+  after_script:
+    - python setup.py --version > VERSION.txt
+  artifacts:
+    paths:
+      - VERSION.txt
+    expire_in: 1 week

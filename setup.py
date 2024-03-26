@@ -27,6 +27,7 @@ def get_version():
 
 setup(
     name="gdc_client",
+    setup_requires=["setuptools_scm<8"],
     use_scm_version={
         "local_scheme": "dirty-tag",
     },
