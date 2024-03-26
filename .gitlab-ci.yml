@@ -26,7 +26,8 @@ release:
         export TWINE_REPOSITORY_URL=https://nexus.osdc.io/repository/pypi-releases/
       fi
   after_script:
-    - python setup.py --version > VERSION.txt
+    - pip install "setuptools_scm>=6.2,<8" "setuptools-git-versioning<2"
+    - python -m setuptools_git_versioning | tee VERSION.txt
   artifacts:
     paths:
       - VERSION.txt
