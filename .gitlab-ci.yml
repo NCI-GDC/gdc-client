@@ -12,6 +12,7 @@ tox:
     matrix:
       - BUILD_PY_VERSION: [python3.8]
   script:
+    - pip install tox
     - tox -r -e py
 
 release:
