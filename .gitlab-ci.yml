@@ -8,10 +8,6 @@ include:
       - templates/common/python.yaml
 
 tox:
-  parallel:
-    matrix:
-      - BUILD_PY_VERSION:
-          - python3.8
   script:
     - tox -r -e py
 
