@@ -7,10 +7,10 @@ include:
       - templates/python/full.yaml
       - templates/common/python.yaml
 
-variables:
-  BUILD_PY_VERSION: python3.8
-
 tox:
+  parallel:
+    matrix:
+      - BUILD_PY_VERSION: [python3.8]
   script:
     - tox -r -e py
 
