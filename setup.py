@@ -41,7 +41,6 @@ setup(
     use_scm_version={
         "local_scheme": "dirty-tag",
     },
-    setup_requires=["setuptools_scm<6"],
     setuptools_git_versioning={"enabled": True, "version_callback": get_version},
     packages=find_packages(),
     package_data={},
