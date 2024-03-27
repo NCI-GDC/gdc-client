@@ -13,7 +13,7 @@ tox:
       - BUILD_PY_VERSION: [python3.8]
   script:
     - pip install tox
-    - tox -r -e -vvv py
+    - tox -vvv -r -e py
 
 release:
   before_script:
