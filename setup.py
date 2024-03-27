@@ -38,11 +38,11 @@ def get_version() -> str:
 
 setup(
     name="gdc_client",
-    use_scm_version={
-        "local_scheme": "dirty-tag",
-    },
-    setup_requires=["setuptools_scm>8", "setuptools_git_versioning"],
-    setuptools_git_versioning={"enabled": True, "version_callback": get_version},
+    # use_scm_version={
+    #     "local_scheme": "dirty-tag",
+    # },
+    # setup_requires=["setuptools_scm>8", "setuptools_git_versioning"],
+    # setuptools_git_versioning={"enabled": True, "version_callback": get_version},
     packages=find_packages(),
     package_data={},
     scripts=["bin/gdc-client"],
