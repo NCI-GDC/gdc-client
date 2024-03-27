@@ -16,15 +16,12 @@ tox:
     - tox -r -e py
 
 release:
-  variables:
-    RELEASE_PY_VERSION: python3.8
   before_script:
     # unshallow the git repo to resolve version with setuptools_scm.
     - git fetch --unshallow || true
-  after_script:
-    - pip install "setuptools_scm>=6.2,<8" "setuptools-git-versioning<2"
-    - python -m setuptools_git_versioning | tee VERSION.txt
-  artifacts:
-    paths:
-      - VERSION.txt
-    expire_in: 1 week
+    - |
+      if [ ${CI_COMMIT_TAG+x} ]; then
+        export TWINE_REPOSITORY_URL=https://nexus.osdc.io/repository/pypi-releases/
+      fi
+  variables:
+    RELEASE_PY_VERSION: python3.8
