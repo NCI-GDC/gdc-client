@@ -137,11 +137,9 @@ def test_get_latest_versions_error(
     versions_response_error(url + "/files/versions")
 
     expected_err_msg = re.escape(
-        (
-            "The following request {0} for ids "
-            "{1} returned with status code: 502 and response content: "
-            "b'<html>502 Bad Gateway</html>'".format(url + "/files/versions", ids)
-        )
+        "The following request {} for ids "
+        "{} returned with status code: 502 and response content: "
+        "b'<html>502 Bad Gateway</html>'".format(url + "/files/versions", ids)
     )
 
     with pytest.raises(HTTPError, match=expected_err_msg):

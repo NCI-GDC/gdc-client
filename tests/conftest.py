@@ -1,4 +1,5 @@
 import hashlib
+import platform
 from io import BytesIO
 from multiprocessing import Process
 import tarfile
@@ -115,14 +116,18 @@ uuids = {
 }
 
 
-@pytest.fixture(scope="class")
-def setup_mock_server() -> None:
+def run_mock_server():
     # import mock_server here to avoid cyclic import
     import mock_server
 
-    server = Process(target=mock_server.app.run)
+    mock_server.app.run()
+
+
+@pytest.fixture(scope="class")
+def setup_mock_server() -> None:
+    server = Process(target=run_mock_server)
     server.start()
-    time.sleep(2)
+    time.sleep(5)  # starting with py38, takes longer for process to start on macOS
     yield
     server.terminate()
 

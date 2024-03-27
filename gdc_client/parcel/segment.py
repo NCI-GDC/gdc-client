@@ -44,12 +44,10 @@ else:
 log = logging.getLogger("segment")
 
 
-class SegmentProducer(object):
-
+class SegmentProducer:
     save_interval = SAVE_INTERVAL
 
     def __init__(self, download, n_procs):
-
         assert (
             download.size is not None
         ), "Segment producer passed uninitizalied Download!"
@@ -74,7 +72,7 @@ class SegmentProducer(object):
         work_size = self.integrate(self.work_pool)
         self.block_size = work_size // self.n_procs
         self.total_tasks = math.ceil(work_size / self.block_size)
-        log.debug("Total number of tasks: {0}".format(self.total_tasks))
+        log.debug(f"Total number of tasks: {self.total_tasks}")
 
     def _setup_queues(self):
         if WINDOWS:
@@ -94,13 +92,13 @@ class SegmentProducer(object):
         corrupt_segments = 0
         intervals = sorted(self.completed.items())
 
-        log.debug("Checksumming {0}:".format(self.download.url))
+        log.debug(f"Checksumming {self.download.url}:")
 
         pbar = get_percentage_pbar(len(intervals))
 
         with mmap_open(path or self.download.path) as data:
             for interval in pbar(intervals):
-                log.debug("Checking segment md5: {0}".format(interval))
+                log.debug(f"Checking segment md5: {interval}")
                 if not interval.data or "md5sum" not in interval.data:
                     log.error(
                         STRIP(
@@ -114,7 +112,7 @@ class SegmentProducer(object):
                 checksum = md5sum(chunk)
                 if checksum != interval.data.get("md5sum"):
                     log.debug(
-                        "Redownloading corrupt segment {0}, {1}.".format(
+                        "Redownloading corrupt segment {}, {}.".format(
                             interval, checksum
                         )
                     )
@@ -122,7 +120,7 @@ class SegmentProducer(object):
                     self.completed.remove(interval)
 
         if corrupt_segments:
-            log.warning("Redownloading {0} corrupt segments.".format(corrupt_segments))
+            log.warning(f"Redownloading {corrupt_segments} corrupt segments.")
 
     def recover_intervals(self) -> bool:
         """Recreate list of completed intervals and calculate remaining work pool
@@ -143,14 +141,14 @@ class SegmentProducer(object):
         # If the state file does not exist, treat as first time download
         if not state_file_exists:
             log.debug(
-                "State file {0} does not exist. Beginning new download...".format(
+                "State file {} does not exist. Beginning new download...".format(
                     self.download.state_path
                 )
             )
             return False
 
         log.debug(
-            "Found state file {0}, attempting to resume download".format(
+            "Found state file {}, attempting to resume download".format(
                 self.download.state_path
             )
         )
@@ -160,12 +158,12 @@ class SegmentProducer(object):
                 self.completed = pickle.load(f)
             assert isinstance(
                 self.completed, IntervalTree
-            ), "Bad save state: {0}".format(self.download.state_path)
+            ), f"Bad save state: {self.download.state_path}"
         except Exception as e:
             # An error has occured while loading state file.
             # Treat as entire file download and recreate temporary file
             log.error(
-                "Unable to resume file state: {0}, will restart entire download".format(
+                "Unable to resume file state: {}, will restart entire download".format(
                     str(e)
                 )
             )
@@ -176,7 +174,7 @@ class SegmentProducer(object):
         # Recreate the temporary file and return
         if download_file_exists:
             log.debug(
-                "A file named {0} found, will attempt to validate file".format(
+                "A file named {} found, will attempt to validate file".format(
                     self.download.path
                 )
             )
@@ -191,7 +189,7 @@ class SegmentProducer(object):
                 validate_file_md5sum(self.download, self.download.path)
             except Exception as e:
                 log.error(
-                    "MD5 check of downloaded file failed due to following reason: {0}. Proceeding to restart entire download".format(
+                    "MD5 check of downloaded file failed due to following reason: {}. Proceeding to restart entire download".format(
                         str(e)
                     )
                 )
@@ -205,14 +203,14 @@ class SegmentProducer(object):
 
         if not temporary_file_exists:
             log.debug(
-                "State file exists but no previous partial file {0} detected. Restarting entire download.".format(
+                "State file exists but no previous partial file {} detected. Restarting entire download.".format(
                     self.download.temp_path
                 )
             )
             return False
 
         log.debug(
-            "Partial file {0} detected. Validating already downloaded segments".format(
+            "Partial file {} detected. Validating already downloaded segments".format(
                 self.download.temp_path
             )
         )
@@ -223,7 +221,7 @@ class SegmentProducer(object):
         self.validate_segment_md5sums(self.download.temp_path)
         log.debug("Segments checksum validation complete")
         self.size_complete = self.integrate(self.completed)
-        log.debug("size complete: {0}".format(self.size_complete))
+        log.debug(f"size complete: {self.size_complete}")
         # Remove already completed intervals from work_pool
         for interval in self.completed:
             self.work_pool.chop(interval.begin, interval.end)
@@ -282,7 +280,7 @@ class SegmentProducer(object):
                     # if no exception, then delete the old stash
                     os.remove(old_path)
                 except Exception as msg:
-                    log.error("Unable to write state file: {0}".format(msg))
+                    log.error(f"Unable to write state file: {msg}")
                     try:
                         os.rename(old_path, self.download.state_path)
                     except:
@@ -294,17 +292,17 @@ class SegmentProducer(object):
                 os.rename(temp.name, self.download.state_path)
 
         except KeyboardInterrupt:
-            log.warning("Keyboard interrupt. removing temp save file".format(temp.name))
+            log.warning(f"Keyboard interrupt. removing temp save file")
             temp.close()
             os.remove(temp.name)
         except Exception as e:
-            log.error("Unable to save state: {0}".format(str(e)))
+            log.error(f"Unable to save state: {str(e)}")
             raise
 
     def schedule(self):
         while True:
             interval = self._get_next_interval()
-            log.debug("Returning interval: {0}".format(interval))
+            log.debug(f"Returning interval: {interval}")
             if not interval:
                 return
             self.q_work.put(interval)
@@ -328,7 +326,7 @@ class SegmentProducer(object):
         try:
             self.pbar.update(pbar_value)
         except Exception as e:
-            log.debug("Unable to update pbar: {}".format(str(e)))
+            log.debug(f"Unable to update pbar: {str(e)}")
 
     def check_file_exists_and_size(self, file_path):
         if self.download.is_regular_file:

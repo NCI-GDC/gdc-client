@@ -19,8 +19,7 @@ def parse(fd, delimiter="\t", quotechar="#", **kwargs):
 
     manifest = csv.DictReader(fd, delimiter=delimiter, quotechar=quotechar)
 
-    for row in manifest:
-        yield row
+    yield from manifest
 
 
 argparse_type = lambda x: parse(argparse.FileType("r")(x))

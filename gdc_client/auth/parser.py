@@ -61,8 +61,8 @@ def read_token_file(path):
         # raise argparse.ArgumentTypeError(permissions_msg)
 
     try:
-        ifs = open(abspath, "r")
-    except IOError as err:
+        ifs = open(abspath)
+    except OSError as err:
         raise argparse.ArgumentTypeError(err)
 
     with closing(ifs):

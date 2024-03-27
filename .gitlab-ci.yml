@@ -10,12 +10,13 @@ include:
 tox:
   parallel:
     matrix:
-      - BUILD_PY_VERSION:
-          - python3.6
-          - python3.7
+      - BUILD_PY_VERSION: [python3.8]
+  before_script:
+    - pip install setuptools
+    - pip install setuptools_scm
   script:
-    - tox -r -e py
-
+    - pip install tox
+    - tox -vvv -r -e py
 
 release:
   before_script:
@@ -26,4 +27,4 @@ release:
         export TWINE_REPOSITORY_URL=https://nexus.osdc.io/repository/pypi-releases/
       fi
   variables:
-    RELEASE_PY_VERSION: python3.6
+    RELEASE_PY_VERSION: python3.8

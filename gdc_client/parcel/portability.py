@@ -22,7 +22,7 @@ elif platform.system() == "Linux":
     OS_LINUX = True
 
 # Are we running on windows?
-if OS_WINDOWS:
+if OS_WINDOWS or OS_OSX:
     from threading import Thread as Process
 else:
     # Assume a posix system

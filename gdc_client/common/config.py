@@ -26,11 +26,11 @@ class GDCClientArgumentParser(argparse.ArgumentParser):
 
     def error(self, message):
         self.print_help(sys.stderr)
-        sys.stderr.write("\ngdc-client error: {}\n".format(message))
+        sys.stderr.write(f"\ngdc-client error: {message}\n")
         sys.exit(2)
 
 
-class GDCClientConfigShared(object):
+class GDCClientConfigShared:
     setting_getters = {
         "server": ConfigParser.get,
         "http_chunk_size": ConfigParser.getint,
@@ -106,13 +106,11 @@ class GDCClientConfigShared(object):
         try:
             return self.setting_getters[option](self.config, section, option)
         except NoOptionError:
-            log.debug(
-                'Setting named "{}" not found in section "{}"'.format(option, section)
-            )
+            log.debug(f'Setting named "{option}" not found in section "{section}"')
         except NoSectionError:
-            log.debug('No section named "{}" found'.format(section))
+            log.debug(f'No section named "{section}" found')
         except KeyError:
-            log.debug('Invalid setting "{}"'.format(option))
+            log.debug(f'Invalid setting "{option}"')
 
         # Return defaults if nothing was provided in config file
 

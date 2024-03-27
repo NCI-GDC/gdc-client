@@ -1,5 +1,6 @@
 -c requirements.txt
 
+click>= 8
 flask~=1.0.2
 pytest~=4.6.2
 pytest-cov~=2.7.1

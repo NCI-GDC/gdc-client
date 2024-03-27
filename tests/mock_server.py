@@ -42,7 +42,7 @@ def files_versions():
     files = uuids.keys()
     for i in ids:
         if i not in files:
-            return jsonify({"message": "{0} not found in {1}".format(i, files)}), 404
+            return jsonify({"message": f"{i} not found in {files}"}), 404
         else:
             result.append({"id": i, "latest_id": i})
 
@@ -129,7 +129,7 @@ def files():
             result["data"]["hits"].append(hit)
 
     except Exception as e:
-        print("Error {}".format(e))
+        print(f"Error {e}")
 
     result["data"]["pagination"]["size"] = size
     return jsonify(result)
@@ -162,7 +162,7 @@ def download(ids=""):
     for i in ids:
         if i not in uuids.keys():
             return (
-                jsonify({"message": "{0} not found in {1}".format(i, uuids.keys())}),
+                jsonify({"message": f"{i} not found in {uuids.keys()}"}),
                 404,
             )
 
@@ -198,7 +198,7 @@ def download(ids=""):
         md5sum = uuids[ids[0]]["md5sum"]
 
     resp = Response(data)
-    resp.headers["Content-Disposition"] = "attachment; filename={0}".format(filename)
+    resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
     resp.headers["Content-Type"] = "application/octet-stream"
     resp.headers["Content-Length"] = len(data)
     if md5sum:
@@ -222,7 +222,7 @@ def handle_range_request(
 
     data = uuids[ids[0]]["contents"][start:end]
     resp = Response(data)
-    resp.headers["Content-Disposition"] = "attachment; filename={0}".format(filename)
+    resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
     resp.headers["Content-Type"] = "application/octet-stream"
     resp.headers["Content-Length"] = len(data)
 

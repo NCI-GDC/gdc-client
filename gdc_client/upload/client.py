@@ -42,7 +42,7 @@ else:
 log = logging.getLogger("upload-client")
 
 
-class Stream(object):
+class Stream:
     def __init__(self, file, pbar, filesize: int):
         self._file = file
         self.pbar = pbar
@@ -75,7 +75,7 @@ def upload_multipart(
     tries = MAX_RETRIES
     while tries > 0:
         try:
-            log.debug("Start upload part {}".format(part_number))
+            log.debug(f"Start upload part {part_number}")
             with open(filename, "rb") as source:
                 if OS_WINDOWS:
                     chunk_file = mmap(
@@ -92,29 +92,29 @@ def upload_multipart(
                         prot=PROT_READ,
                     )
 
-                log.debug("Making http request for part {}".format(part_number))
+                log.debug(f"Making http request for part {part_number}")
                 res = requests.put(
-                    url + "?uploadId={}&partNumber={}".format(upload_id, part_number),
+                    url + f"?uploadId={upload_id}&partNumber={part_number}",
                     headers=headers,
                     data=chunk_file,
                     verify=verify,
                 )
-                log.debug("Done making http request for part {}".format(part_number))
+                log.debug(f"Done making http request for part {part_number}")
                 chunk_file.close()
 
             if res.status_code == 200:
-                log.debug("Finish upload part {}".format(part_number))
+                log.debug(f"Finish upload part {part_number}")
                 return True
 
             time.sleep(get_sleep_time(tries))
 
             tries -= 1
-            log.debug("Retry upload part {}, {}".format(part_number, res.content))
+            log.debug(f"Retry upload part {part_number}, {res.content}")
 
         except Exception as e:
 
             if debug:
-                log.exception("Part upload failed: {}. Retrying".format(e))
+                log.exception(f"Part upload failed: {e}. Retrying")
 
             time.sleep(get_sleep_time(tries))
             tries -= 1
@@ -141,7 +141,7 @@ def create_resume_path(file_path):
     return "resume_" + file_path
 
 
-class GDCUploadClient(object):
+class GDCUploadClient:
     def __init__(
         self,
         token,
@@ -172,7 +172,7 @@ class GDCUploadClient(object):
             int(max(upload_part_size, MIN_PARTSIZE) / PAGESIZE + 1) * PAGESIZE
         )
         self._metadata = {}
-        self.resume_path = "resume_{}".format(self.manifest_name)
+        self.resume_path = f"resume_{self.manifest_name}"
         self.graphql_url = urlparse.urljoin(self.server, "v0/submission/graphql")
 
     def _get_node_metadata_via_graphql(
@@ -208,7 +208,7 @@ class GDCUploadClient(object):
         nodes = result["data"]["node"]
 
         if not nodes:
-            raise Exception("File with id {} not found".format(node_id))
+            raise Exception(f"File with id {node_id} not found")
 
         return nodes[0]["type"]
 
@@ -235,7 +235,7 @@ class GDCUploadClient(object):
         )
 
         if r.status_code != 200:
-            raise Exception("Fail to get project_id, filename: {}".format(r.content))
+            raise Exception(f"Fail to get project_id, filename: {r.content}")
 
         result = r.json()
         if "errors" in result:
@@ -250,7 +250,7 @@ class GDCUploadClient(object):
             self._metadata[node_id] = result["data"][file_type][0]
             return self._metadata[node_id][field]
 
-        raise Exception("File with id {} not found".format(node_id))
+        raise Exception(f"File with id {node_id} not found")
 
     def get_files(self, action="download"):
         """Parse file information from manifest"""
@@ -264,16 +264,14 @@ class GDCUploadClient(object):
                 project_id = f.get("project_id") or self.get_metadata(
                     file_id, "project_id"
                 )
-                program, project = [part.upper() for part in project_id.split("-", 1)]
+                program, project = (part.upper() for part in project_id.split("-", 1))
 
                 if not program or not project:
-                    raise RuntimeError(
-                        "Unable to parse project id {}".format(project_id)
-                    )
+                    raise RuntimeError(f"Unable to parse project id {project_id}")
 
                 file_entity.url = urlparse.urljoin(
                     self.server,
-                    "v0/submission/{}/{}/files/{}".format(program, project, file_id),
+                    f"v0/submission/{program}/{project}/files/{file_id}",
                 )
 
                 if action == "delete":
@@ -336,7 +334,7 @@ class GDCUploadClient(object):
                 self.file_entities.append(file_entity)
 
         except KeyError as e:
-            log.error("Please provide {} from manifest or as an argument".format(e))
+            log.error(f"Please provide {e} from manifest or as an argument")
             return False
 
         # this makes things very hard to debug
@@ -358,14 +356,14 @@ class GDCUploadClient(object):
                 )
             )
             if use_resume.lower() not in ["n", "no"]:
-                with open(self.resume_path, "r") as f:
+                with open(self.resume_path) as f:
                     self.files = manifest.load(f)["files"]
 
         self.get_files()
         for f in self.file_entities:
             self.load_file(f)
 
-            log.info("Attempting to upload to {}".format(self.url))
+            log.info(f"Attempting to upload to {self.url}")
             if not self.multipart:
                 self._upload()
             else:
@@ -387,16 +385,14 @@ class GDCUploadClient(object):
         for f in self.file_entities:
             self.load_file(f)
             r = requests.delete(
-                self.url + "?uploadId={}".format(self.upload_id),
+                self.url + f"?uploadId={self.upload_id}",
                 headers=self.headers,
                 verify=self.verify,
             )
             if r.status_code not in [204, 404]:
-                raise Exception(
-                    "Fail to abort multipart upload: \n{}".format(r.content)
-                )
+                raise Exception(f"Fail to abort multipart upload: \n{r.content}")
             else:
-                log.warning("Abort multipart upload {}".format(self.upload_id))
+                log.warning(f"Abort multipart upload {self.upload_id}")
 
     def delete(self):
         """Delete file from object storage"""
@@ -405,11 +401,9 @@ class GDCUploadClient(object):
             self.load_file(f)
             r = requests.delete(self.url, headers=self.headers, verify=self.verify)
             if r.status_code == 204:
-                log.info("Delete file {}".format(self.node_id))
+                log.info(f"Delete file {self.node_id}")
             else:
-                log.warning(
-                    "Fail to delete file {}: {}".format(self.node_id, r.content)
-                )
+                log.warning(f"Fail to delete file {self.node_id}: {r.content}")
 
     def _upload(self):
         """Simple S3 PUT"""
@@ -420,7 +414,7 @@ class GDCUploadClient(object):
                     self.url + "/_dry_run", headers=self.headers, verify=self.verify
                 )
                 if r.status_code != 200:
-                    log.error("Can't upload: {}".format(r.content))
+                    log.error(f"Can't upload: {r.content}")
                     return
 
                 pbar = get_file_transfer_pbar(
@@ -434,16 +428,16 @@ class GDCUploadClient(object):
                 )
 
                 if r.status_code != 200:
-                    log.error("Upload failed {}".format(r.content))
+                    log.error(f"Upload failed {r.content}")
                     return
 
                 pbar.finish()
 
                 self.cleanup()
-                log.info("Upload finished for file {}".format(self.node_id))
+                log.info(f"Upload finished for file {self.node_id}")
             except Exception as e:
                 log.exception(e)
-                log.error("Upload failed {}".format(e))
+                log.error(f"Upload failed {e}")
 
     def multipart_upload(self):
         """S3 Multipart upload"""
@@ -455,9 +449,7 @@ class GDCUploadClient(object):
                 self.check_multipart()
 
                 if self.debug:
-                    log.debug(
-                        "Completed: {}/{}".format(self.completed, self.total_parts)
-                    )
+                    log.debug(f"Completed: {self.completed}/{self.total_parts}")
 
                 self.complete()
 
@@ -481,13 +473,13 @@ class GDCUploadClient(object):
                         {"files": list(self.incompleted)}, default_flow_style=False
                     )
                 )
-            log.info("Saved to {}".format(path))
+            log.info(f"Saved to {path}")
 
             if self.debug:
                 log.exception(e)
                 raise
 
-            log.error("Failure: {}".format(e))
+            log.error(f"Failure: {e}")
 
     def check_multipart(self):
         tries = MAX_RETRIES
@@ -499,9 +491,7 @@ class GDCUploadClient(object):
             tries -= 1
             time.sleep(get_sleep_time(tries))
 
-        raise Exception(
-            "Can't find multipart upload with upload id {}".format(self.upload_id)
-        )
+        raise Exception(f"Can't find multipart upload with upload id {self.upload_id}")
 
     def initiate(self):
         if not self.upload_id:
@@ -511,10 +501,10 @@ class GDCUploadClient(object):
             if r.status_code == 200:
                 xml = XMLResponse(r.content)
                 self.upload_id = xml.get_key("UploadId")
-                log.info("Start multipart upload. UploadId: {}".format(self.upload_id))
+                log.info(f"Start multipart upload. UploadId: {self.upload_id}")
                 return True
             else:
-                log.error("Fail to initiate multipart upload: {}".format(r.content))
+                log.error(f"Fail to initiate multipart upload: {r.content}")
                 return False
         return True
 
@@ -567,16 +557,16 @@ class GDCUploadClient(object):
                     so no exception should be re-raised here
                 """
                 if future.result():
-                    log.debug("Part: {} is done".format(part_number))
+                    log.debug(f"Part: {part_number} is done")
                     self.completed += 1
                     pbar.update(self.completed)
                 else:
-                    log.warning("Part: {} failed".format(part_number))
+                    log.warning(f"Part: {part_number} failed")
         pbar.finish()
 
     def list_parts(self):
         r = requests.get(
-            self.url + "?uploadId={}".format(self.upload_id),
+            self.url + f"?uploadId={self.upload_id}",
             headers=self.headers,
             verify=self.verify,
         )
@@ -597,7 +587,7 @@ class GDCUploadClient(object):
                 )
             )
 
-        url = self.url + "?uploadId={}".format(self.upload_id)
+        url = self.url + f"?uploadId={self.upload_id}"
         tries = MAX_RETRIES
         while tries > 0:
             r = requests.post(
@@ -611,16 +601,16 @@ class GDCUploadClient(object):
                 time.sleep(get_sleep_time(tries))
 
             else:
-                log.info("Multipart upload finished for file {}".format(self.node_id))
+                log.info(f"Multipart upload finished for file {self.node_id}")
                 return
-        raise Exception("Multipart upload complete failed: {}".format(r.content))
+        raise Exception(f"Multipart upload complete failed: {r.content}")
 
     def cleanup(self):
         if os.path.isfile(self.resume_path):
             os.remove(self.resume_path)
 
 
-class FileEntity(object):
+class FileEntity:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -633,7 +623,7 @@ class FileEntity(object):
         self.upload_id = None
 
 
-class Multiparts(object):
+class Multiparts:
     def __init__(self, xml_string):
         self.xml = XMLResponse(xml_string)
         self.parts = self.xml.parse("Part")
@@ -655,19 +645,19 @@ class Multiparts(object):
         return False
 
 
-class XMLResponse(object):
+class XMLResponse:
     def __init__(self, xml_string):
         self.root = etree.fromstring(xml_string)
         self.namespace = self.root.nsmap[None]
 
     def get_key(self, key):
-        element = self.root.find("{%s}%s" % (self.namespace, key))
+        element = self.root.find("{{{}}}{}".format(self.namespace, key))
         if element is not None:
             return element.text
         return None
 
     def parse(self, key):
-        elements = self.root.findall("{%s}%s" % (self.namespace, key))
+        elements = self.root.findall("{{{}}}{}".format(self.namespace, key))
         keys = []
         for element in elements:
             keys.append({ele.tag.split("}")[-1]: ele.text for ele in element})
