@@ -11,6 +11,9 @@ tox:
   parallel:
     matrix:
       - BUILD_PY_VERSION: [python3.8]
+  before_script:
+    - pip install setuptools
+    - pip install setuptools_scm
   script:
     - pip install tox
     - tox -vvv -r -e py
