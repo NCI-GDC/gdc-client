@@ -1,7 +1,15 @@
 from setuptools import setup, find_packages
 
+# read the contents of your README file
+from pathlib import Path
+
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     name="gdc_client",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     use_scm_version={
         "local_scheme": "dirty-tag",
     },
