@@ -15,7 +15,7 @@ def validate(manifest, schema=UPLOAD_MANIFEST_SCHEMA):
 
 def load(m, schema=UPLOAD_MANIFEST_SCHEMA):
     """Load and validate a manifest."""
-    manifest = yaml.load(m)
+    manifest = yaml.safe_load(m)
 
     validate(
         manifest,
