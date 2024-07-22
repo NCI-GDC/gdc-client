@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gdc-client"
+dynamic = [
+  "version",
+  "description",
+  "readme",
+  "requires-python",
+  "license",
+  "authors",
+  "maintainers",
+  "keywords",
+  "classifiers",
+  "urls",
+  "scripts",
+  "gui-scripts",
+  "entry-points",
+  "dependencies",
+  "optional-dependencies"
+]
+
+[tool.black]
+line-length = 98
+include = '\.pyi?$'
+
+[tool.coverage.html]
+title = "gdc-client coverage report"
+directory = "docs/htmlcov"
+show_contexts = true
+
+[tool.coverage.run]
+branch = true
+context = "unit tests"
+source = ["gdc-client"]
+
+[tool.isort]
+extend_skip = [".md", ".json"]
+known_first_party = ["gdc-client"]
+py_version = 37
+skip = [".gitignore", ".dockerignore"]
+
+[tool.setuptools_scm]
+local_scheme = "dirty-tag"
