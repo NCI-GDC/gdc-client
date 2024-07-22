@@ -5,6 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
+      - feat/dev-2860-build-artifact-for-silicon-mac
     tags:
       - '*'
 
@@ -16,6 +17,7 @@ jobs:
         os:
           - macos-12
           - macos-13
+          - macos-14
           - ubuntu-20.04
           - ubuntu-22.04
           - windows-2019
