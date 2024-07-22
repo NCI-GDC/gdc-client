@@ -22,10 +22,6 @@ dynamic = [
   "optional-dependencies"
 ]
 
-[tool.black]
-line-length = 98
-include = '\.pyi?$'
-
 [tool.coverage.html]
 title = "gdc-client coverage report"
 directory = "docs/htmlcov"
