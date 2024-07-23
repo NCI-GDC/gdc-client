@@ -48,7 +48,7 @@ click==8.1.7
     #   flask
 coverage==5.5
     # via pytest-cov
-cryptography==2.8
+cryptography==43.0.0
     # via
     #   -c requirements.txt
     #   moto
@@ -167,7 +167,6 @@ six==1.16.0
     #   -c requirements.txt
     #   aws-sam-translator
     #   cfn-lint
-    #   cryptography
     #   docker
     #   ecdsa
     #   mock

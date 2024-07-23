@@ -18,11 +18,11 @@ setup(
     package_data={},
     scripts=["bin/gdc-client"],
     install_requires=[
-        "cryptography~=2.8",
+        "cryptography",
         "jsonschema~=2.6.0",
         "lxml~=4.4.2",
         "ndg-httpsclient~=0.5.0",
-        "pyasn1~=0.4.3",
+        "pyasn1",
         "pyOpenSSL~=18.0.0",
         "PyYAML>=5.1",
         "intervaltree~=3.0.2",
