@@ -23,7 +23,7 @@ setup(
         "lxml~=4.4.2",
         "ndg-httpsclient~=0.5.0",
         "pyasn1",
-        "pyOpenSSL~=18.0.0",
+        "pyOpenSSL",
         "PyYAML>=5.1",
         "intervaltree~=3.0.2",
         "importlib_metadata",

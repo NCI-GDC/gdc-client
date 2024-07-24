@@ -34,7 +34,7 @@ pyasn1==0.4.8
     #   ndg-httpsclient
 pycparser==2.21
     # via cffi
-pyopenssl==18.0.0
+pyopenssl==24.2.1
     # via
     #   gdc_client (setup.py)
     #   ndg-httpsclient
@@ -47,7 +47,6 @@ requests==2.22.0
 six==1.16.0
     # via
     #   progressbar2
-    #   pyopenssl
     #   python-utils
 sortedcontainers==2.4.0
     # via intervaltree
