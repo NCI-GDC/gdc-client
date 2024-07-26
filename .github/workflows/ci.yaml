@@ -5,6 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
+			- feat/dev-2863-standardize-structure
     tags:
       - '*'
 
