@@ -5,7 +5,6 @@ on:
       - develop
       - release/**
       - hotfix/**
-      - feat/dev-2860-build-artifact-for-silicon-mac
     tags:
       - '*'
 
@@ -17,6 +16,7 @@ jobs:
         os:
           - macos-12
           - macos-13
+          - macos-14
           - ubuntu-20.04
           - ubuntu-22.04
           - windows-2019
@@ -31,7 +31,7 @@ jobs:
           # required for setuptools_scm to correctly version: https://github.com/pypa/setuptools_scm/issues/480
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
       - name: Run Tests
