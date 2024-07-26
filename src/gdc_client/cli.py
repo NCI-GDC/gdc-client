@@ -44,7 +44,7 @@ def log_version_header(log):
     log.debug("gdc-client - {version}".format(version=version.__version__))
 
 
-if __name__ == "__main__":
+def main() -> None:
 
     parser = GDCClientArgumentParser(
         description=DESCRIPTION,
@@ -128,3 +128,7 @@ if __name__ == "__main__":
         # will hit this branch even if downloads fail
         # and debug is turned off
         log.debug("gdc-client exited normally")
+
+
+if __name__ == "__main__":
+    main()
