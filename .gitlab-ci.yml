@@ -5,6 +5,8 @@ include:
     file:
       - templates/artifacts/python-library.yaml
 
+variables:
+  LANGUAGE_VERSION: python3.8
 
 tox:
   parallel:
