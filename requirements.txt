@@ -12,38 +12,38 @@ chardet==3.0.4
     # via requests
 cryptography==43.0.0
     # via
-    #   gdc_client (setup.py)
+    #   gdc-client (pyproject.toml)
     #   pyopenssl
 idna==2.8
     # via requests
 importlib-metadata==7.0.1
-    # via gdc_client (setup.py)
+    # via gdc-client (pyproject.toml)
 intervaltree==3.0.2
-    # via gdc_client (setup.py)
+    # via gdc-client (pyproject.toml)
 jsonschema==2.6.0
-    # via gdc_client (setup.py)
+    # via gdc-client (pyproject.toml)
 lxml==4.4.2
-    # via gdc_client (setup.py)
+    # via gdc-client (pyproject.toml)
 ndg-httpsclient==0.5.0
-    # via gdc_client (setup.py)
-progressbar2==3.43.1
-    # via gdc_client (setup.py)
+    # via gdc-client (pyproject.toml)
+progressbar2==3.55.0
+    # via gdc-client (pyproject.toml)
 pyasn1==0.4.8
     # via
-    #   gdc_client (setup.py)
+    #   gdc-client (pyproject.toml)
     #   ndg-httpsclient
 pycparser==2.21
     # via cffi
 pyopenssl==24.2.1
     # via
-    #   gdc_client (setup.py)
+    #   gdc-client (pyproject.toml)
     #   ndg-httpsclient
 python-utils==2.7.1
     # via progressbar2
 pyyaml==5.3.1
-    # via gdc_client (setup.py)
+    # via gdc-client (pyproject.toml)
 requests==2.22.0
-    # via gdc_client (setup.py)
+    # via gdc-client (pyproject.toml)
 six==1.16.0
     # via
     #   progressbar2
@@ -51,7 +51,7 @@ six==1.16.0
 sortedcontainers==2.4.0
     # via intervaltree
 termcolor==1.1.0
-    # via gdc_client (setup.py)
+    # via gdc-client (pyproject.toml)
 urllib3==1.25.11
     # via requests
 zipp==3.17.0
