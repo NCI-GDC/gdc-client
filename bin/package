@@ -99,9 +99,8 @@ pyinstaller \
     --noconfirm \
     --onefile \
     --copy-metadata gdc-client \
+    --name gdc-client \
     -c ../src/gdc_client/cli.py
-
-mv ./dist/cli ./dist/$BINARY_NAME
 
 echo "Testing produced binary..."
 ./dist/$BINARY_NAME --help
