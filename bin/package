@@ -73,7 +73,6 @@ cd ..
 python -m pip install --upgrade pip
 python -m pip install --no-deps -r requirements.txt
 python -m pip install --no-deps .
-python setup.py install
 
 # go back go the ./gdc_client/bin dir
 cd bin
@@ -100,7 +99,9 @@ pyinstaller \
     --noconfirm \
     --onefile \
     --copy-metadata gdc-client \
-    -c gdc-client
+    -c ../src/gdc_client/cli.py
+
+mv ./dist/cli ./dist/$BINARY_NAME
 
 echo "Testing produced binary..."
 ./dist/$BINARY_NAME --help
