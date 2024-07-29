@@ -30,7 +30,7 @@ show_contexts = true
 [tool.coverage.run]
 branch = true
 context = "unit tests"
-source = ["gdc-client"]
+source = ["gdc_client"]
 
 [tool.isort]
 extend_skip = [".md", ".json"]
