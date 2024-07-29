@@ -34,8 +34,8 @@ source = ["gdc_client"]
 
 [tool.isort]
 extend_skip = [".md", ".json"]
-known_first_party = ["gdc-client"]
-py_version = 37
+known_first_party = ["gdc_client"]
+py_version = 38
 skip = [".gitignore", ".dockerignore"]
 
 [tool.setuptools_scm]
