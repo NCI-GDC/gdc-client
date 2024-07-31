@@ -5,6 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
+      - feat/dev-2882-update-deps
     tags:
       - '*'
 
