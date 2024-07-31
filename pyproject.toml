@@ -40,3 +40,34 @@ skip = [".gitignore", ".dockerignore"]
 
 [tool.setuptools_scm]
 local_scheme = "dirty-tag"
+
+
+[tool.pytest.ini_options]
+minversion = 6.0
+python_files = "test_*.py"
+python_functions = "test_*"
+junit_family = "xunit2"
+junit_logging = "system-out"
+console_output_style = "classic"
+log_level = "ERROR"
+log_cli = "true"
+filterwarnings = ["ignore::DeprecationWarning"]
+addopts = "-rfE --color=yes -p no:ddtrace -p no:ddtrace.pytest_bdd --cov=sheepdog --cov-report term"
+norecursedirs = [
+  ".git",
+  ".tox",
+  "dist",
+  "build"
+]
+testpaths = [
+  "tests",
+]
+env = [
+  "LOGSTICK_LOG_FORMAT=raw",
+  "LOGSTICK_LOG_LEVEL=DEBUG",
+  "LOGSTICK_ROOT_LOG_LEVEL=ERROR",
+  "DD_TRACE_GRAPHQL_ENABLED=false"
+]
+markers = [
+  "config_toggle: for separating out testing different configs"
+]
