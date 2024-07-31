@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from collections import namedtuple
@@ -525,6 +526,7 @@ def test_multipart_upload__complete_call_failed(
 def test_multipart_upload__upload_multipart_call_failed(
     s3_client, mock_multipart_upload_client, caplog
 ):
+    caplog.set_level(logging.WARNING)
     mock_multipart_upload_client.upload()
     assert_multipart_unsuccessful_scenario(s3_client, mock_multipart_upload_client)
 
