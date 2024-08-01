@@ -1,5 +1,4 @@
 import hashlib
-import platform
 from io import BytesIO
 from multiprocessing import Process
 import tarfile
@@ -7,7 +6,7 @@ import time
 from typing import Iterable, List, Mapping, Union
 
 import boto3
-from moto import mock_s3
+from moto import mock_aws
 import pytest
 
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
@@ -160,7 +159,7 @@ def versions_response_error(requests_mock):
 
 @pytest.fixture
 def mock_s3_conn():
-    with mock_s3():
+    with mock_aws():
         conn = boto3.resource("s3")
         yield conn
 
