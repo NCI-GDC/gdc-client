@@ -101,7 +101,7 @@ requests==2.22.0
     #   moto
     #   requests-mock
     #   responses
-requests-mock==1.5.2
+requests-mock==1.12.1
     # via gdc-client (pyproject.toml)
 responses==0.17.0
     # via moto
@@ -110,7 +110,6 @@ s3transfer==0.3.7
 six==1.16.0
     # via
     #   python-dateutil
-    #   requests-mock
     #   responses
 sortedcontainers==2.4.0
     # via intervaltree
