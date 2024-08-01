@@ -150,10 +150,10 @@ def download(ids=""):
 
     ids = ids.split(",")
 
-    args = request.json
     headers = request.headers
 
-    if args:
+    if not ids and request.content_type == "application/json":
+        args = request.json
         ids = args.get("ids")
 
     if isinstance(ids, str):
