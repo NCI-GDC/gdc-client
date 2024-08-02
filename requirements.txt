@@ -12,7 +12,7 @@ certifi==2024.7.4
     # via requests
 cffi==1.15.1
     # via cryptography
-chardet==3.0.4
+charset-normalizer==3.3.2
     # via requests
 cryptography==43.0.0
     # via
@@ -52,7 +52,7 @@ referencing==0.35.1
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.22.0
+requests==2.32.3
     # via gdc-client (pyproject.toml)
 rpds-py==0.19.1
     # via
