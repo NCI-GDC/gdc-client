@@ -12,17 +12,6 @@ from gdc_client import version
 from gdc_client.common.config import GDCClientConfigShared, GDCClientArgumentParser
 
 
-####################################################
-# These packages are important but PyInstaller won't
-# bundle them unless they are imported
-import cffi
-import cryptography
-import OpenSSL
-import pyasn1
-
-####################################################
-
-
 DESCRIPTION = """
 The Genomic Data Commons Command Line Client
 """
