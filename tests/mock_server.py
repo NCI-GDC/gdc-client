@@ -152,7 +152,7 @@ def download(ids=""):
 
     headers = request.headers
 
-    if not ids and request.content_type == "application/json":
+    if request.content_type == "application/json":
         args = request.json
         ids = args.get("ids")
 
