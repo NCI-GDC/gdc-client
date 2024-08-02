@@ -147,17 +147,13 @@ def download(ids=""):
 
     data = ""
     filename = "test_file.txt"
+    headers = request.headers
 
     ids = ids.split(",")
-
-    headers = request.headers
 
     if request.content_type == "application/json":
         args = request.json
         ids = args.get("ids")
-
-    if isinstance(ids, str):
-        ids = [ids]
 
     for i in ids:
         if i not in uuids.keys():
