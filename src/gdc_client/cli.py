@@ -18,7 +18,6 @@ from gdc_client.common.config import GDCClientConfigShared, GDCClientArgumentPar
 import cffi
 import cryptography
 import OpenSSL
-import ndg.httpsclient
 import pyasn1
 
 ####################################################
