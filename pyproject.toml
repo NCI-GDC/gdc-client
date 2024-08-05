@@ -51,8 +51,7 @@ junit_logging = "system-out"
 console_output_style = "classic"
 log_level = "ERROR"
 log_cli = "true"
-filterwarnings = ["ignore::DeprecationWarning"]
-addopts = "-rfE --color=yes -p no:ddtrace -p no:ddtrace.pytest_bdd --cov=sheepdog --cov-report term"
+addopts = "-rfE --color=yes -p no:ddtrace -p no:ddtrace.pytest_bdd --cov=gdc_client --cov-report term"
 norecursedirs = [
   ".git",
   ".tox",
@@ -61,13 +60,4 @@ norecursedirs = [
 ]
 testpaths = [
   "tests",
-]
-env = [
-  "LOGSTICK_LOG_FORMAT=raw",
-  "LOGSTICK_LOG_LEVEL=DEBUG",
-  "LOGSTICK_ROOT_LOG_LEVEL=ERROR",
-  "DD_TRACE_GRAPHQL_ENABLED=false"
-]
-markers = [
-  "config_toggle: for separating out testing different configs"
 ]
