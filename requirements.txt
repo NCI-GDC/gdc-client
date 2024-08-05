@@ -34,7 +34,7 @@ progressbar2==3.55.0
     # via gdc-client (pyproject.toml)
 python-utils==2.7.1
     # via progressbar2
-pyyaml==5.3.1
+pyyaml==6.0.1
     # via gdc-client (pyproject.toml)
 referencing==0.35.1
     # via
