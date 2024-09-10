@@ -1,4 +1,3 @@
-import hashlib
 from io import BytesIO
 import logging
 import os
@@ -158,7 +157,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             member_uuid = m.split("/")[0]
             log.debug(f"Validating checksum for {member_uuid}...")
 
-            md5sum = hashlib.md5()
+            md5sum = utils.md5()
             filename = os.path.join(self.base_directory, m)
             with open(filename, "rb") as f:
                 md5sum.update(f.read())

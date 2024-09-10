@@ -9,7 +9,6 @@
 from gdc_client.parcel import const
 from gdc_client.parcel import utils
 from gdc_client.parcel.download_stream import DownloadStream
-from gdc_client.parcel.portability import colored
 from gdc_client.parcel.portability import Process
 from gdc_client.parcel.segment import SegmentProducer
 

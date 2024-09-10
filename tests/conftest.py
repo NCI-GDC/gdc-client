@@ -1,4 +1,3 @@
-import hashlib
 from io import BytesIO
 from multiprocessing import Process
 import tarfile
@@ -9,16 +8,17 @@ import boto3
 from moto import mock_aws
 import pytest
 
+from gdc_client.parcel import utils
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
 
 def md5(iterable: Iterable):
-    md5 = hashlib.md5()
+    md5_fn = utils.md5()
 
     for chunk in iterable:
-        md5.update(chunk.encode("utf-8"))
+        md5_fn.update(chunk.encode("utf-8"))
 
-    return md5.hexdigest()
+    return md5_fn.hexdigest()
 
 
 def make_tarfile(

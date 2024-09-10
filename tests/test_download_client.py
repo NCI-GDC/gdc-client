@@ -11,7 +11,7 @@ from gdc_client.common.config import GDCClientArgumentParser
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
 from gdc_client.parcel.download_stream import DownloadStream
 
-from conftest import make_tarfile, md5, uuids
+from conftest import make_tarfile, uuids
 from gdc_client.download.client import GDCHTTPDownloadClient, fix_url
 from gdc_client.download.parser import download
 from gdc_client.query.index import GDCIndexClient

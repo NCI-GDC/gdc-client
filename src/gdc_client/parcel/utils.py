@@ -7,7 +7,6 @@
 # ***************************************************************************************
 
 from contextlib import contextmanager
-from functools import partial
 import hashlib
 import logging
 import mmap
@@ -26,6 +25,7 @@ from progressbar import (
 
 from gdc_client.exceptions import MD5ValidationError
 from gdc_client.parcel.download_stream import DownloadStream
+from gdc_client.parcel import utils
 
 # Logging
 log = logging.getLogger("utils")
@@ -180,13 +180,13 @@ def calculate_segments(start, stop, block):
 
 
 def md5sum(block):
-    m = hashlib.md5()
+    m = utils.md5()
     m.update(block)
     return m.hexdigest()
 
 
 def md5sum_whole_file(fname):
-    hash_md5 = hashlib.md5()
+    hash_md5 = utils.md5()
 
     with open(fname, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
@@ -233,3 +233,8 @@ def mmap_open(path):
 
 def STRIP(comment):
     return " ".join(comment.split())
+
+
+def md5():
+    md5_kwargs = {} if sys.version_info < (3, 9) else {"usedforsecurity": False}
+    return hashlib.md5(**md5_kwargs)

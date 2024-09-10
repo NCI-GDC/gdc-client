@@ -1,9 +1,4 @@
-try:
-    # Python3
-    from urllib.parse import urlencode
-except ImportError:
-    # Python2
-    from urllib import urlencode
+from urllib.parse import urlencode
 
 
 def build_url(path, *params, **kwparams):
