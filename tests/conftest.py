@@ -1,5 +1,4 @@
 import hashlib
-import sys
 from io import BytesIO
 from multiprocessing import Process
 import tarfile
@@ -14,8 +13,7 @@ from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
 
 def md5(iterable: Iterable):
-    md5_kwargs = {} if sys.version_info < (3, 9) else {"usedforsecurity": False}
-    md5 = hashlib.md5(**md5_kwargs)
+    md5 = hashlib.md5()
 
     for chunk in iterable:
         md5.update(chunk.encode("utf-8"))
