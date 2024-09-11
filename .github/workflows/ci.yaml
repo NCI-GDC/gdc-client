@@ -5,6 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
+      - feat/DEV-2991-update-upload-artifact-version
     tags:
       - '*'
 
@@ -47,7 +48,7 @@ jobs:
           . ./package
           echo "GDC_CLIENT_ZIP=$GDC_CLIENT_ZIP" >> $GITHUB_ENV
         shell: bash
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.GDC_CLIENT_ZIP }}-py${{ matrix.python }}-${{ matrix.os }}
           path: bin/gdc-client_*.zip
