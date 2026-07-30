@@ -2,18 +2,6 @@
 requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
-[dependency-groups]
-dev = [
-  "click>=8",
-  "flask",
-  "pytest",
-  "pytest-cov",
-  "requests-mock",
-  "moto",
-  "httmock",
-  "ruff",
-]
-
 [project]
 authors = [
   {name = "GDC Feature Team", email = "gdc_dev_questions-aaaaae2lhsbell56tlvh3upgoq@cdis.slack.com"}
@@ -48,6 +36,18 @@ maintainers = [
 name = "gdc-client"
 readme = "README.md"
 requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+  "click>=8",
+  "flask",
+  "pytest",
+  "pytest-cov",
+  "requests-mock",
+  "moto",
+  "httmock",
+  "ruff",
+]
 
 [project.scripts]
 gdc-client = "gdc_client.cli:main"
