@@ -6,8 +6,8 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-import csv
 import argparse
+import csv
 
 
 def parse(fd, delimiter="\t", quotechar="#", **kwargs):
@@ -22,4 +22,5 @@ def parse(fd, delimiter="\t", quotechar="#", **kwargs):
     yield from manifest
 
 
-argparse_type = lambda x: parse(argparse.FileType("r")(x))
+def argparse_type(x):
+    return parse(argparse.FileType("r")(x))

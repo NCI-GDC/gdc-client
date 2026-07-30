@@ -1,10 +1,10 @@
-import pytest
 import re
-from typing import List, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 
-from conftest import uuids
+import pytest
 from requests.exceptions import HTTPError
 
+from conftest import uuids
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.query.versions import _chunk_list, get_latest_versions
@@ -29,9 +29,7 @@ class TestQueryIndex:
         self.assert_index_with_uuids("invalid")
 
     ############ mock metadata ############
-    @pytest.mark.parametrize(
-        "uuid", ["small", "small_no_friends", "small_ann", "small_rel"]
-    )
+    @pytest.mark.parametrize("uuid", ["small", "small_no_friends", "small_ann", "small_rel"])
     def test_full_mock_get_metadata(self, uuid: str) -> None:
         self.index._get_metadata([uuid])
 
@@ -54,9 +52,9 @@ class TestQueryIndex:
     )
     def test_full_separate_files(
         self,
-        input_uuids: List[str],
-        expected_bigs: List[str],
-        expected_smalls: List[List[str]],
+        input_uuids: list[str],
+        expected_bigs: list[str],
+        expected_smalls: list[list[str]],
     ) -> None:
         """Currently if a file has related or annotation files
         the dtt processes it as if it were a big file so that
@@ -116,8 +114,8 @@ def test_chunk_list(case: Iterable[int]) -> None:
 )
 def test_get_latest_versions(
     versions_response,
-    ids: List[str],
-    latest_ids: List[str],
+    ids: list[str],
+    latest_ids: list[str],
     expected: Mapping[str, str],
 ) -> None:
     url = "https://example.com"
@@ -131,7 +129,7 @@ def test_get_latest_versions(
 @pytest.mark.parametrize("ids", [(["foo", "bar"])])
 def test_get_latest_versions_error(
     versions_response_error,
-    ids: List[str],
+    ids: list[str],
 ) -> None:
     url = "https://example.com"
     versions_response_error(url + "/files/versions")

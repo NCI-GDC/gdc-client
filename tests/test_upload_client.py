@@ -3,7 +3,6 @@ import logging
 import os
 import re
 from collections import namedtuple
-from typing import Optional
 from urllib.parse import parse_qs
 from xml.etree.ElementTree import Element
 
@@ -19,7 +18,7 @@ QueryParts = namedtuple("QueryParts", field_names=["node_type", "node_id", "fiel
 FIVE_MB = 5 * 1024 * 1024
 
 
-def parse_graphql_query(query: str) -> Optional[QueryParts]:
+def parse_graphql_query(query: str) -> QueryParts | None:
     # This is based entirely on the known GraphQL query that is sent to backend
     graphql_re = (
         r"^query \w+ \{ "
@@ -199,9 +198,7 @@ def get_key(url):
     return url.replace("/v0/submission/", "").replace("/files", "")
 
 
-@httmock.urlmatch(
-    netloc="localhost", method="POST", path="/v0/submission/GDC/MISC/files/.*"
-)
+@httmock.urlmatch(netloc="localhost", method="POST", path="/v0/submission/GDC/MISC/files/.*")
 def handle_post_multipart(url, req):
     """Handle POST requests to S3
 
@@ -257,9 +254,7 @@ def handle_post_multipart(url, req):
     return httmock.response(400, "cannot process request")
 
 
-@httmock.urlmatch(
-    netloc="localhost", method="GET", path="/v0/submission/GDC/MISC/files/.*"
-)
+@httmock.urlmatch(netloc="localhost", method="GET", path="/v0/submission/GDC/MISC/files/.*")
 def handle_list_multipart(url, _):
     """Handle GET requests to S3
 
@@ -290,9 +285,7 @@ def handle_list_multipart(url, _):
     )
 
 
-@httmock.urlmatch(
-    netloc="localhost", method="PUT", path="/v0/submission/GDC/MISC/files/.*"
-)
+@httmock.urlmatch(netloc="localhost", method="PUT", path="/v0/submission/GDC/MISC/files/.*")
 def handle_put_multipart(url, req):
     """Handle PUT requests to S3
 
@@ -327,9 +320,7 @@ def handle_put_multipart(url, req):
     )
 
 
-@httmock.urlmatch(
-    netloc="localhost", method="PUT", path="/v0/submission/GDC/MISC/files/.*"
-)
+@httmock.urlmatch(netloc="localhost", method="PUT", path="/v0/submission/GDC/MISC/files/.*")
 def handle_put_simple(url, req):
     """Handle PUT requests to S3
 
@@ -384,9 +375,7 @@ def s3_proxy_handlers_simple(mock_s3_bucket, mock_s3_conn):
 
 
 @pytest.fixture
-def mock_submission_server_multipart(
-    mock_graphql_responses, s3_proxy_handlers_multipart
-):
+def mock_submission_server_multipart(mock_graphql_responses, s3_proxy_handlers_multipart):
     with httmock.HTTMock(mock_graphql_responses, *s3_proxy_handlers_multipart):
         yield
 
@@ -436,10 +425,10 @@ def s3_client(mock_s3_conn, mock_s3_bucket):
 
 def assert_common_unsuccessful_scenario(s3_client, client):
     assert len(client.incompleted) == 0
-    with pytest.raises(Exception, match=".*(NoSuchKey).*"):
+    with pytest.raises(Exception, match=r".*(NoSuchKey).*"):
         s3_client.get_object(Bucket="test-bucket", Key="GDC/MISC/file-id-1")
 
-    with pytest.raises(Exception, match=".*(NoSuchKey).*"):
+    with pytest.raises(Exception, match=r".*(NoSuchKey).*"):
         s3_client.get_object(Bucket="test-bucket", Key="GDC/MISC/file-id-2")
 
     assert len(client.file_entities) == 2
@@ -510,9 +499,7 @@ def test_simple_upload__unsuccessful(s3_client, mock_simple_upload_client):
     "mock_multipart_upload_client",
     "complete_multipart_side_effect",
 )
-def test_multipart_upload__complete_call_failed(
-    s3_client, mock_multipart_upload_client
-):
+def test_multipart_upload__complete_call_failed(s3_client, mock_multipart_upload_client):
     mock_multipart_upload_client.upload()
     assert_multipart_unsuccessful_scenario(s3_client, mock_multipart_upload_client)
 
@@ -535,8 +522,10 @@ def test_multipart_upload__upload_multipart_call_failed(
         "Part: 1 failed",
         "Part: 2 failed",
         "Saving unfinished upload file",
-        """Failure: Multipart upload failed for file file-id-1:
-                completed parts: 0, total parts: 2, please try to resume""",
+        (
+            "Failure: Multipart upload failed for file file-id-1:\n"
+            "completed parts: 0, total parts: 2, please try to resume"
+        ),
     ]
 
     file_id_2_expected_logs = [
@@ -544,8 +533,10 @@ def test_multipart_upload__upload_multipart_call_failed(
         "Part: 2 failed",
         "Part: 3 failed",
         "Saving unfinished upload file",
-        """Failure: Multipart upload failed for file file-id-2:
-                completed parts: 0, total parts: 3, please try to resume""",
+        (
+            "Failure: Multipart upload failed for file file-id-2:\n"
+            "completed parts: 0, total parts: 3, please try to resume"
+        ),
     ]
 
     assert len(caplog.records) == 9

@@ -6,26 +6,26 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-from contextlib import contextmanager
 import hashlib
 import logging
 import mmap
 import os
-import requests
 import stat
 import sys
+from contextlib import contextmanager
 
+import requests
 from progressbar import (
-    Bar,
     ETA,
+    Bar,
     FileTransferSpeed,
     Percentage,
     ProgressBar,
 )
 
 from gdc_client.exceptions import MD5ValidationError
-from gdc_client.parcel.download_stream import DownloadStream
 from gdc_client.parcel import utils
+from gdc_client.parcel.download_stream import DownloadStream
 
 # Logging
 log = logging.getLogger("utils")
@@ -34,7 +34,7 @@ log = logging.getLogger("utils")
 try:
     requests.packages.urllib3.disable_warnings()
 except Exception as e:
-    log.debug(f"Unable to silence requests warnings: {str(e)}")
+    log.debug(f"Unable to silence requests warnings: {e!s}")
 
 
 def check_transfer_size(actual, expected):
@@ -141,7 +141,7 @@ def remove_partial_extension(path):
         log.debug("renaming to {}".format(path.replace(".partial", "")))
         os.rename(path, path.replace(".partial", ""))
     except Exception as e:
-        raise Exception(f"Unable to remove partial extension: {str(e)}")
+        raise Exception(f"Unable to remove partial extension: {e!s}")
 
 
 def check_file_existence_and_size(path, size):
@@ -168,7 +168,7 @@ def get_file_type(path):
         else:
             return "unknown"
     except Exception as e:
-        raise RuntimeError(f"Unable to get file type: {str(e)}")
+        raise RuntimeError(f"Unable to get file type: {e!s}")
 
 
 def calculate_segments(start, stop, block):
@@ -215,7 +215,8 @@ def validate_file_md5sum(stream: DownloadStream, file_path: str) -> None:
 
     if not stream.md5sum:
         raise MD5ValidationError(
-            "Cannot validate this file since the server did not provide an md5sum. Use the '--no-file-md5sum' option to ignore this error."
+            "Cannot validate this file since the server did not provide an "
+            "md5sum. Use the '--no-file-md5sum' option to ignore this error."
         )
     if md5sum_whole_file(file_path) != stream.md5sum:
         raise MD5ValidationError("File checksum is invalid")
@@ -228,10 +229,10 @@ def mmap_open(path):
             mm = mmap.mmap(f.fileno(), 0)
             yield mm
     except Exception as e:
-        raise RuntimeError(f"Unable to get file type: {str(e)}")
+        raise RuntimeError(f"Unable to get file type: {e!s}")
 
 
-def STRIP(comment):
+def strip_whitespace(comment):
     return " ".join(comment.split())
 
 

@@ -4,8 +4,8 @@ Functionality related to versioning.
 """
 
 import logging
-import requests
 
+import requests
 from requests.exceptions import HTTPError
 
 logger = logging.getLogger(__name__)
@@ -35,13 +35,8 @@ def get_latest_versions(url, uuids, verify=True):
         if not resp.ok:
             raise HTTPError(
                 (
-                    "The following request {} for ids {} returned with "
-                    "status code: {} and response content: {}"
-                ).format(
-                    versions_url,
-                    chunk,
-                    resp.status_code,
-                    resp.content,
+                    f"The following request {versions_url} for ids {chunk} returned with "
+                    f"status code: {resp.status_code} and response content: {resp.content}"
                 ),
                 response=resp,
             )

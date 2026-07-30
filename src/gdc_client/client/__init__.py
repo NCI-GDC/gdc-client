@@ -1,2 +1,2 @@
-from . import parser
-from .client import GDCClient
+from . import parser as parser
+from .client import GDCClient as GDCClient

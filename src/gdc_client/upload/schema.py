@@ -9,7 +9,10 @@ UPLOAD_MANIFEST_SCHEMA = {
                 "properties": {
                     "id": {
                         "type": "string",
-                        "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+                        "pattern": (
+                            "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-"
+                            "[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+                        ),
                     },
                     "file_name": {"type": "string"},
                     "local_file_path": {"type": "string"},

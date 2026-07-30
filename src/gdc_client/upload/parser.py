@@ -3,9 +3,7 @@ import logging
 from functools import partial
 
 from gdc_client.upload import manifest
-from gdc_client.upload import exceptions
 from gdc_client.upload.client import GDCUploadClient
-
 
 log = logging.getLogger("gdc-upload")
 
@@ -96,15 +94,11 @@ def config(parser, upload_defaults):
     parser.add_argument(
         "--upload-part-size", "-c", type=int, help="Part size for multipart upload"
     )
-    parser.add_argument(
-        "-n", "--n-processes", type=int, help="Number of client connections"
-    )
+    parser.add_argument("-n", "--n-processes", type=int, help="Number of client connections")
     parser.add_argument(
         "--disable-multipart", action="store_true", help="Disable multipart upload"
     )
-    parser.add_argument(
-        "--abort", action="store_true", help="Abort previous multipart upload"
-    )
+    parser.add_argument("--abort", action="store_true", help="Abort previous multipart upload")
     parser.add_argument(
         "--resume", "-r", action="store_true", help="Resume previous multipart upload"
     )

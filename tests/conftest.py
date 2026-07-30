@@ -1,12 +1,12 @@
-from io import BytesIO
-from multiprocessing import Process
 import tarfile
 import time
-from typing import Iterable, List, Mapping, Union
+from collections.abc import Iterable, Mapping
+from io import BytesIO
+from multiprocessing import Process
 
 import boto3
-from moto import mock_aws
 import pytest
+from moto import mock_aws
 
 from gdc_client.parcel import utils
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
@@ -21,9 +21,7 @@ def md5(iterable: Iterable):
     return md5_fn.hexdigest()
 
 
-def make_tarfile(
-    ids: List[str], tarfile_name: str = "temp.tar", write_mode: str = "w"
-) -> str:
+def make_tarfile(ids: list[str], tarfile_name: str = "temp.tar", write_mode: str = "w") -> str:
     """Make a tarfile for the purposes of testing tarfile methods"""
 
     # normally small files don't get grouped together if they have
@@ -45,8 +43,8 @@ def make_tarfile(
 
 
 def generate_metadata_dict(
-    access: str, contents: str, annotations: List[str], related_files: List[str]
-) -> Mapping[str, Union[str, List[str]]]:
+    access: str, contents: str, annotations: list[str], related_files: list[str]
+) -> Mapping[str, str | list[str]]:
     return {
         "access": access,
         "contents": contents,
@@ -133,7 +131,7 @@ def setup_mock_server() -> None:
 
 @pytest.fixture
 def versions_response(requests_mock):
-    def mock_response(url: str, ids: List[str], latest_ids: List[str]) -> None:
+    def mock_response(url: str, ids: list[str], latest_ids: list[str]) -> None:
         requests_mock.post(
             url,
             json=[

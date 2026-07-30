@@ -1,2 +1,2 @@
-from . import parser
-from .auth import GDCTokenAuth
+from . import parser as parser
+from .auth import GDCTokenAuth as GDCTokenAuth

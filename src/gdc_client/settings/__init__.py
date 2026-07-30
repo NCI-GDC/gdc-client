@@ -1,1 +1,1 @@
-from gdc_client.settings import parser
+from gdc_client.settings import parser as parser

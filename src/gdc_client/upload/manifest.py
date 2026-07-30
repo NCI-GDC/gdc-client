@@ -1,8 +1,8 @@
 import jsonschema
 import yaml
 
-from gdc_client.upload.schema import UPLOAD_MANIFEST_SCHEMA
 from gdc_client.upload.exceptions import ValidationError
+from gdc_client.upload.schema import UPLOAD_MANIFEST_SCHEMA
 
 
 def validate(manifest, schema=UPLOAD_MANIFEST_SCHEMA):

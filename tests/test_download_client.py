@@ -1,19 +1,18 @@
 import argparse
-from multiprocessing import cpu_count
 import os
-from pathlib import Path
-import pytest
 import tarfile
-from typing import List
+from multiprocessing import cpu_count
+from pathlib import Path
 from unittest.mock import patch
 
-from gdc_client.common.config import GDCClientArgumentParser
-from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
-from gdc_client.parcel.download_stream import DownloadStream
+import pytest
 
 from conftest import make_tarfile, uuids
+from gdc_client.common.config import GDCClientArgumentParser
 from gdc_client.download.client import GDCHTTPDownloadClient, fix_url
 from gdc_client.download.parser import download
+from gdc_client.parcel.const import HTTP_CHUNK_SIZE, SAVE_INTERVAL
+from gdc_client.parcel.download_stream import DownloadStream
 from gdc_client.query.index import GDCIndexClient
 
 BASE_URL = "http://127.0.0.1:5000"
@@ -74,7 +73,7 @@ class TestDownloadClient:
 
         return args
 
-    def get_download_client(self, uuids: List[str] = None) -> GDCHTTPDownloadClient:
+    def get_download_client(self, uuids: list[str] | None = None) -> GDCHTTPDownloadClient:
         if uuids is not None:
             # get annotation id out of metadata
             self.index_client._get_metadata(uuids)
@@ -96,7 +95,6 @@ class TestDownloadClient:
         client_with_debug_off.download_files([url_with_fake_uuid])
 
     def test_untar_file(self) -> None:
-
         files_to_tar = ["small", "small_ann", "small_rel", "small_no_friends"]
         tarfile_name = make_tarfile(files_to_tar)
         self.client._untar_file(tarfile_name)
@@ -104,7 +102,6 @@ class TestDownloadClient:
         assert all((self.tmp_path / f).exists() for f in files_to_tar)
 
     def test_md5_members(self) -> None:
-
         files_to_tar = ["small", "small_ann", "small_rel", "small_no_friends"]
 
         client = self.get_download_client(files_to_tar)
@@ -123,7 +120,7 @@ class TestDownloadClient:
         client = self.get_download_client(files_to_dl)
 
         # it will remove redundant uuids
-        tarfile_name, errors = client._download_tarfile(files_to_dl)
+        tarfile_name, _errors = client._download_tarfile(files_to_dl)
 
         assert tarfile_name is not None
         assert os.path.exists(tarfile_name)
@@ -135,7 +132,6 @@ class TestDownloadClient:
                 assert contents == uuids[member.name]["contents"]
 
     def test_download_annotations(self) -> None:
-
         # uuid of file that has an annotation
         small_ann = "small_ann"
 
@@ -153,13 +149,12 @@ class TestDownloadClient:
 
         # verify
         assert file_path.exists(), "failed to write annotations file"
-        assert (
-            file_path.read_text() == uuids["annotations.txt"]["contents"]
-        ), "annotations content incorrect"
+        assert file_path.read_text() == uuids["annotations.txt"]["contents"], (
+            "annotations content incorrect"
+        )
 
     @pytest.mark.parametrize("check_segments", (True, False))
     def test_no_segment_md5sums_args(self, check_segments: bool) -> None:
-
         self.client_kwargs["segment_md5sums"] = check_segments
         self.get_download_client()
 
@@ -175,12 +170,12 @@ class TestDownloadClient:
         file_path = self.tmp_path / file_ids[0] / "test_file.txt"
         temp_file_path = self.tmp_path / file_ids[0] / "test_file.txt.partial"
         assert file_path.exists(), "Failed to write test_file.txt"
-        assert (
-            file_path.read_text() == uuids["big_no_friends"]["contents"]
-        ), "File contents of test_file.txt are incorrect"
-        assert (
-            not temp_file_path.exists()
-        ), "test_file.txt.partial should not exist on successful download"
+        assert file_path.read_text() == uuids["big_no_friends"]["contents"], (
+            "File contents of test_file.txt are incorrect"
+        )
+        assert not temp_file_path.exists(), (
+            "test_file.txt.partial should not exist on successful download"
+        )
 
 
 def test_fix_url() -> None:

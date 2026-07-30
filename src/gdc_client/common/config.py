@@ -2,13 +2,14 @@ import argparse
 import logging
 import sys
 from configparser import ConfigParser, NoOptionError, NoSectionError
+from typing import ClassVar
 
 from gdc_client.defaults import (
-    processes,
-    USER_DEFAULT_CONFIG_LOCATION,
     HTTP_CHUNK_SIZE,
     SAVE_INTERVAL,
     UPLOAD_PART_SIZE,
+    USER_DEFAULT_CONFIG_LOCATION,
+    processes,
 )
 
 log = logging.getLogger("gdc-client")
@@ -31,7 +32,7 @@ class GDCClientArgumentParser(argparse.ArgumentParser):
 
 
 class GDCClientConfigShared:
-    setting_getters = {
+    setting_getters: ClassVar[dict] = {
         "server": ConfigParser.get,
         "http_chunk_size": ConfigParser.getint,
         "upload_part_size": ConfigParser.getint,

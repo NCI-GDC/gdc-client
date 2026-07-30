@@ -6,20 +6,19 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-from gdc_client.parcel import utils
-from gdc_client.parcel import const
-from gdc_client.parcel.defaults import max_timeout, deprecation_header
-
 import logging
-from intervaltree import Interval
 import os
-import requests
 import time
 from urllib.parse import urlparse
 
+import requests
+from intervaltree import Interval
+
+from gdc_client.parcel import const, utils
+from gdc_client.parcel.defaults import max_timeout
+
 
 class DownloadStream:
-
     http_chunk_size = const.HTTP_CHUNK_SIZE
     check_segment_md5sums = True
 
@@ -65,14 +64,12 @@ class DownloadStream:
         self.setup_directories()
         try:
             utils.set_file_length(self.temp_path, self.size)
-        except:
+        except Exception:
             self.log.warning(
-                utils.STRIP(
-                    """Unable to set file length. File appears to
-                be a {} file, attempting to proceed.
-                """.format(
-                        utils.get_file_type(self.path)
-                    )
+                utils.strip_whitespace(
+                    f"""Unable to set file length. File appears to
+                be a {utils.get_file_type(self.path)} file, attempting to proceed.
+                """
                 )
             )
             self.is_regular_file = False
@@ -135,7 +132,7 @@ class DownloadStream:
             header["Range"] = f"bytes={start}-{end}"
             # provide host because it's mandatory, range request
             # may not work otherwise
-            scheme, host, path, params, q, frag = urlparse(self.url)
+            _scheme, host, _path, _params, _q, _frag = urlparse(self.url)
             header["host"] = host
         return header
 
@@ -169,15 +166,13 @@ class DownloadStream:
             )
         except Exception as e:
             raise RuntimeError(
-                (
-                    "Unable to connect to API: ({}). Is this url correct: '{}'? "
-                    "Is there a connection to the API? Is the server running?"
-                ).format(str(e), self.url)
+                f"Unable to connect to API: ({e!s}). Is this url correct: '{self.url}'? "
+                "Is there a connection to the API? Is the server running?"
             )
         try:
             r.raise_for_status()
         except Exception as e:
-            raise RuntimeError(f"{str(e)}: {r.text}")
+            raise RuntimeError(f"{e!s}: {r.text}")
 
         if close:
             r.close()
@@ -273,7 +268,7 @@ class DownloadStream:
             # TODO FIXME HACK create new segment to avoid duplicate downloads
             segment = Interval(segment.begin + written, segment.end, None)
 
-            self.log.debug(f"Unable to download part of file: {str(e)}\n.")
+            self.log.debug(f"Unable to download part of file: {e!s}\n.")
             if retries > 0:
                 self.log.debug("Retrying download of this segment")
                 return self.write_segment(segment, q_complete, retries - 1)
@@ -306,9 +301,7 @@ class DownloadStream:
         # some tarfiles will not come with Content-Length in the header
         if self.size:
             self.log.debug(
-                "Download size       : {} B ({:.2f} GB)".format(
-                    self.size, (self.size / float(const.GB))
-                )
+                f"Download size       : {self.size} B ({self.size / float(const.GB):.2f} GB)"
             )
 
         self.log.debug(f"Downloading file to : {self.path}")

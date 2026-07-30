@@ -6,9 +6,10 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-import platform
-from termcolor import colored as _colored
 import logging
+import platform
+
+from termcolor import colored as _colored
 
 OS_WINDOWS = False
 OS_LINUX = False

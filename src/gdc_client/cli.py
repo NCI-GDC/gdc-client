@@ -4,13 +4,10 @@ import argparse
 import logging
 import sys
 
-from gdc_client import download, upload, settings
-from gdc_client.exceptions import ClientError
+from gdc_client import auth, download, settings, upload, version
 from gdc_client import log as logger
-from gdc_client import auth
-from gdc_client import version
-from gdc_client.common.config import GDCClientConfigShared, GDCClientArgumentParser
-
+from gdc_client.common.config import GDCClientArgumentParser, GDCClientConfigShared
+from gdc_client.exceptions import ClientError
 
 DESCRIPTION = """
 The Genomic Data Commons Command Line Client
@@ -29,11 +26,10 @@ ERROR_MSG = " ".join(
 
 
 def log_version_header(log):
-    log.debug("gdc-client - {version}".format(version=version.__version__))
+    log.debug(f"gdc-client - {version.__version__}")
 
 
 def main() -> None:
-
     parser = GDCClientArgumentParser(
         description=DESCRIPTION,
     )

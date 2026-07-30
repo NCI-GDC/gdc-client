@@ -1,17 +1,17 @@
-from io import BytesIO
 import logging
 import os
 import re
-import requests
 import tarfile
 import time
+from io import BytesIO
 from urllib import parse as urlparse
 
+import requests
+
+from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
 from gdc_client.parcel.utils import get_percentage_pbar
-
-from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 from gdc_client.utils import build_url
 
 log = logging.getLogger("gdc-download")
@@ -34,7 +34,6 @@ def fix_url(url):
 
 
 class GDCHTTPDownloadClient(HTTPClient):
-
     annotation_name = "annotations.txt"
 
     def __init__(
@@ -79,10 +78,8 @@ class GDCHTTPDownloadClient(HTTPClient):
 
         related_files = self.gdc_index_client.get_related_files(file_id)
         if related_files:
-
             log.debug(f"Found {len(related_files)} related files for {file_id}.")
             for related_file in related_files:
-
                 log.debug(f"related file {related_file}")
                 related_file_url = urlparse.urljoin(self.data_uri, related_file)
                 stream = DownloadStream(related_file_url, directory, self.token)
@@ -149,10 +146,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         errors = []
         for m in members:
             if re.findall(SUPERSEDED_INFO_FILENAME_TEMPLATE, m):
-                log.warning(
-                    "Some of the files have been superseded. See {} "
-                    "for reference.".format(m)
-                )
+                log.warning(f"Some of the files have been superseded. See {m} for reference.")
                 continue
             member_uuid = m.split("/")[0]
             log.debug(f"Validating checksum for {member_uuid}...")
@@ -271,7 +265,6 @@ class GDCHTTPDownloadClient(HTTPClient):
         groupings_len = len(smalls)
 
         for i, small_group in enumerate(smalls):
-
             if not small_group:
                 log.error("There are no files to download")
                 return [], 0
@@ -304,7 +297,6 @@ class GDCHTTPDownloadClient(HTTPClient):
         return errors, successful_count
 
     def parallel_download(self, stream):
-
         # gdc-client calls parcel's parallel_download,
         # which is where most of the downloading takes place
         file_id = stream.url.split("/")[-1]

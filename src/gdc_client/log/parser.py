@@ -2,8 +2,6 @@ import argparse
 import logging
 import sys
 
-from gdc_client import version
-
 from gdc_client.log.log import LogFormatter
 
 
