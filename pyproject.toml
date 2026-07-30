@@ -111,6 +111,10 @@ fallback_version = "0.0.0"
 [tool.tox]
 env_list = ["py310", "py311", "py312", "py313", "py314"]
 
+[tool.tox.env.py310]
+# Python 3.11+ fall back to internal C implementations WITHOUT crashing
+set_env = { OPENSSL_CONF = "" }
+
 [tool.tox.env_run_base]
 commands = [
   [
