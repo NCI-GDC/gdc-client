@@ -2,7 +2,9 @@ import collections
 import os
 import pathlib
 import pickle
+import sys
 from typing import NamedTuple
+from unittest.mock import MagicMock
 
 import intervaltree
 import pytest
@@ -115,6 +117,11 @@ def test_load_state_no_state_file(
     mock_download_stream: stream.DownloadStream,
     complete_data: NamedTuple,
 ):
+    # There is a problem with this test in python 3.10 but not >=3.11
+    # The following two lines might not be needed in the future
+    mock_up = MagicMock()
+    sys.modules["multiprocessing"] = mock_up
+
     producer = segment.SegmentProducer(mock_download_stream, 2)
     assert os.path.isfile(mock_download_stream.temp_path)
     assert len(producer.completed.items()) == 0

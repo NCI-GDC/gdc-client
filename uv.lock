@@ -481,7 +481,7 @@ dependencies = [
     { name = "termcolor" },
 ]
 
-[package.dev-dependencies]
+[package.optional-dependencies]
 dev = [
     { name = "click" },
     { name = "flask" },
@@ -495,26 +495,23 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "click", marker = "extra == 'dev'", specifier = ">=8" },
+    { name = "flask", marker = "extra == 'dev'" },
+    { name = "httmock", marker = "extra == 'dev'" },
     { name = "intervaltree", specifier = "~=3.0.2" },
     { name = "jsonschema" },
     { name = "lxml" },
+    { name = "moto", marker = "extra == 'dev'" },
     { name = "progressbar2" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "requests" },
+    { name = "requests-mock", marker = "extra == 'dev'" },
+    { name = "ruff", marker = "extra == 'dev'" },
     { name = "termcolor", specifier = "~=1.1.0" },
 ]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "click", specifier = ">=8" },
-    { name = "flask" },
-    { name = "httmock" },
-    { name = "moto" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "requests-mock" },
-    { name = "ruff" },
-]
+provides-extras = ["dev"]
 
 [[package]]
 name = "httmock"
