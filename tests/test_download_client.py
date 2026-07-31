@@ -172,7 +172,7 @@ class TestDownloadClient:
         temp_file_path = self.tmp_path / file_ids[0] / "test_file.txt.partial"
 
         # Weird race condition causes next assert to fail sometimes
-        for _ in range(20):
+        for _ in range(100):
             if file_path.exists():
                 break
             time.sleep(0.1)

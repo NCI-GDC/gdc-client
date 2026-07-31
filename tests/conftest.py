@@ -3,6 +3,7 @@ import time
 from collections.abc import Iterable, Mapping
 from io import BytesIO
 from multiprocessing import Process
+from unittest.mock import MagicMock, patch
 
 import boto3
 import pytest
@@ -10,6 +11,14 @@ from moto import mock_aws
 
 from gdc_client.parcel import utils
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
+
+
+# This block is just to fix an issue between multiprocessing and OPENSSL3.0 that
+# occurs in python 3.10, but not 3.11 or above
+def mock_multiprocessing_manager():
+    with patch("multiprocessing.Manager") as mock_manager:
+        mock_manager.return_value.Queue.return_value = MagicMock()
+        yield
 
 
 def md5(iterable: Iterable):
