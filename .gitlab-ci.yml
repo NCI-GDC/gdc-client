@@ -8,6 +8,7 @@ include:
 variables:
   LANGUAGE_VERSION: python3.10
   PYTHON_MULTIPROCESSING_START_METHOD: "fork"
+  OPENSSL_CONF: "/dev/null"
 
 tox:
   parallel:
