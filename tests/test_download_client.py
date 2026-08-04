@@ -1,7 +1,6 @@
 import argparse
 import os
 import tarfile
-import time
 from multiprocessing import cpu_count
 from pathlib import Path
 from unittest.mock import patch
@@ -171,13 +170,17 @@ class TestDownloadClient:
         file_path = self.tmp_path / file_ids[0] / "test_file.txt"
         temp_file_path = self.tmp_path / file_ids[0] / "test_file.txt.partial"
 
-        # Weird race condition causes next assert to fail sometimes
-        for _ in range(100):
-            if file_path.exists():
-                break
-            time.sleep(0.1)
+        # TODO: Remove these comments. There is an issue only affecting python3.14
+        #       This is to expose the exact problem
+        #       Weird race condition causes next assert to fail sometimes
+        if hasattr(os, "sync"):
+            os.sync()
 
-        assert file_path.exists(), "Failed to write test_file.txt"
+        # assert file_path.exists(), "Failed to write test_file.txt"
+        assert file_path.exists(), (
+            "Failed to write test_file.txt. "
+            f"Does partial file exist instead? {temp_file_path.exists()}"
+        )
         assert file_path.read_text() == uuids["big_no_friends"]["contents"], (
             "File contents of test_file.txt are incorrect"
         )
