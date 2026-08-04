@@ -15,7 +15,6 @@ import requests
 
 from gdc_client.parcel import const, utils
 from gdc_client.parcel.download_stream import DownloadStream
-from gdc_client.parcel.portability import Process
 from gdc_client.parcel.segment import SegmentProducer
 
 # Logging
@@ -220,17 +219,17 @@ class Client:
                         # from master process is received
                         continue
 
-        # Divide work amongst process pool
-        pool = [Process(target=download_worker) for i in range(n_procs)]
-
-        # Start pool
-        for p in pool:
-            p.start()
-
         self.start_timer()
 
-        # Wait for file to finish download
-        producer.wait_for_completion()
+        # Divide work amongst process pool
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=n_procs) as executor:
+            for _ in range(n_procs):
+                executor.submit(download_worker)
+            # Wait for file to finish download
+            producer.wait_for_completion()
+
         self.stop_timer(stream.size)
 
     def _standard_tcp_download(self, stream):
