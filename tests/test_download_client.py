@@ -160,8 +160,7 @@ class TestDownloadClient:
 
         assert DownloadStream.check_segment_md5sums is check_segments
 
-    # Python 3.14 so fast, replace 1 with .001 for better testing
-    @patch("gdc_client.parcel.download_stream.max_timeout", (1, 0.001))
+    @patch("gdc_client.parcel.download_stream.max_timeout", 1)
     def test_retry_entire_download(self) -> None:
         file_ids = ["big_no_friends"]
         self.argparse_args.file_ids = file_ids
@@ -170,18 +169,7 @@ class TestDownloadClient:
         download(parser, self.argparse_args)
         file_path = self.tmp_path / file_ids[0] / "test_file.txt"
         temp_file_path = self.tmp_path / file_ids[0] / "test_file.txt.partial"
-
-        # TODO: Remove these comments. There is an issue only affecting python3.14
-        #       This is to expose the exact problem
-        #       Weird race condition causes next assert to fail sometimes
-        if hasattr(os, "sync"):
-            os.sync()
-
-        # assert file_path.exists(), "Failed to write test_file.txt"
-        assert file_path.exists(), (
-            "Failed to write test_file.txt. "
-            f"Does partial file exist instead? {temp_file_path.exists()}"
-        )
+        assert file_path.exists(), "Failed to write test_file.txt"
         assert file_path.read_text() == uuids["big_no_friends"]["contents"], (
             "File contents of test_file.txt are incorrect"
         )
