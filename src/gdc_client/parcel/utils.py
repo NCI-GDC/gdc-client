@@ -237,5 +237,5 @@ def strip_whitespace(comment):
 
 
 def md5():
-    md5_kwargs = {} if sys.version_info < (3, 9) else {"usedforsecurity": False}
+    md5_kwargs = {} if sys.version_info <= (3, 10) else {"usedforsecurity": False}
     return hashlib.md5(**md5_kwargs)
