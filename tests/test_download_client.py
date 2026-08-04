@@ -161,7 +161,7 @@ class TestDownloadClient:
         assert DownloadStream.check_segment_md5sums is check_segments
 
     # Python 3.14 so fast, replace 1 with .001 for better testing
-    @patch("gdc_client.parcel.download_stream.max_timeout", 0.001)
+    @patch("gdc_client.parcel.download_stream.max_timeout", (1, 0.001))
     def test_retry_entire_download(self) -> None:
         file_ids = ["big_no_friends"]
         self.argparse_args.file_ids = file_ids
