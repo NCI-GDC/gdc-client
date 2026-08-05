@@ -1,8 +1,10 @@
+import hmac
 import tarfile
 import time
 from collections.abc import Iterable, Mapping
 from io import BytesIO
-from multiprocessing import Process, connection
+from multiprocessing import Process
+from unittest.mock import patch
 
 import boto3
 import pytest
@@ -11,7 +13,16 @@ from moto import mock_aws
 from gdc_client.parcel import utils
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
-connection.challenge_matcher = lambda connection: b"sha256"
+_original_hmac_new = hmac.new
+
+
+def fips_friendly_hmac_new(key, msg=None, digestmod="md5"):
+    if digestmod == "md5" or digestmod == b"md5":
+        digestmod = "sha256"
+    return _original_hmac_new(key, msg, digestmod)
+
+
+patch("hmac.new", side_effect=fips_friendly_hmac_new).start()
 
 
 def md5(iterable: Iterable):
