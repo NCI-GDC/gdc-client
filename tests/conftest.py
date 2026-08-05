@@ -1,4 +1,3 @@
-import hashlib
 import sys
 import tarfile
 import time
@@ -14,10 +13,13 @@ from gdc_client.parcel import utils
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
 
 if sys.version_info <= (3, 10):
-    _native_md5 = hashlib.md5
-    hashlib.md5 = lambda *args, **kwargs: _native_md5(
-        *args, **{**kwargs, "usedforsecurity": False}
-    )
+    import multiprocessing.connection
+
+    multiprocessing.connection.challenge_matcher = lambda connection: b"sha256"
+#    _native_md5 = hashlib.md5
+#    hashlib.md5 = lambda *args, **kwargs: _native_md5(
+#        *args, **{**kwargs, "usedforsecurity": False}
+#    )
 
 
 def md5(iterable: Iterable):
