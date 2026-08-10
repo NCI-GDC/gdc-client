@@ -14,15 +14,15 @@ jobs:
     strategy:
       matrix:
         os:
-          - macos-12
-          - macos-13
-          - macos-14
-          - ubuntu-20.04
-          - ubuntu-22.04
-          - windows-2019
-          - windows-2022
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
         python:
-          - 3.8
+          - 3.10
+          - 3.11
+          - 3.12
+          - 3.13
+          - 3.14
     env:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
     steps:
@@ -34,17 +34,15 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@5
       - name: Run Tests
-        if: matrix.os != 'windows-latest'
-        run: |
-          pip install --upgrade pip
-          pip install tox
-          tox -e py
+        run: uv run pytest tests/
       - name: Package
         run: |
           cd bin
-          pip install virtualenv
-          . ./package
+          uv pip install virtualenv
+          uv run ../package
           echo "GDC_CLIENT_ZIP=$GDC_CLIENT_ZIP" >> $GITHUB_ENV
         shell: bash
       - uses: actions/upload-artifact@v4
