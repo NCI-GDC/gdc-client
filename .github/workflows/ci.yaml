@@ -50,7 +50,7 @@ jobs:
       - name: Package
         run: |
           cd bin
-          uv run --with virtualenv bash ./package
+          uv run bash ./package
           echo "GDC_CLIENT_ZIP=$GDC_CLIENT_ZIP" >> $GITHUB_ENV
         shell: bash
       - uses: actions/upload-artifact@v4
