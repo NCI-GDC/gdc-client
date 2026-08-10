@@ -59,7 +59,7 @@ pip install -r dev-requirements.txt
 pre-commit install
 ```
 
-Note: This requires your dev environment to have Python 3.6 or higher.
+Note: This requires your dev environment to have Python 3.10 or higher.
 
 ### Update secrets baseline for `detect-secrets`
 
