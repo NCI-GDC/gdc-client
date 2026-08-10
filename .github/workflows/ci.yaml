@@ -39,7 +39,7 @@ jobs:
         uses: astral-sh/setup-uv@v9.0.0
       - name: Install dependencies
         run: uv sync --extra dev
-        env:
+#        env:
 #          UV_DEFAULT_INDEX: https://pypi.org/simple
       - name: Run Tests
         env:
