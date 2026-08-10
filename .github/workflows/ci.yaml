@@ -43,6 +43,8 @@ jobs:
         env:
           UV_DEFAULT_INDEX: https://pypi.org/simple
       - name: Run Tests
+        env:
+          NO_PROXY: "127.0.0.1,localhost"
         run: uv run pytest tests/
       - name: Package
         run: |
