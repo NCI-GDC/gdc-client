@@ -5,6 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
+      - test-ci-matrix-upgrade
     tags:
       - '*'
 
