@@ -66,11 +66,8 @@ class DownloadStream:
             utils.set_file_length(self.temp_path, self.size)
         except Exception:
             self.log.warning(
-                utils.strip_whitespace(
-                    f"""Unable to set file length. File appears to
-                be a {utils.get_file_type(self.path)} file, attempting to proceed.
-                """
-                )
+                "Unable to set file length. File appears to "
+                f"be a {utils.get_file_type(self.path)} file, attempting to proceed."
             )
             self.is_regular_file = False
 

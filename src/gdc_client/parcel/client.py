@@ -69,17 +69,15 @@ class Client:
             tempfile.NamedTemporaryFile(dir=directory).close()
         except OSError as e:
             raise OSError(
-                utils.strip_whitespace(
-                    """Unable to write
-            to download to directory '{directory}': {err}.  This
-            error likely occurred because the program was launched
-            from (or specified to download to) a protected
-            directory.  If you are running this executable from an
-            archive (*.zip, *.tar.gz, etc.) then extracting it
-            from the archive might solve this problem. Otherwise,
-            please see documentation on how to change/specify
-            directory."""
-                ).format(err=str(e), directory=directory)
+                "Unable to write "
+                f"to download to directory '{directory}': {e!s}.  This "
+                "error likely occurred because the program was launched "
+                "from (or specified to download to) a protected "
+                "directory.  If you are running this executable from an "
+                "archive (*.zip, *.tar.gz, etc.) then extracting it "
+                "from the archive might solve this problem. Otherwise, "
+                "please see documentation on how to change/specify "
+                "directory."
             )
 
     def start_timer(self):

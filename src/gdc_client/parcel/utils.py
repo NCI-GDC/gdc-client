@@ -232,10 +232,6 @@ def mmap_open(path):
         raise RuntimeError(f"Unable to get file type: {e!s}")
 
 
-def strip_whitespace(comment):
-    return " ".join(comment.split())
-
-
 def md5():
     md5_kwargs = {} if sys.version_info <= (3, 10) else {"usedforsecurity": False}
     return hashlib.md5(**md5_kwargs)

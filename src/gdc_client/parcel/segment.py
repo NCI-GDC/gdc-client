@@ -25,7 +25,6 @@ from gdc_client.parcel.utils import (
     get_percentage_pbar,
     md5sum,
     mmap_open,
-    strip_whitespace,
     validate_file_md5sum,
 )
 
@@ -98,11 +97,9 @@ class SegmentProducer:
                 log.debug(f"Checking segment md5: {interval}")
                 if not interval.data or "md5sum" not in interval.data:
                     log.error(
-                        strip_whitespace(
-                            """User opted to check segment md5sums on restart.
-                        Previous download did not record segment
-                        md5sums (--no-segment-md5sums)."""
-                        )
+                        "User opted to check segment md5sums on restart. "
+                        "Previous download did not record segment "
+                        "md5sums (--no-segment-md5sums)."
                     )
                     return
                 chunk = data[interval.begin : interval.end]
