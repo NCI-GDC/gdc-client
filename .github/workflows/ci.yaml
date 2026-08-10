@@ -40,8 +40,7 @@ jobs:
         uses: astral-sh/setup-uv@v9.0.0
       - name: Install dependencies
         run: |
-          uv pip install --system setuptools setuptools-scm
-          uv pip install --system --no-build-isolation -e .
+          uv pip install -e .[dev]
         env:
           UV_DEFAULT_INDEX: https://pypi.org/simple
       - name: Run Tests
