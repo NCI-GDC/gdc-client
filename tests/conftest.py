@@ -3,6 +3,8 @@ import hmac
 import multiprocessing
 import tarfile
 import time
+import urllib.error
+import urllib.request
 from collections.abc import Iterable, Mapping
 from io import BytesIO
 from unittest.mock import patch
@@ -141,6 +143,7 @@ def run_mock_server():
 
 @pytest.fixture(scope="class")
 def setup_mock_server() -> None:
+    # MacOS does things differently, so get everyone acting the same way
     try:
         ctx = multiprocessing.get_context("fork")
         server = ctx.Process(target=run_mock_server)
@@ -148,9 +151,21 @@ def setup_mock_server() -> None:
         server = multiprocessing.Process(target=run_mock_server)
 
     server.start()
-    # originally set to 5 for py38 and macos, up to 10 for macos py310
-    # need something better if this works
-    time.sleep(30)
+
+    # Since py38, a sleep is needed for MacOS. 10 is no longer enough as of py310
+    # Instead of time.sleep(30), this loop could exit faster.
+    for _ in range(60):
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:5000", timeout=1):
+                break
+        # listen for any response, and then stop waiting
+        except urllib.error.HTTPError:
+            break
+        except Exception:
+            time.sleep(0.5)
+    else:
+        raise RuntimeError("Mock server failed to start on 127.0.0.1:5000 in 30 secs.")
+
     yield
     server.terminate()
     server.join()
