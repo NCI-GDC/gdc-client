@@ -1,10 +1,10 @@
 import hashlib
 import hmac
+import multiprocessing
 import tarfile
 import time
 from collections.abc import Iterable, Mapping
 from io import BytesIO
-from multiprocessing import Process
 from unittest.mock import patch
 
 import boto3
@@ -141,11 +141,18 @@ def run_mock_server():
 
 @pytest.fixture(scope="class")
 def setup_mock_server() -> None:
-    server = Process(target=run_mock_server)
+    try:
+        ctx = multiprocessing.get_context("fork")
+        server = ctx.Process(target=run_mock_server)
+    except ValueError:
+        server = multiprocessing.Process(target=run_mock_server)
+
     server.start()
-    time.sleep(5)  # starting with py38, takes longer for process to start on macOS
+    # originally set to 5 for py38 and macos, up to 10 for macos py310
+    time.sleep(10)
     yield
     server.terminate()
+    server.join()
 
 
 @pytest.fixture
