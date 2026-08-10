@@ -18,7 +18,10 @@ _original_hmac_new = hmac.new
 
 def fips_friendly_hmac_new(key, msg=None, digestmod="md5"):
     if digestmod == "md5" or digestmod == b"md5":
-        digestmod = "sha256"
+        try:
+            return _original_hmac_new(key, digestmod, usedforsecurity=False)
+        except TypeError:
+            pass
     return _original_hmac_new(key, msg, digestmod)
 
 
