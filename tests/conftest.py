@@ -149,7 +149,8 @@ def setup_mock_server() -> None:
 
     server.start()
     # originally set to 5 for py38 and macos, up to 10 for macos py310
-    time.sleep(10)
+    # need something better if this works
+    time.sleep(30)
     yield
     server.terminate()
     server.join()
