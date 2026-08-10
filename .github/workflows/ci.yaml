@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: uv sync
         env:
-          UV_INDEX_URL: https://pypi.org
+          UV_DEFAULT_INDEX: https://pypi.org
       - name: Run Tests
         run: uv run pytest tests/
       - name: Package
