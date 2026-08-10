@@ -1,3 +1,4 @@
+import hashlib
 import hmac
 import tarfile
 import time
@@ -17,11 +18,13 @@ _original_hmac_new = hmac.new
 
 
 def fips_friendly_hmac_new(key, msg=None, digestmod="md5"):
-    if digestmod == "md5" or digestmod == b"md5":
-        try:
-            return _original_hmac_new(key, digestmod, usedforsecurity=False)
-        except TypeError:
-            pass
+    if digestmod in ("md5", b"md5"):
+
+        def md5_constructor(data=b""):
+            return hashlib.md5(data, usedforsecurity=False)
+
+        digestmod = md5_constructor
+
     return _original_hmac_new(key, msg, digestmod)
 
 
