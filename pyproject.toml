@@ -29,7 +29,6 @@ dependencies = [
 description = "Queue Client Facade: A generalized API that allows for connection to multiple queue implementations."
 dynamic = ["version"]
 keywords = ["rabbitmq", "depot"]
-license-files = ["LICENSE"]
 maintainers = [
   {name = "GDC Feature Team", email = "gdc_dev_questions-aaaaae2lhsbell56tlvh3upgoq@cdis.slack.com"}
 ]
@@ -101,6 +100,9 @@ select = [
   "UP", # pyupgrade
   "W" # pydocstyle warnings
 ]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0"
