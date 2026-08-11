@@ -1,2 +1,4 @@
-from . import parser as parser
-from .client import GDCClient as GDCClient
+from . import parser
+from .client import GDCClient
+
+__all__ = ["GDCClient", "parser"]

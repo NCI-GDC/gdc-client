@@ -101,12 +101,6 @@ select = [
   "W" # pydocstyle warnings
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"**/portability.py" = ["F401"]
-
-[tool.setuptools]
-license-files = ["LICENSE"]
-
 [tool.setuptools_scm]
 fallback_version = "0.0.0"
 

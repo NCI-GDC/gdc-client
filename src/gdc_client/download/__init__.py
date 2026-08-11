@@ -1,1 +1,3 @@
-from gdc_client.download import parser as parser
+from gdc_client.download import parser
+
+__all__ = ["parser"]
