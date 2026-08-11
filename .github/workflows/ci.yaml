@@ -5,7 +5,6 @@ on:
       - develop
       - release/**
       - hotfix/**
-      - feat/DEV-3737_Matrix_update
     tags:
       - '*'
 
