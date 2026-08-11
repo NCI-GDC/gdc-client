@@ -34,7 +34,7 @@ esac
 # setup.py is in previous dir
 cd ..
 
-uv sync --locked --extra dev
+uv sync --locked --no-dev --no-editable
 
 cd bin
 

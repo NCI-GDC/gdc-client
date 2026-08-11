@@ -38,9 +38,6 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-build = [
-  "pytest",
-]
 dev = [
   "click>=8",
   "flask",
