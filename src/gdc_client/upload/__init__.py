@@ -1,2 +1,4 @@
-from gdc_client.upload import parser as parser
-from gdc_client.upload.client import GDCUploadClient as GDCUploadClient
+from gdc_client.upload import parser
+from gdc_client.upload.client import GDCUploadClient
+
+__all__ = ["GDCUploadClient", "parser"]

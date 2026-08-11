@@ -1,2 +1,4 @@
-from . import parser as parser
-from .auth import GDCTokenAuth as GDCTokenAuth
+from . import parser
+from .auth import GDCTokenAuth
+
+__all__ = ["GDCTokenAuth", "parser"]
