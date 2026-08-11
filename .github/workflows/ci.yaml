@@ -5,6 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
+      - feat/DEV-3737_Matrix_update
     tags:
       - '*'
 
@@ -14,9 +15,14 @@ jobs:
     strategy:
       matrix:
         os:
-          - macos-latest
+          - macos-14
+          - macos-15
+          - macos-26
           - ubuntu-latest
-          - windows-latest
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - windows-2022
+          - windows-2025
         python:
           - "3.10"
           - "3.11"
