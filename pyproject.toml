@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8"]
+requires = ["setuptools>=80", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -29,6 +29,7 @@ dependencies = [
 description = "Queue Client Facade: A generalized API that allows for connection to multiple queue implementations."
 dynamic = ["version"]
 keywords = ["rabbitmq", "depot"]
+license-files = ["LICENSE"]
 maintainers = [
   {name = "GDC Feature Team", email = "gdc_dev_questions-aaaaae2lhsbell56tlvh3upgoq@cdis.slack.com"}
 ]
