@@ -44,8 +44,7 @@ jobs:
       - name: Run Tests
         env:
           NO_PROXY: "127.0.0.1,localhost"
-          no proxy: "127.0.0.1,localhost"
-        run: uv run --with tox-uv tox
+        run: uv run tox
       - name: Package
         run: |
           cd bin
