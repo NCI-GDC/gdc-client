@@ -6,10 +6,45 @@ include:
       - templates/artifacts/python-library.yaml
 
 variables:
-  LANGUAGE_VERSION: python3.10
   PYTHON_MULTIPROCESSING_START_METHOD: "fork"
+  GDC_CLIENT_ZIP: "gdc-client.zip"
 
 tox:
   parallel:
     matrix:
       - LANGUAGE_VERSION: [python3.10, python3.11, python3.12, python3.13, python3.14]
+
+.package_matrix:
+  stage: build-and-publish
+  parallel:
+    matrix:
+      - LANGUAGE_VERSION: [python3.10, python3.11, python3.12, python3.13, python3.14]
+  script:
+    - uv run tox
+    - cd bin
+    - uv run bash ./package
+  artifacts:
+    name: "gdc-client-${LANGUAGE_VERSION}-${OS_NAME}"
+    paths:
+      - bin/gdc-client_*.zip
+
+package_linux:
+  extends: .package_matrix
+  tags:
+    - linux
+  variables:
+    OS_NAME: linux
+
+package_macos:
+  extends: .package_matrix
+  tags:
+    - macos
+  variables:
+    OS_NAME: macos
+
+package_windows:
+  extends: .package_matrix
+  tags:
+    - windows
+  variables:
+    OS_NAME: windows
