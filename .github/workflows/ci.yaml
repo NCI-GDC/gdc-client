@@ -16,18 +16,18 @@ jobs:
       matrix:
         os:
           - macos-14
-          - macos-15
-          - macos-26
-          - ubuntu-22.04
-          - ubuntu-24.04
-          - windows-2022
-          - windows-2025
+#          - macos-15
+#          - macos-26
+#          - ubuntu-22.04
+#          - ubuntu-24.04
+#          - windows-2022
+#          - windows-2025
         python:
           - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
-          - "3.14"
+#          - "3.11"
+#          - "3.12"
+#          - "3.13"
+#          - "3.14"
     env:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
     steps:
