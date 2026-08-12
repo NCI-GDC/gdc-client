@@ -1,11 +1,8 @@
-from contextlib import closing
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 
 import requests
 
-from gdc_client import auth
-from gdc_client import version
-
+from gdc_client import auth, version
 
 GDC_API_HOST = "api.gdc.cancer.gov"
 GDC_API_PORT = 443
@@ -37,11 +34,7 @@ class GDCClient:
         """Make a request to the GDC API."""
         res = self.session.request(
             verb,
-            "https://{host}:{port}{path}".format(
-                host=self.host,
-                port=self.port,
-                path=path,
-            ),
+            f"https://{self.host}:{self.port}{path}",
             auth=auth.GDCTokenAuth(self.token),
             **kwargs,
         )

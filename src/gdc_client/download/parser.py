@@ -1,11 +1,10 @@
 import logging
 import time
-from urllib import parse as urlparse
 from functools import partial
-
-from gdc_client.parcel import colored, manifest
+from urllib import parse as urlparse
 
 from gdc_client.download.client import GDCHTTPDownloadClient
+from gdc_client.parcel import colored, manifest
 from gdc_client.query.index import GDCIndexClient
 from gdc_client.query.versions import get_latest_versions
 from gdc_client.utils import build_url
@@ -144,9 +143,7 @@ def download(parser, args):
 
     msg = "Successfully downloaded"
     log.info(
-        "{}: {}".format(
-            colored(msg, "green") if not args.color_off else msg, successful_count
-        )
+        "{}: {}".format(colored(msg, "green") if not args.color_off else msg, successful_count)
     )
 
     if unsuccessful_count > 0:
@@ -161,7 +158,6 @@ def download(parser, args):
 
 
 def retry_download(client, url, retry_amount, no_auto_retry, wait_time):
-
     log.debug(f"Retrying download {url}")
 
     error = True
@@ -205,7 +201,7 @@ def config(parser, download_defaults):
         "-d",
         "--dir",
         type=str,
-        help="Directory to download files to. " "Defaults to current directory",
+        help="Directory to download files to. Defaults to current directory",
     )
     parser.add_argument(
         "-s",
@@ -227,9 +223,7 @@ def config(parser, download_defaults):
         action="store_true",
         help="Do not verify file md5sum after download",
     )
-    parser.add_argument(
-        "-n", "--n-processes", type=int, help="Number of client connections."
-    )
+    parser.add_argument("-n", "--n-processes", type=int, help="Number of client connections.")
     parser.add_argument(
         "--http-chunk-size",
         "-c",

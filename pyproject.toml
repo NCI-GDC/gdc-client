@@ -3,24 +3,57 @@ requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gdc-client"
-dynamic = [
-  "version",
-  "description",
-  "readme",
-  "requires-python",
-  "license",
-  "authors",
-  "maintainers",
-  "keywords",
-  "classifiers",
-  "urls",
-  "scripts",
-  "gui-scripts",
-  "entry-points",
-  "dependencies",
-  "optional-dependencies"
+authors = [
+  {name = "GDC Feature Team", email = "gdc_dev_questions-aaaaae2lhsbell56tlvh3upgoq@cdis.slack.com"}
 ]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Internet",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14"
+]
+dependencies = [
+  "jsonschema",
+  "lxml",
+  "PyYAML>=6.0.1",
+  "intervaltree~=3.0.2",
+  "termcolor~=1.1.0",
+  "requests",
+  "progressbar2",
+]
+description = "Queue Client Facade: A generalized API that allows for connection to multiple queue implementations."
+dynamic = ["version"]
+keywords = ["rabbitmq", "depot"]
+license-files = ["LICENSE"]
+maintainers = [
+  {name = "GDC Feature Team", email = "gdc_dev_questions-aaaaae2lhsbell56tlvh3upgoq@cdis.slack.com"}
+]
+name = "gdc-client"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+  "click>=8",
+  "flask",
+  "pytest",
+  "pytest-cov",
+  "requests-mock",
+  "moto",
+  "httmock",
+  "ruff",
+]
+
+[project.scripts]
+gdc-client = "gdc_client.cli:main"
+
+[project.urls]
+Repository = "https://github.com/NCI-GDC/gdc-client"
 
 [tool.coverage.html]
 title = "gdc-client coverage report"
@@ -31,16 +64,6 @@ show_contexts = true
 branch = true
 context = "unit tests"
 source = ["gdc_client"]
-
-[tool.isort]
-extend_skip = [".md", ".json"]
-known_first_party = ["gdc_client"]
-py_version = 38
-skip = [".gitignore", ".dockerignore"]
-
-[tool.setuptools_scm]
-local_scheme = "dirty-tag"
-
 
 [tool.pytest.ini_options]
 minversion = 6.0
@@ -61,3 +84,42 @@ norecursedirs = [
 testpaths = [
   "tests",
 ]
+
+[tool.ruff]
+line-length = 95
+src = ["src", "tests"]
+target-version = "py310"
+
+[tool.ruff.lint]
+# see https://docs.astral.sh/ruff/rules/
+select = [
+  "E", # pydocstyle errors
+  "F", # pyflakes
+  "I", # isort
+  "N", # pep8 naming
+  "RUF", # ruff specific rules
+  "UP", # pyupgrade
+  "W" # pydocstyle warnings
+]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+
+[tool.tox]
+env_list = ["py310", "py311", "py312", "py313", "py314"]
+
+[tool.tox.env_run_base]
+commands = [
+  [
+    "python",
+    "-m",
+    "pytest",
+    {replace = "posargs", default = [
+      "--cov-report=html",
+      "--cov-report=xml",
+      "--junit-xml=report.xml"
+    ], extend = true}
+  ]
+]
+extras = ["dev"]
+pass_env = ["RABBITMQ_*", "DOCKER_*"]

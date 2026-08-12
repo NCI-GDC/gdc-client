@@ -6,9 +6,10 @@ include:
       - templates/artifacts/python-library.yaml
 
 variables:
-  LANGUAGE_VERSION: python3.8
+  LANGUAGE_VERSION: python3.10
+  PYTHON_MULTIPROCESSING_START_METHOD: "fork"
 
 tox:
   parallel:
     matrix:
-      - LANGUAGE_VERSION: [python3.8]
+      - LANGUAGE_VERSION: [python3.10, python3.11, python3.12, python3.13, python3.14]

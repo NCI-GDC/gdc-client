@@ -1,5 +1,4 @@
 import collections
-import logging
 import os
 import pathlib
 import pickle
@@ -8,8 +7,8 @@ from typing import NamedTuple
 import intervaltree
 import pytest
 
-import gdc_client.parcel.segment as segment
 import gdc_client.parcel.download_stream as stream
+import gdc_client.parcel.segment as segment
 import gdc_client.parcel.utils as utils
 
 directories_tuple = collections.namedtuple(
@@ -73,40 +72,28 @@ def mock_schedule(monkeypatch):
 
 
 @pytest.fixture()
-def mock_complete_download_file(
-    setup_directories: NamedTuple, complete_data: NamedTuple
-):
+def mock_complete_download_file(setup_directories: NamedTuple, complete_data: NamedTuple):
     write_data_file(setup_directories.data_directory, "test.txt", complete_data.data)
 
 
 @pytest.fixture()
-def mock_incomplete_download_file(
-    setup_directories: NamedTuple, incomplete_data: NamedTuple
-):
+def mock_incomplete_download_file(setup_directories: NamedTuple, incomplete_data: NamedTuple):
     write_data_file(setup_directories.data_directory, "test.txt", incomplete_data.data)
 
 
 @pytest.fixture()
 def mock_temporary_file(setup_directories: NamedTuple, incomplete_data: NamedTuple):
-    write_data_file(
-        setup_directories.data_directory, "test.txt.partial", incomplete_data.data
-    )
+    write_data_file(setup_directories.data_directory, "test.txt.partial", incomplete_data.data)
 
 
 @pytest.fixture()
 def mock_complete_state_file(setup_directories: NamedTuple, complete_data: NamedTuple):
-    write_state_file(
-        setup_directories.state_directory, "test.txt.parcel", complete_data
-    )
+    write_state_file(setup_directories.state_directory, "test.txt.parcel", complete_data)
 
 
 @pytest.fixture()
-def mock_incomplete_state_file(
-    setup_directories: NamedTuple, incomplete_data: NamedTuple
-):
-    write_state_file(
-        setup_directories.state_directory, "test.txt.parcel", incomplete_data
-    )
+def mock_incomplete_state_file(setup_directories: NamedTuple, incomplete_data: NamedTuple):
+    write_state_file(setup_directories.state_directory, "test.txt.parcel", incomplete_data)
 
 
 def write_data_file(directory: pathlib.Path, file_name: str, data: bytes):
@@ -135,7 +122,7 @@ def test_load_state_no_state_file(
     assert len(intervals) == 1
     assert intervals[0].begin == 0
     assert intervals[0].end == len(complete_data.data)
-    assert producer.done == False
+    assert not producer.done
 
 
 @pytest.mark.usefixtures("mock_complete_state_file", "mock_complete_download_file")
@@ -151,7 +138,7 @@ def test_load_state_complete_download_exists(
     assert intervals[0].begin == 0
     assert intervals[0].end == len(complete_data.data)
     assert intervals[0].data["md5sum"] == complete_data.md5sum
-    assert producer.done == True
+    assert producer.done
 
 
 @pytest.mark.usefixtures("mock_incomplete_state_file", "mock_incomplete_download_file")
@@ -168,7 +155,7 @@ def test_load_state_incomplete_download_exists(
     assert len(intervals) == 1
     assert intervals[0].begin == 0
     assert intervals[0].end == len(complete_data.data)
-    assert producer.done == False
+    assert not producer.done
 
 
 @pytest.mark.usefixtures("mock_incomplete_state_file", "mock_temporary_file")
@@ -190,4 +177,4 @@ def test_load_state_state_temp_exist(
     assert len(intervals) == 1
     assert intervals[0].begin == len(incomplete_data.data)
     assert intervals[0].end == len(complete_data.data)
-    assert producer.done == False
+    assert not producer.done

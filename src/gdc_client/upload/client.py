@@ -35,8 +35,8 @@ else:
     # needed for forking to work
     freeze_support()
 
-    from mmap import ALLOCATIONGRANULARITY as PAGESIZE
     from mmap import ACCESS_READ
+    from mmap import ALLOCATIONGRANULARITY as PAGESIZE
 
 
 log = logging.getLogger("upload-client")
@@ -132,9 +132,7 @@ def create_resume_path(file_path):
 
     # check if it's a path or just a filename
     if os.path.dirname(file_path):
-        return "{}/resume_{}".format(
-            os.path.dirname(file_path), os.path.basename(file_path)
-        )
+        return f"{os.path.dirname(file_path)}/resume_{os.path.basename(file_path)}"
 
     # just a filename
     return "resume_" + file_path
@@ -199,9 +197,7 @@ class GDCUploadClient:
         result = response.json()
 
         if "errors" in result:
-            raise Exception(
-                "Fail to query file type: {}".format(", ".join(result["errors"]))
-            )
+            raise Exception("Fail to query file type: {}".format(", ".join(result["errors"])))
 
         nodes = result["data"]["node"]
 
@@ -219,11 +215,7 @@ class GDCUploadClient:
 
         file_type = self._get_node_type(node_id)
 
-        fields = (
-            DEFAULT_METADATA
-            if field in DEFAULT_METADATA
-            else DEFAULT_METADATA + (field,)
-        )
+        fields = DEFAULT_METADATA if field in DEFAULT_METADATA else (*DEFAULT_METADATA, field)
 
         # get metadata about file_type
         r = self._get_node_metadata_via_graphql(
@@ -259,9 +251,7 @@ class GDCUploadClient:
                 file_id = f["id"]
                 file_entity.node_id = file_id
 
-                project_id = f.get("project_id") or self.get_metadata(
-                    file_id, "project_id"
-                )
+                project_id = f.get("project_id") or self.get_metadata(file_id, "project_id")
                 program, project = (part.upper() for part in project_id.split("-", 1))
 
                 if not program or not project:
@@ -291,18 +281,14 @@ class GDCUploadClient:
                     and f.get("file_name")
                     and os.path.exists(os.path.join(f.get("path"), f.get("file_name")))
                 ):
-                    file_entity.file_path = os.path.join(
-                        f.get("path"), f.get("file_name")
-                    )
+                    file_entity.file_path = os.path.join(f.get("path"), f.get("file_name"))
 
                 # 2) --path and UUID's filename, pull filename from API
                 elif (
                     f.get("path")
                     and file_id
                     and os.path.exists(
-                        os.path.join(
-                            f.get("path"), self.get_metadata(file_id, "file_name")
-                        )
+                        os.path.join(f.get("path"), self.get_metadata(file_id, "file_name"))
                     )
                 ):
                     file_entity.file_path = os.path.join(
@@ -349,9 +335,8 @@ class GDCUploadClient:
         """Upload files to the GDC."""
         if os.path.isfile(self.resume_path):
             use_resume = input(
-                "Found a {}. Press Y to resume last upload and n to start a new upload [Y/n]: ".format(
-                    self.resume_path
-                )
+                f"Found a {self.resume_path}. Press Y to resume "
+                "last upload and n to start a new upload [Y/n]: "
             )
             if use_resume.lower() not in ["n", "no"]:
                 with open(self.resume_path) as f:
@@ -367,9 +352,8 @@ class GDCUploadClient:
             else:
                 if self.file_size < self.upload_part_size:
                     log.info(
-                        "File size smaller than part size {}, do simple upload".format(
-                            self.upload_part_size
-                        )
+                        "File size smaller than part size "
+                        f"{self.upload_part_size}, do simple upload"
                     )
                     self._upload()
                 else:
@@ -414,9 +398,7 @@ class GDCUploadClient:
                     log.error(f"Can't upload: {r.content}")
                     return
 
-                pbar = get_file_transfer_pbar(
-                    self.file_path, self.file_size, desc="Uploading"
-                )
+                pbar = get_file_transfer_pbar(self.file_path, self.file_size, desc="Uploading")
 
                 stream = Stream(f, pbar, self.file_size)
 
@@ -465,11 +447,7 @@ class GDCUploadClient:
 
             path = self.resume_path
             with open(path, "w") as f:
-                f.write(
-                    yaml.dump(
-                        {"files": list(self.incompleted)}, default_flow_style=False
-                    )
-                )
+                f.write(yaml.dump({"files": list(self.incompleted)}, default_flow_style=False))
             log.info(f"Saved to {path}")
 
             if self.debug:
@@ -492,9 +470,7 @@ class GDCUploadClient:
 
     def initiate(self):
         if not self.upload_id:
-            r = requests.post(
-                self.url + "?uploads", headers=self.headers, verify=self.verify
-            )
+            r = requests.post(self.url + "?uploads", headers=self.headers, verify=self.verify)
             if r.status_code == 200:
                 xml = XMLResponse(r.content)
                 self.upload_id = xml.get_key("UploadId")
@@ -510,7 +486,7 @@ class GDCUploadClient:
         self.completed = 0
         self.total_parts = 0
 
-        part_amount = int(math.ceil(self.file_size / float(self.upload_part_size)))
+        part_amount = math.ceil(self.file_size / float(self.upload_part_size))
         previously_uploaded = 0
 
         for i in range(part_amount):
@@ -578,10 +554,9 @@ class GDCUploadClient:
         self.check_multipart()
         if self.completed != self.total_parts:
             raise Exception(
-                """Multipart upload failed for file {}:
-                completed parts: {}, total parts: {}, please try to resume""".format(
-                    self.node_id, self.completed, self.total_parts
-                )
+                f"Multipart upload failed for file {self.node_id}:\n"
+                f"completed parts: {self.completed}, total parts: {self.total_parts}, "
+                "please try to resume"
             )
 
         url = self.url + f"?uploadId={self.upload_id}"
@@ -648,13 +623,13 @@ class XMLResponse:
         self.namespace = self.root.nsmap[None]
 
     def get_key(self, key):
-        element = self.root.find("{{{}}}{}".format(self.namespace, key))
+        element = self.root.find(f"{{{self.namespace}}}{key}")
         if element is not None:
             return element.text
         return None
 
     def parse(self, key):
-        elements = self.root.findall("{{{}}}{}".format(self.namespace, key))
+        elements = self.root.findall(f"{{{self.namespace}}}{key}")
         keys = []
         for element in elements:
             keys.append({ele.tag.split("}")[-1]: ele.text for ele in element})

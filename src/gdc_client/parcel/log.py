@@ -11,7 +11,6 @@ import sys
 
 from gdc_client.parcel.portability import colored
 
-
 loggers = {}
 
 

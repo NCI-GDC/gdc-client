@@ -64,10 +64,7 @@ class GDCIndexClient:
 
         r.close()
 
-        if (
-            json_response.get("data") is None
-            or json_response["data"].get("hits") is None
-        ):
+        if json_response.get("data") is None or json_response["data"].get("hits") is None:
             return []
 
         return json_response["data"]["hits"]

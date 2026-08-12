@@ -25,7 +25,7 @@ There is a bash script inside the ./bin directory of this repository named `pack
 
 Building on Windows requires the installation of [git](https://git-scm.com/downloads) and the use of the git-shell that comes bundled with it. This will provide enough Unix-like utility needed to run the bash script in this repository.
 
-### Instructions 
+### Instructions
 
 ```bash
 # The script is currently location-dependant, so navigate to the bin directory.
@@ -39,22 +39,19 @@ cd bin
 First install the Python package from source locally
 
 ```bash
-virtualenv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python setup.py install
-pip install -r dev-requirements.txt
+uv venv --python 3.10
+uv sync
 ```
 
 Run tests
-- `python -m pytest tests/`
+- `uv run pytest tests/`
 
 Run tests with coverage:
-- `python -m pytest --cov=gdc_client --cov-branch --cov-report term tests/`
+- `uv run pytest --cov=gdc_client --cov-branch --cov-report term tests/`
 
 ## Install `pre-commit`
 
-This repository makes use of `pre-commit` for code formatting and secrets 
+This repository makes use of `pre-commit` for code formatting and secrets
 detecting.
 In order to make use of it, run the following command:
 ```
@@ -62,7 +59,7 @@ pip install -r dev-requirements.txt
 pre-commit install
 ```
 
-Note: This requires your dev environment to have Python 3.6 or higher. 
+Note: This requires your dev environment to have Python 3.10 or higher.
 
 ### Update secrets baseline for `detect-secrets`
 
@@ -73,7 +70,7 @@ To update the .secrets.baseline file run
 detect-secrets scan --update .secrets.baseline
 ```
 
-`.secrets.baseline` contains all the string that were caught by detect-secrets but are not stored in plain text. Audit the baseline to view the secrets . 
+`.secrets.baseline` contains all the string that were caught by detect-secrets but are not stored in plain text. Audit the baseline to view the secrets .
 
 ```
 detect-secrets audit .secrets.baseline

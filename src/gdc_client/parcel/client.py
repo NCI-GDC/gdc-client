@@ -6,17 +6,16 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-from gdc_client.parcel import const
-from gdc_client.parcel import utils
-from gdc_client.parcel.download_stream import DownloadStream
-from gdc_client.parcel.portability import Process
-from gdc_client.parcel.segment import SegmentProducer
-
 import logging
 import os
-import requests
 import tempfile
 import time
+
+import requests
+
+from gdc_client.parcel import const, utils
+from gdc_client.parcel.download_stream import DownloadStream
+from gdc_client.parcel.segment import SegmentProducer
 
 # Logging
 log = logging.getLogger("client")
@@ -38,9 +37,7 @@ class Client:
 
         """
 
-        DownloadStream.http_chunk_size = kwargs.get(
-            "http_chunk_size", const.HTTP_CHUNK_SIZE
-        )
+        DownloadStream.http_chunk_size = kwargs.get("http_chunk_size", const.HTTP_CHUNK_SIZE)
         DownloadStream.check_segment_md5sums = kwargs.get("segment_md5sums", True)
         DownloadStream.check_file_md5sum = kwargs.get("file_md5sum", True)
         SegmentProducer.save_interval = kwargs.get("save_interval", const.SAVE_INTERVAL)
@@ -72,17 +69,15 @@ class Client:
             tempfile.NamedTemporaryFile(dir=directory).close()
         except OSError as e:
             raise OSError(
-                utils.STRIP(
-                    """Unable to write
-            to download to directory '{directory}': {err}.  This
-            error likely occurred because the program was launched
-            from (or specified to download to) a protected
-            directory.  If you are running this executable from an
-            archive (*.zip, *.tar.gz, etc.) then extracting it
-            from the archive might solve this problem. Otherwise,
-            please see documentation on how to change/specify
-            directory."""
-                ).format(err=str(e), directory=directory)
+                "Unable to write "
+                f"to download to directory '{directory}': {e!s}.  This "
+                "error likely occurred because the program was launched "
+                "from (or specified to download to) a protected "
+                "directory.  If you are running this executable from an "
+                "archive (*.zip, *.tar.gz, etc.) then extracting it "
+                "from the archive might solve this problem. Otherwise, "
+                "please see documentation on how to change/specify "
+                "directory."
             )
 
     def start_timer(self):
@@ -142,11 +137,7 @@ class Client:
                 self.parallel_download(stream)
                 utils.validate_file_md5sum(
                     stream,
-                    (
-                        stream.temp_path
-                        if os.path.isfile(stream.temp_path)
-                        else stream.path
-                    ),
+                    (stream.temp_path if os.path.isfile(stream.temp_path) else stream.path),
                 )
                 if os.path.isfile(stream.temp_path):
                     utils.remove_partial_extension(stream.temp_path)
@@ -221,22 +212,22 @@ class Client:
                     if self.debug:
                         raise
                     else:
-                        log.error(f"Download aborted: {str(e)}")
+                        log.error(f"Download aborted: {e!s}")
                         # worker needs to stay alive until final sentinel value
                         # from master process is received
                         continue
 
-        # Divide work amongst process pool
-        pool = [Process(target=download_worker) for i in range(n_procs)]
-
-        # Start pool
-        for p in pool:
-            p.start()
-
         self.start_timer()
 
-        # Wait for file to finish download
-        producer.wait_for_completion()
+        # Divide work amongst process pool
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=n_procs) as executor:
+            for _ in range(n_procs):
+                executor.submit(download_worker)
+            # Wait for file to finish download
+            producer.wait_for_completion()
+
         self.stop_timer(stream.size)
 
     def _standard_tcp_download(self, stream):
@@ -256,9 +247,7 @@ class Client:
                         f.write(chunk)
 
             else:
-                raise Exception(
-                    f"[{r.status_code}] Unable to download url {stream.url}"
-                )
+                raise Exception(f"[{r.status_code}] Unable to download url {stream.url}")
 
             r.close()
 

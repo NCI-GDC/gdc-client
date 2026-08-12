@@ -7,8 +7,8 @@
 # ***************************************************************************************
 
 import platform
+
 from termcolor import colored as _colored
-import logging
 
 OS_WINDOWS = False
 OS_LINUX = False
@@ -28,6 +28,8 @@ if OS_WINDOWS or OS_OSX:
 else:
     # Assume a posix system
     from multiprocessing import Process
+
+__all__ = ["OS_LINUX", "OS_OSX", "OS_WINDOWS", "Process", "colored"]
 
 
 def colored(text, color):

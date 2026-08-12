@@ -4,10 +4,9 @@ import os
 import platform
 import stat
 import sys
-
 from contextlib import closing
-from gdc_client.log.log import LogFormatter
 
+from gdc_client.log.log import LogFormatter
 
 PLATFORM_HELP = {
     "Darwin": "On OS X: chmod 600 {token_file}",

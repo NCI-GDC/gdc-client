@@ -3,8 +3,8 @@ from unittest import mock
 
 import pytest
 
-from gdc_client.parcel import utils
 from gdc_client import exceptions
+from gdc_client.parcel import utils
 
 
 @mock.patch("gdc_client.parcel.utils.md5sum_whole_file")
@@ -81,9 +81,7 @@ def test__validate_file_md5sum_negative_validation_errors(
 
 
 def test__md5sum_whole_file():
-    with mock.patch(
-        "builtins.open", mock.mock_open(read_data=b"A" * 1024)
-    ) as mock_file:
+    with mock.patch("builtins.open", mock.mock_open(read_data=b"A" * 1024)) as mock_file:
         assert utils.md5sum_whole_file("test.txt") == (
             "d47b127bc2de2d687ddc82dac354c415"  # pragma: allowlist secret
         )

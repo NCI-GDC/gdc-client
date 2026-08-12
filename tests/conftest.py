@@ -1,15 +1,34 @@
-from io import BytesIO
-from multiprocessing import Process
+import hashlib
+import hmac
 import tarfile
 import time
-from typing import Iterable, List, Mapping, Union
+from collections.abc import Iterable, Mapping
+from io import BytesIO
+from multiprocessing import Process
+from unittest.mock import patch
 
 import boto3
-from moto import mock_aws
 import pytest
+from moto import mock_aws
 
 from gdc_client.parcel import utils
 from gdc_client.parcel.const import HTTP_CHUNK_SIZE
+
+_original_hmac_new = hmac.new
+
+
+def fips_friendly_hmac_new(key, msg=None, digestmod="md5"):
+    if digestmod in ("md5", b"md5"):
+
+        def md5_constructor(data=b""):
+            return hashlib.md5(data, usedforsecurity=False)
+
+        digestmod = md5_constructor
+
+    return _original_hmac_new(key, msg, digestmod)
+
+
+patch("hmac.new", side_effect=fips_friendly_hmac_new).start()
 
 
 def md5(iterable: Iterable):
@@ -21,9 +40,7 @@ def md5(iterable: Iterable):
     return md5_fn.hexdigest()
 
 
-def make_tarfile(
-    ids: List[str], tarfile_name: str = "temp.tar", write_mode: str = "w"
-) -> str:
+def make_tarfile(ids: list[str], tarfile_name: str = "temp.tar", write_mode: str = "w") -> str:
     """Make a tarfile for the purposes of testing tarfile methods"""
 
     # normally small files don't get grouped together if they have
@@ -45,8 +62,8 @@ def make_tarfile(
 
 
 def generate_metadata_dict(
-    access: str, contents: str, annotations: List[str], related_files: List[str]
-) -> Mapping[str, Union[str, List[str]]]:
+    access: str, contents: str, annotations: list[str], related_files: list[str]
+) -> Mapping[str, str | list[str]]:
     return {
         "access": access,
         "contents": contents,
@@ -133,7 +150,7 @@ def setup_mock_server() -> None:
 
 @pytest.fixture
 def versions_response(requests_mock):
-    def mock_response(url: str, ids: List[str], latest_ids: List[str]) -> None:
+    def mock_response(url: str, ids: list[str], latest_ids: list[str]) -> None:
         requests_mock.post(
             url,
             json=[

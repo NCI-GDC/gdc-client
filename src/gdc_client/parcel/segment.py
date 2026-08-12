@@ -14,21 +14,19 @@ import random
 import string
 import tempfile
 import time
-import sys
 
 from intervaltree import Interval, IntervalTree
 
+from gdc_client.parcel.const import SAVE_INTERVAL
 from gdc_client.parcel.portability import OS_OSX, OS_WINDOWS
 from gdc_client.parcel.utils import (
+    check_file_existence_and_size,
     get_file_transfer_pbar,
     get_percentage_pbar,
     md5sum,
     mmap_open,
-    STRIP,
-    check_file_existence_and_size,
     validate_file_md5sum,
 )
-from gdc_client.parcel.const import SAVE_INTERVAL
 
 if OS_WINDOWS or OS_OSX:
     WINDOWS = True
@@ -48,9 +46,7 @@ class SegmentProducer:
     save_interval = SAVE_INTERVAL
 
     def __init__(self, download, n_procs):
-        assert (
-            download.size is not None
-        ), "Segment producer passed uninitizalied Download!"
+        assert download.size is not None, "Segment producer passed uninitizalied Download!"
 
         self.download = download
         self.n_procs = n_procs
@@ -101,21 +97,15 @@ class SegmentProducer:
                 log.debug(f"Checking segment md5: {interval}")
                 if not interval.data or "md5sum" not in interval.data:
                     log.error(
-                        STRIP(
-                            """User opted to check segment md5sums on restart.
-                        Previous download did not record segment
-                        md5sums (--no-segment-md5sums)."""
-                        )
+                        "User opted to check segment md5sums on restart. "
+                        "Previous download did not record segment "
+                        "md5sums (--no-segment-md5sums)."
                     )
                     return
                 chunk = data[interval.begin : interval.end]
                 checksum = md5sum(chunk)
                 if checksum != interval.data.get("md5sum"):
-                    log.debug(
-                        "Redownloading corrupt segment {}, {}.".format(
-                            interval, checksum
-                        )
-                    )
+                    log.debug(f"Redownloading corrupt segment {interval}, {checksum}.")
                     corrupt_segments += 1
                     self.completed.remove(interval)
 
@@ -141,32 +131,25 @@ class SegmentProducer:
         # If the state file does not exist, treat as first time download
         if not state_file_exists:
             log.debug(
-                "State file {} does not exist. Beginning new download...".format(
-                    self.download.state_path
-                )
+                f"State file {self.download.state_path} does not exist. "
+                "Beginning new download..."
             )
             return False
 
         log.debug(
-            "Found state file {}, attempting to resume download".format(
-                self.download.state_path
-            )
+            f"Found state file {self.download.state_path}, attempting to resume download"
         )
         # Attempt to load completed segments from state file
         try:
             with open(self.download.state_path, "rb") as f:
                 self.completed = pickle.load(f)
-            assert isinstance(
-                self.completed, IntervalTree
-            ), f"Bad save state: {self.download.state_path}"
+            assert isinstance(self.completed, IntervalTree), (
+                f"Bad save state: {self.download.state_path}"
+            )
         except Exception as e:
             # An error has occured while loading state file.
             # Treat as entire file download and recreate temporary file
-            log.error(
-                "Unable to resume file state: {}, will restart entire download".format(
-                    str(e)
-                )
-            )
+            log.error(f"Unable to resume file state: {e!s}, will restart entire download")
             return False
 
         # If the downloaded file exists, validate the downloaded file
@@ -174,9 +157,7 @@ class SegmentProducer:
         # Recreate the temporary file and return
         if download_file_exists:
             log.debug(
-                "A file named {} found, will attempt to validate file".format(
-                    self.download.path
-                )
+                f"A file named {self.download.path} found, will attempt to validate file"
             )
 
             if not self.is_complete(self.download.path):
@@ -189,9 +170,8 @@ class SegmentProducer:
                 validate_file_md5sum(self.download, self.download.path)
             except Exception as e:
                 log.error(
-                    "MD5 check of downloaded file failed due to following reason: {}. Proceeding to restart entire download".format(
-                        str(e)
-                    )
+                    "MD5 check of downloaded file failed due to following "
+                    f"reason: {e!s}. Proceeding to restart entire download"
                 )
                 return False
 
@@ -203,16 +183,14 @@ class SegmentProducer:
 
         if not temporary_file_exists:
             log.debug(
-                "State file exists but no previous partial file {} detected. Restarting entire download.".format(
-                    self.download.temp_path
-                )
+                "State file exists but no previous partial file "
+                f"{self.download.temp_path} detected. Restarting entire download."
             )
             return False
 
         log.debug(
-            "Partial file {} detected. Validating already downloaded segments".format(
-                self.download.temp_path
-            )
+            f"Partial file {self.download.temp_path} detected. "
+            "Validating already downloaded segments"
         )
 
         # If temporary file exists, means that a previous download of the file
@@ -283,7 +261,7 @@ class SegmentProducer:
                     log.error(f"Unable to write state file: {msg}")
                     try:
                         os.rename(old_path, self.download.state_path)
-                    except:
+                    except Exception:
                         pass
                     raise
             else:
@@ -292,11 +270,11 @@ class SegmentProducer:
                 os.rename(temp.name, self.download.state_path)
 
         except KeyboardInterrupt:
-            log.warning(f"Keyboard interrupt. removing temp save file")
+            log.warning("Keyboard interrupt. removing temp save file")
             temp.close()
             os.remove(temp.name)
         except Exception as e:
-            log.error(f"Unable to save state: {str(e)}")
+            log.error(f"Unable to save state: {e!s}")
             raise
 
     def schedule(self):
@@ -326,7 +304,7 @@ class SegmentProducer:
         try:
             self.pbar.update(pbar_value)
         except Exception as e:
-            log.debug(f"Unable to update pbar: {str(e)}")
+            log.debug(f"Unable to update pbar: {e!s}")
 
     def check_file_exists_and_size(self, file_path):
         if self.download.is_regular_file:

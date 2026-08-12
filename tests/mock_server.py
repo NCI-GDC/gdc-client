@@ -1,10 +1,10 @@
-from flask import Flask, Response, jsonify, request
-from conftest import uuids, make_tarfile
-
 import json
 import os
 import time
-import typing
+
+from flask import Flask, Response, jsonify, request
+
+from conftest import make_tarfile, uuids
 
 app = Flask(__name__)
 
@@ -144,7 +144,6 @@ def files():
 @app.route("/legacy/data/<ids>", methods=["GET"])
 @app.route("/v0/legacy/data/<ids>", methods=["GET"])
 def download(ids=""):
-
     data = ""
     filename = "test_file.txt"
     headers = request.headers
@@ -203,9 +202,7 @@ def download(ids=""):
     return resp
 
 
-def handle_range_request(
-    ids: typing.List[str], headers: dict, filename: str
-) -> Response:
+def handle_range_request(ids: list[str], headers: dict, filename: str) -> Response:
     interval = headers["Range"]
     interval = interval.split("=")
     interval = interval[1].split("-")
