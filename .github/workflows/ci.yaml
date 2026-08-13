@@ -45,7 +45,7 @@ jobs:
         env:
           NO_PROXY: "127.0.0.1,localhost"
           UV_INDEX_URL: "https://pypi.org/simple"
-        run: uv run tox
+        run: uvx --with tox-uv tox
       - name: Package
         run: |
           cd bin
