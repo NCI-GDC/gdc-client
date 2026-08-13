@@ -30,6 +30,7 @@ jobs:
           - "3.14"
     env:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
+      UV_INDEX_URL: "https://pypi.org/simple"
     steps:
       - uses: actions/checkout@v2
         with:
@@ -44,7 +45,6 @@ jobs:
       - name: Run Tests
         env:
           NO_PROXY: "127.0.0.1,localhost"
-          UV_INDEX_URL: "https://pypi.org/simple"
         run: uvx --with tox-uv tox
       - name: Package
         run: |
