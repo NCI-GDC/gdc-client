@@ -16,18 +16,18 @@ jobs:
       matrix:
         os:
           - macos-14
-#          - macos-15
-#          - macos-26
-#          - ubuntu-22.04
-#          - ubuntu-24.04
-#          - windows-2022
-#          - windows-2025
+          - macos-15
+          - macos-26
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - windows-2022
+          - windows-2025
         python:
           - "3.10"
-#          - "3.11"
-#          - "3.12"
-#          - "3.13"
-#          - "3.14"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
     env:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
     steps:
@@ -44,6 +44,7 @@ jobs:
       - name: Run Tests
         env:
           NO_PROXY: "127.0.0.1,localhost"
+          UV_INDEX_URL: "https://pypi.org/simple"
         run: uv run tox
       - name: Package
         run: |
