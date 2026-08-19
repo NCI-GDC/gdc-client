@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euox pipefail
 
+# GitHub Actions uses this script to make bundles based on OS and Python
+# versions. It identifies the OS, uses uv to grab libraries (ignoring dev tools
+# and editable symlinks), and then uses PyInstaller to compile the Python CLI
+# file.
+
+
 function compress() {
     # this way it's cross platform
     local zip_name=$1
