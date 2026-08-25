@@ -6,7 +6,6 @@ include:
       - templates/artifacts/python-library.yaml
 
 variables:
-  LANGUAGE_VERSION: python3.10
   PYTHON_MULTIPROCESSING_START_METHOD: "fork"
 
 tox:
