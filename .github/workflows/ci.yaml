@@ -32,12 +32,12 @@ jobs:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
       UV_INDEX_URL: "https://pypi.org/simple"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           # required for setuptools_scm to correctly version: https://github.com/pypa/setuptools_scm/issues/480
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - name: Install uv
