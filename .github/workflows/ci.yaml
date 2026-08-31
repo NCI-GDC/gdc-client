@@ -5,7 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
-      - feat/DEV-4221_Matrix_update
+      - feat/DEV-4281_Artifact_fixes
     tags:
       - '*'
 
