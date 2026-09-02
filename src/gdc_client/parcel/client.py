@@ -129,29 +129,32 @@ class Client:
             url = self.fix_uri(url)
 
             # Construct download stream
-            stream = DownloadStream(url, self.directory, self.token)
+            with DownloadStream(url, self.directory, self.token) as stream:
+                # Download file
+                try:
+                    # validate temporary file before renaming to permanent file location
+                    self.parallel_download(stream)
+                    utils.validate_file_md5sum(
+                        stream,
+                        (
+                            stream.temp_path
+                            if os.path.isfile(stream.temp_path)
+                            else stream.path
+                        ),
+                    )
+                    if os.path.isfile(stream.temp_path):
+                        utils.remove_partial_extension(stream.temp_path)
+                    downloaded.append(url)
 
-            # Download file
-            try:
-                # validate temporary file before renaming to permanent file location
-                self.parallel_download(stream)
-                utils.validate_file_md5sum(
-                    stream,
-                    (stream.temp_path if os.path.isfile(stream.temp_path) else stream.path),
-                )
-                if os.path.isfile(stream.temp_path):
-                    utils.remove_partial_extension(stream.temp_path)
-                downloaded.append(url)
+                # Handle file download error, store error to print out later
+                except Exception as e:
+                    errors[url] = str(e)
+                    if self.debug:
+                        log.exception(e)
+                        raise
 
-            # Handle file download error, store error to print out later
-            except Exception as e:
-                errors[url] = str(e)
-                if self.debug:
-                    log.exception(e)
-                    raise
-
-            finally:
-                utils.print_closing_header(url)
+                finally:
+                    utils.print_closing_header(url)
 
         # Print error messages
         for url, error in errors.items():

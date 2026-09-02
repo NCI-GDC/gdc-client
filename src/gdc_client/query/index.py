@@ -54,20 +54,17 @@ class GDCIndexClient:
         """
         json_response = {}
         # using a POST request lets us avoid the MAX URL character length limit
-        r = requests.post(url, json=metadata_query, verify=self.verify)
+        with requests.post(url, json=metadata_query, verify=self.verify) as r:
+            if r is None:
+                return []
 
-        if r is None:
-            return []
+            if r.status_code == requests.codes.ok:
+                json_response = r.json()
 
-        if r.status_code == requests.codes.ok:
-            json_response = r.json()
+            if json_response.get("data") is None or json_response["data"].get("hits") is None:
+                return []
 
-        r.close()
-
-        if json_response.get("data") is None or json_response["data"].get("hits") is None:
-            return []
-
-        return json_response["data"]["hits"]
+            return json_response["data"]["hits"]
 
     def _get_metadata(self, uuids):
         """

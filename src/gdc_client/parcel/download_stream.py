@@ -6,7 +6,6 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
-import contextlib
 import logging
 import os
 import time
@@ -162,20 +161,18 @@ class DownloadStream:
 
         headers = self.headers() if headers is None else headers
         try:
-            with contextlib.closing(
-                s.get(
-                    self.url,
-                    headers=headers,
-                    verify=verify,
-                    stream=True,
-                    timeout=max_timeout,
-                )
-            ) as r:
-                r.raise_for_status()
+            r = s.get(
+                self.url,
+                headers=headers,
+                verify=verify,
+                stream=True,
+                timeout=max_timeout,
+            )
+            r.raise_for_status()
 
-                if close:
-                    r.close()
-                return r
+            if close:
+                r.close()
+            return r
 
         except Exception as e:
             raise RuntimeError(
