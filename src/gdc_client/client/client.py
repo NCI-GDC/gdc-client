@@ -1,4 +1,4 @@
-from contextlib import closing, contextmanager
+from contextlib import contextmanager
 
 import requests
 
@@ -29,17 +29,19 @@ class GDCClient:
             "User-Agent": agent,
         }
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.session.close()
+
     @contextmanager
     def request(self, verb, path, **kwargs):
         """Make a request to the GDC API."""
-        res = self.session.request(
-            verb,
-            f"https://{self.host}:{self.port}{path}",
-            auth=auth.GDCTokenAuth(self.token),
-            **kwargs,
-        )
+        url = f"https://{self.host}:{self.port}{path}"
+        auth_handler = auth.GDCTokenAuth(self.token)
 
-        with closing(res):
+        with self.session.request(verb, url, auth=auth_handler, **kwargs) as res:
             yield res
 
     def get(self, path, **kwargs):

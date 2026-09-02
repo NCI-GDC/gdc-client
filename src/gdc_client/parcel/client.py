@@ -238,18 +238,15 @@ class Client:
         """
 
         try:
-            r = requests.get(stream.url, stream=True, verify=self.verify)
+            with requests.get(stream.url, stream=True, verify=self.verify) as r:
+                if r.status_code == 200:
+                    stream.setup_directories()
+                    with open(stream.path, "wb") as f:
+                        for chunk in r:
+                            f.write(chunk)
 
-            if r.status_code == 200:
-                stream.setup_directories()
-                with open(stream.path, "wb") as f:
-                    for chunk in r:
-                        f.write(chunk)
-
-            else:
-                raise Exception(f"[{r.status_code}] Unable to download url {stream.url}")
-
-            r.close()
+                else:
+                    raise Exception(f"[{r.status_code}] Unable to download url {stream.url}")
 
         except Exception as e:
             log.error(e)
