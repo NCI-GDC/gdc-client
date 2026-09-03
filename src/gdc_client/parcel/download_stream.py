@@ -33,12 +33,21 @@ class DownloadStream:
         self.token = token
         self.url = url
         self.check_file_md5sum = True
+        self._session = None
 
     def init(self):
         self.get_information()
         self.print_download_information()
         self.initialized = True
         return self
+
+    def __enter__(self):
+        self._session = requests.Session()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._session:
+            self._session.close()
 
     def _get_directory_name(self, directory, url):
         # get filename/id
@@ -147,33 +156,31 @@ class DownloadStream:
         """
         self.log.debug(f"Request to {self.url}")
 
-        # Set urllib3 retries and mount for session
+        s = self._session if self._session else requests.Session()
+
         a = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        s = requests.Session()
         s.mount(urlparse(self.url).scheme, a)
 
         headers = self.headers() if headers is None else headers
         try:
-            r = s.get(
+            response = s.get(
                 self.url,
                 headers=headers,
                 verify=verify,
                 stream=True,
                 timeout=max_timeout,
             )
+            response.raise_for_status()
+
+            if close:
+                response.close()
+            return response
+
         except Exception as e:
             raise RuntimeError(
                 f"Unable to connect to API: ({e!s}). Is this url correct: '{self.url}'? "
                 "Is there a connection to the API? Is the server running?"
             )
-        try:
-            r.raise_for_status()
-        except Exception as e:
-            raise RuntimeError(f"{e!s}: {r.text}")
-
-        if close:
-            r.close()
-        return r
 
     def get_information(self):
         """Make a request to the data server for information on the file.
@@ -184,34 +191,34 @@ class DownloadStream:
         """
 
         headers = self.header()
-        r = self.request(headers, close=True)
-        self.log.debug("Request responded")
+        with self.request(headers, close=True) as response:
+            self.log.debug("Request responded")
 
-        content_length = r.headers.get("Content-Length")
-        if not content_length:
-            self.log.debug("Missing content length.")
-            # it also won't come with an md5sum
-            self.check_file_md5sum = False
-        else:
-            self.size = int(content_length)
-            self.log.debug(f"{self.size} bytes")
+            content_length = response.headers.get("Content-Length")
+            if not content_length:
+                self.log.debug("Missing content length.")
+                # it also won't come with an md5sum
+                self.check_file_md5sum = False
+            else:
+                self.size = int(content_length)
+                self.log.debug(f"{self.size} bytes")
 
-        attachment = r.headers.get("content-disposition", None)
-        self.log.debug(f"Attachment:         : {attachment}")
+            attachment = response.headers.get("content-disposition", None)
+            self.log.debug(f"Attachment:         : {attachment}")
 
-        # Some of the filenames are set to be equal to an S3 key, which can
-        # contain '/' characters and it breaks saving the file
-        self.name = (
-            self._parse_filename(attachment.split("filename=")[-1])
-            if attachment
-            else "untitled"
-        )
+            # Some of the filenames are set to be equal to an S3 key, which can
+            # contain '/' characters and it breaks saving the file
+            self.name = (
+                self._parse_filename(attachment.split("filename=")[-1])
+                if attachment
+                else "untitled"
+            )
 
-        self.md5sum = None
-        if self.check_file_md5sum:
-            self.md5sum = r.headers.get("content-md5", "")
+            self.md5sum = None
+            if self.check_file_md5sum:
+                self.md5sum = response.headers.get("content-md5", "")
 
-        return self.name, self.size
+            return self.name, self.size
 
     def write_segment(self, segment, q_complete, retries=5):
         """Read data from the data server and write it to a file.
@@ -235,27 +242,26 @@ class DownloadStream:
 
         try:
             # Initialize segment request
-            r = self.request(self.header(start, end))
+            with self.request(self.header(start, end)) as response:
+                # Iterate over the data stream
+                self.log.debug(f"Initializing segment: {start}-{end}")
+                for chunk in response.iter_content(chunk_size=self.http_chunk_size):
+                    if not chunk:
+                        continue  # Empty are keep-alives.
+                    offset = start + written
 
-            # Iterate over the data stream
-            self.log.debug(f"Initializing segment: {start}-{end}")
-            for chunk in r.iter_content(chunk_size=self.http_chunk_size):
-                if not chunk:
-                    continue  # Empty are keep-alives.
-                offset = start + written
+                    # Write the chunk to disk, create an interval that
+                    # represents the chunk, get md5 info if necessary, and
+                    # report completion back to the producer
+                    utils.write_offset(self.temp_path, chunk, offset)
+                    if self.check_segment_md5sums:
+                        iv_data = {"md5sum": utils.md5sum(chunk)}
+                    else:
+                        iv_data = None
+                    complete_segment = Interval(offset, offset + len(chunk), iv_data)
+                    q_complete.put(complete_segment)
 
-                # Write the chunk to disk, create an interval that
-                # represents the chunk, get md5 info if necessary, and
-                # report completion back to the producer
-                utils.write_offset(self.temp_path, chunk, offset)
-                if self.check_segment_md5sums:
-                    iv_data = {"md5sum": utils.md5sum(chunk)}
-                else:
-                    iv_data = None
-                complete_segment = Interval(offset, offset + len(chunk), iv_data)
-                q_complete.put(complete_segment)
-
-                written += len(chunk)
+                    written += len(chunk)
 
         except KeyboardInterrupt:
             return self.log.error("Process stopped by user.")
@@ -288,7 +294,6 @@ class DownloadStream:
             else:
                 raise RuntimeError("Segment corruption. Max retries exceeded.")
 
-        r.close()
         return written
 
     def print_download_information(self):
