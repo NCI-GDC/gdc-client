@@ -98,18 +98,18 @@ def upload_multipart(
                     headers=headers,
                     data=chunk_file,
                     verify=verify,
-                ) as res:
+                ) as response:
                     log.debug(f"Done making http request for part {part_number}")
                     chunk_file.close()
 
-                    if res.status_code == 200:
+                    if response.status_code == 200:
                         log.debug(f"Finish upload part {part_number}")
                         return True
 
             time.sleep(get_sleep_time(tries))
 
             tries -= 1
-            log.debug(f"Retry upload part {part_number}, {res.content}")
+            log.debug(f"Retry upload part {part_number}, {response.content}")
 
         except Exception as e:
             if debug:
@@ -223,11 +223,11 @@ class GDCUploadClient:
             node_id,
             node_type=file_type,
             fields=fields,
-        ) as r:
-            if r.status_code != 200:
-                raise Exception(f"Fail to get project_id, filename: {r.content}")
+        ) as response:
+            if response.status_code != 200:
+                raise Exception(f"Fail to get project_id, filename: {response.content}")
 
-            result = r.json()
+            result = response.json()
             if "errors" in result:
                 raise Exception(
                     "Fail to query project_id and file_name: {}".format(
@@ -369,9 +369,9 @@ class GDCUploadClient:
                 self.url + f"?uploadId={self.upload_id}",
                 headers=self.headers,
                 verify=self.verify,
-            ) as r:
-                if r.status_code not in [204, 404]:
-                    raise Exception(f"Fail to abort multipart upload: \n{r.content}")
+            ) as response:
+                if response.status_code not in [204, 404]:
+                    raise Exception(f"Fail to abort multipart upload: \n{response.content}")
                 else:
                     log.warning(f"Abort multipart upload {self.upload_id}")
 
@@ -380,11 +380,13 @@ class GDCUploadClient:
         self.get_files(action="delete")
         for f in self.file_entities:
             self.load_file(f)
-            with requests.delete(self.url, headers=self.headers, verify=self.verify) as r:
-                if r.status_code == 204:
+            with requests.delete(
+                self.url, headers=self.headers, verify=self.verify
+            ) as response:
+                if response.status_code == 204:
                     log.info(f"Delete file {self.node_id}")
                 else:
-                    log.warning(f"Fail to delete file {self.node_id}: {r.content}")
+                    log.warning(f"Fail to delete file {self.node_id}: {response.content}")
 
     def _upload(self):
         """Simple S3 PUT"""
@@ -393,9 +395,9 @@ class GDCUploadClient:
             try:
                 with requests.put(
                     self.url + "/_dry_run", headers=self.headers, verify=self.verify
-                ) as r:
-                    if r.status_code != 200:
-                        log.error(f"Can't upload: {r.content}")
+                ) as response:
+                    if response.status_code != 200:
+                        log.error(f"Can't upload: {response.content}")
                         return
 
                 pbar = get_file_transfer_pbar(self.file_path, self.file_size, desc="Uploading")
@@ -404,9 +406,9 @@ class GDCUploadClient:
 
                 with requests.put(
                     self.url, data=stream, headers=self.headers, verify=self.verify
-                ) as r:
-                    if r.status_code != 200:
-                        log.error(f"Upload failed {r.content}")
+                ) as response:
+                    if response.status_code != 200:
+                        log.error(f"Upload failed {response.content}")
                         return
 
                     pbar.finish()
@@ -471,14 +473,14 @@ class GDCUploadClient:
         if not self.upload_id:
             with requests.post(
                 self.url + "?uploads", headers=self.headers, verify=self.verify
-            ) as r:
-                if r.status_code == 200:
-                    xml = XMLResponse(r.content)
+            ) as response:
+                if response.status_code == 200:
+                    xml = XMLResponse(response.content)
                     self.upload_id = xml.get_key("UploadId")
                     log.info(f"Start multipart upload. UploadId: {self.upload_id}")
                     return True
                 else:
-                    log.error(f"Fail to initiate multipart upload: {r.content}")
+                    log.error(f"Fail to initiate multipart upload: {response.content}")
                     return False
         return True
 
@@ -543,12 +545,12 @@ class GDCUploadClient:
             self.url + f"?uploadId={self.upload_id}",
             headers=self.headers,
             verify=self.verify,
-        ) as r:
-            if r.status_code == 200:
-                self.multiparts = Multiparts(r.content)
+        ) as response:
+            if response.status_code == 200:
+                self.multiparts = Multiparts(response.content)
                 return self.multiparts
-            elif r.status_code in [403, 400]:
-                raise Exception(r.content)
+            elif response.status_code in [403, 400]:
+                raise Exception(response.content)
             return None
 
     def complete(self):
@@ -568,15 +570,15 @@ class GDCUploadClient:
                 data=self.multiparts.to_xml(),
                 headers=self.headers,
                 verify=self.verify,
-            ) as r:
-                if r.status_code != 200:
+            ) as response:
+                if response.status_code != 200:
                     tries -= 1
                     time.sleep(get_sleep_time(tries))
 
                 else:
                     log.info(f"Multipart upload finished for file {self.node_id}")
                     return
-        raise Exception(f"Multipart upload complete failed: {r.content}")
+        raise Exception(f"Multipart upload complete failed: {response.content}")
 
     def cleanup(self):
         if os.path.isfile(self.resume_path):

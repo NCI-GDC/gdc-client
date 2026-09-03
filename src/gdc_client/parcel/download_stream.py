@@ -33,6 +33,7 @@ class DownloadStream:
         self.token = token
         self.url = url
         self.check_file_md5sum = True
+        self._session = None
 
     def init(self):
         self.get_information()
@@ -41,10 +42,11 @@ class DownloadStream:
         return self
 
     def __enter__(self):
+        self._session = requests.Session()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if hasattr(self, "_session"):
+        if self._session:
             self._session.close()
 
     def _get_directory_name(self, directory, url):
@@ -154,25 +156,25 @@ class DownloadStream:
         """
         self.log.debug(f"Request to {self.url}")
 
-        # Set urllib3 retries and mount for session
+        s = self._session if self._session else requests.Session()
+
         a = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        s = requests.Session()
         s.mount(urlparse(self.url).scheme, a)
 
         headers = self.headers() if headers is None else headers
         try:
-            r = s.get(
+            response = s.get(
                 self.url,
                 headers=headers,
                 verify=verify,
                 stream=True,
                 timeout=max_timeout,
             )
-            r.raise_for_status()
+            response.raise_for_status()
 
             if close:
-                r.close()
-            return r
+                response.close()
+            return response
 
         except Exception as e:
             raise RuntimeError(
@@ -189,10 +191,10 @@ class DownloadStream:
         """
 
         headers = self.header()
-        with self.request(headers, close=True) as r:
+        with self.request(headers, close=True) as response:
             self.log.debug("Request responded")
 
-            content_length = r.headers.get("Content-Length")
+            content_length = response.headers.get("Content-Length")
             if not content_length:
                 self.log.debug("Missing content length.")
                 # it also won't come with an md5sum
@@ -201,7 +203,7 @@ class DownloadStream:
                 self.size = int(content_length)
                 self.log.debug(f"{self.size} bytes")
 
-            attachment = r.headers.get("content-disposition", None)
+            attachment = response.headers.get("content-disposition", None)
             self.log.debug(f"Attachment:         : {attachment}")
 
             # Some of the filenames are set to be equal to an S3 key, which can
@@ -214,7 +216,7 @@ class DownloadStream:
 
             self.md5sum = None
             if self.check_file_md5sum:
-                self.md5sum = r.headers.get("content-md5", "")
+                self.md5sum = response.headers.get("content-md5", "")
 
             return self.name, self.size
 
@@ -240,10 +242,10 @@ class DownloadStream:
 
         try:
             # Initialize segment request
-            with self.request(self.header(start, end)) as r:
+            with self.request(self.header(start, end)) as response:
                 # Iterate over the data stream
                 self.log.debug(f"Initializing segment: {start}-{end}")
-                for chunk in r.iter_content(chunk_size=self.http_chunk_size):
+                for chunk in response.iter_content(chunk_size=self.http_chunk_size):
                     if not chunk:
                         continue  # Empty are keep-alives.
                     offset = start + written

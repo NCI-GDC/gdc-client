@@ -1,4 +1,7 @@
-from contextlib import contextmanager
+import collections.abc
+import contextlib
+import types
+import typing
 
 import requests
 
@@ -32,17 +35,24 @@ class GDCClient:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         self.session.close()
 
-    @contextmanager
-    def request(self, verb, path, **kwargs):
+    @contextlib.contextmanager
+    def request(
+        self, verb: str, path: str, **kwargs: typing.Any
+    ) -> collections.abc.Iterator[requests.Response]:
         """Make a request to the GDC API."""
         url = f"https://{self.host}:{self.port}{path}"
         auth_handler = auth.GDCTokenAuth(self.token)
 
-        with self.session.request(verb, url, auth=auth_handler, **kwargs) as res:
-            yield res
+        with self.session.request(verb, url, auth=auth_handler, **kwargs) as response:
+            yield response
 
     def get(self, path, **kwargs):
         return self.request("GET", path, **kwargs)

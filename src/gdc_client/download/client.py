@@ -1,9 +1,9 @@
+import contextlib
 import logging
 import os
 import re
 import tarfile
 import time
-from contextlib import contextmanager
 from io import BytesIO
 from urllib import parse as urlparse
 
@@ -114,17 +114,20 @@ class GDCHTTPDownloadClient(HTTPClient):
             ann_ids = {"ids": annotations}
 
             # NOTE: Force compression
-            with self._post(path="data?compress", json=ann_ids) as r:
-                r.raise_for_status()
-                tar = tarfile.open(mode="r:gz", fileobj=BytesIO(r.content))
-                if self.annotation_name in tar.getnames():
-                    member = tar.getmember(self.annotation_name)
-                    ann = tar.extractfile(member).read()
-                    path = os.path.join(directory, self.annotation_name)
-                    with open(path, "wb") as f:
-                        f.write(ann)
+            with self._post(path="data?compress", json=ann_ids) as response:
+                response.raise_for_status()
+                with (
+                    BytesIO(response.content) as buffer,
+                    tarfile.open(mode="r:gz", fileobj=buffer) as tar,
+                ):
+                    if self.annotation_name in tar.getnames():
+                        member = tar.getmember(self.annotation_name)
+                        ann = tar.extractfile(member).read()
+                        path = os.path.join(directory, self.annotation_name)
+                        with open(path, "wb") as f:
+                            f.write(ann)
 
-                    log.debug(f"Wrote annotations to {path}.")
+                        log.debug(f"Wrote annotations to {path}.")
 
     def _untar_file(self, tarfile_name):
         # type: (str) -> list[str]
@@ -163,7 +166,7 @@ class GDCHTTPDownloadClient(HTTPClient):
 
         return errors
 
-    @contextmanager
+    @contextlib.contextmanager
     def _post(self, path, headers=None, json=None, stream=True):
         # type: (str, dict[str,str], dict[str,object], bool) -> requests.models.Response
         """custom post request that will query both active and legacy api
@@ -182,19 +185,19 @@ class GDCHTTPDownloadClient(HTTPClient):
                 verify=self.verify,
                 json=json or {},
                 headers=headers or {},
-            ) as r:
-                if r.status_code not in [200, 203]:
-                    # try legacy if active doesn't return OK
-                    with requests.post(
-                        legacy,
-                        stream=stream,
-                        verify=self.verify,
-                        json=json or {},
-                        headers=headers or {},
-                    ) as r_legacy:
-                        yield r_legacy
-                else:
-                    yield r
+            ) as response:
+                if response.status_code in [200, 203]:
+                    yield response
+                    return
+                # try legacy if active doesn't return OK
+                with requests.post(
+                    legacy,
+                    stream=stream,
+                    verify=self.verify,
+                    json=json or {},
+                    headers=headers or {},
+                ) as response:
+                    yield response
 
         except Exception as e:
             log.error(e)
@@ -214,28 +217,28 @@ class GDCHTTPDownloadClient(HTTPClient):
         # POST request avoids the MAX LEN character limit for URLs
         params = ("tarfile",)
         path = build_url("data", *params)
-        with self._post(path=path, headers=headers, json=ids) as r:
-            if r.status_code == requests.codes.bad:
+        with self._post(path=path, headers=headers, json=ids) as response:
+            if response.status_code == requests.codes.bad:
                 log.error("Unable to connect to the API")
                 log.error(f"Is this the correct URL? {self.base_uri}")
 
-            elif r.status_code == requests.codes.forbidden:
+            elif response.status_code == requests.codes.forbidden:
                 # since the files are grouped by access control, that means
                 # a group is entirely controlled or open access.
                 # If it fails to download because you don't have access then
                 # don't bother trying again
-                log.error(r.text)
+                log.error(response.text)
                 return "", []
 
-            if r.status_code not in [200, 203]:
-                log.warning(f"[{r.status_code}] Unable to download group")
+            if response.status_code not in [200, 203]:
+                log.warning(f"[{response.status_code}] Unable to download group")
                 errors.append(ids["ids"])
                 return "", errors
 
             # {'content-disposition': 'filename=the_actual_filename.tar'}
-            content_filename = r.headers.get("content-disposition") or r.headers.get(
-                "Content-Disposition"
-            )
+            content_filename = response.headers.get(
+                "content-disposition"
+            ) or response.headers.get("Content-Disposition")
 
             if content_filename:
                 tarfile_name = os.path.join(
@@ -246,7 +249,7 @@ class GDCHTTPDownloadClient(HTTPClient):
                 tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
             with open(tarfile_name, "wb") as f:
-                for chunk in r:
+                for chunk in response:
                     f.write(chunk)
 
         return tarfile_name, errors
@@ -296,8 +299,6 @@ class GDCHTTPDownloadClient(HTTPClient):
         return errors, successful_count
 
     def parallel_download(self, stream):
-        # gdc-client calls parcel's parallel_download,
-        # which is where most of the downloading takes place
         file_id = stream.url.split("/")[-1]
         super().parallel_download(stream)
 
