@@ -9,6 +9,7 @@
 import logging
 import os
 import time
+import types
 from urllib.parse import urlparse
 
 import requests
@@ -45,7 +46,12 @@ class DownloadStream:
         self._session = requests.Session()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         if self._session:
             self._session.close()
 
