@@ -18,6 +18,8 @@ jobs:
           - macos-14
           - macos-15
           - macos-26
+          - macos-15-intel
+          - macos-26-intel
           - ubuntu-22.04
           - ubuntu-24.04
           - windows-2022
