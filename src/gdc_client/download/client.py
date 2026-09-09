@@ -189,15 +189,15 @@ class GDCHTTPDownloadClient(HTTPClient):
                 if response.status_code in [200, 203]:
                     yield response
                     return
-                # try legacy if active doesn't return OK
-                with requests.post(
-                    legacy,
-                    stream=stream,
-                    verify=self.verify,
-                    json=json or {},
-                    headers=headers or {},
-                ) as response:
-                    yield response
+            # try legacy if active doesn't return OK
+            with requests.post(
+                legacy,
+                stream=stream,
+                verify=self.verify,
+                json=json or {},
+                headers=headers or {},
+            ) as response:
+                yield response
 
         except Exception as e:
             log.error(e)
