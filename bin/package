@@ -66,9 +66,11 @@ echo "Testing produced binary..."
 echo "Zipping binary..."
 cd dist
 
-PRE_ZIP_NAME="gdc-client_${VERSION}_${TARGET_ENVIRONMENT}_x64"
+ARCH=$(uname -m)
+
+PRE_ZIP_NAME="gdc-client_${VERSION}_${TARGET_ENVIRONMENT}_${ARCH}"
 if [ -n "${DATE}" ]; then
-    PRE_ZIP_NAME="gdc-client_${VERSION}_${DATE}_${TARGET_ENVIRONMENT}_x64"
+    PRE_ZIP_NAME="gdc-client_${VERSION}_${DATE}_${TARGET_ENVIRONMENT}_${ARCH}"
 fi
 
 ZIP_NAME="$PRE_ZIP_NAME.zip"

@@ -5,7 +5,6 @@ on:
       - develop
       - release/**
       - hotfix/**
-      - feat/DEV-4221_Matrix_update
     tags:
       - '*'
 
@@ -15,29 +14,27 @@ jobs:
     strategy:
       matrix:
         os:
-          - macos-14
+          # macos-15 hits end-of-life in January 2028
           - macos-15
-          - macos-26
+          - macos-15-intel
+          # Ubuntu 22.04 hits end-of-life in June 2027
           - ubuntu-22.04
-          - ubuntu-24.04
+          # Windows 2022 mainstream support ends October 2026
+          # Windows 2022 extended support ends October 2031
           - windows-2022
-          - windows-2025
         python:
-          - "3.10"
+          # Python 3.11 hits end-of-life in October 2027
           - "3.11"
-          - "3.12"
-          - "3.13"
-          - "3.14"
     env:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
       UV_INDEX_URL: "https://pypi.org/simple"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           # required for setuptools_scm to correctly version: https://github.com/pypa/setuptools_scm/issues/480
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - name: Install uv
