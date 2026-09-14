@@ -8,6 +8,7 @@
 
 import logging
 import os
+import threading
 import time
 import types
 from urllib.parse import urlparse
@@ -43,7 +44,8 @@ class DownloadStream:
         return self
 
     def __enter__(self):
-        self._session = requests.Session()
+        # Using threading.local keeps each session in a single thread
+        self._session_storage = threading.local()
         return self
 
     def __exit__(
@@ -52,8 +54,11 @@ class DownloadStream:
         exc_val: BaseException | None,
         exc_tb: types.TracebackType | None,
     ) -> None:
-        if self._session:
-            self._session.close()
+        # If any sessions are open in the storage, go through and close them
+        if hasattr(self, "_session_storage"):
+            for attr_name, attr_val in self._session_storage.__dict__.items():
+                if isinstance(attr_val, requests.Session):
+                    attr_val.close()
 
     def _get_directory_name(self, directory, url):
         # get filename/id
@@ -161,6 +166,11 @@ class DownloadStream:
 
         """
         self.log.debug(f"Request to {self.url}")
+
+        if not hasattr(self._session_storage, "session"):
+            self._session_storage.session = requests.Session()
+
+        s = self._session_storage.session
 
         s = self._session if self._session else requests.Session()
 
