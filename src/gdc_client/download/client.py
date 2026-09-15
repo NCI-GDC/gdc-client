@@ -83,17 +83,16 @@ class GDCHTTPDownloadClient(HTTPClient):
             for related_file in related_files:
                 log.debug(f"related file {related_file}")
                 related_file_url = urlparse.urljoin(self.data_uri, related_file)
-                stream = DownloadStream(related_file_url, directory, self.token)
+                with DownloadStream(related_file_url, directory, self.token) as stream:
+                    # TODO: un-set this when parcel is moved to dtt
+                    # hacky way to get it working like the old dtt
+                    stream.directory = directory
 
-                # TODO: un-set this when parcel is moved to dtt
-                # hacky way to get it working like the old dtt
-                stream.directory = directory
+                    # run original parallel download
+                    super().parallel_download(stream)
 
-                # run original parallel download
-                super().parallel_download(stream)
-
-                if os.path.isfile(stream.temp_path):
-                    utils.remove_partial_extension(stream.temp_path)
+                    if os.path.isfile(stream.temp_path):
+                        utils.remove_partial_extension(stream.temp_path)
         else:
             log.debug("No related files")
 
