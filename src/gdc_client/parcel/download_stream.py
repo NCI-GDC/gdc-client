@@ -12,6 +12,7 @@ import os
 import threading
 import time
 import types
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
@@ -168,7 +169,7 @@ class DownloadStream:
             header["host"] = host
         return header
 
-    def request(self, headers, verify=True, max_retries=16):
+    def request(self, headers: dict[str, Any], verify: bool = True, max_retries: int = 16):
         """Make request for file and return the response.
 
         :param str file_id: The id of the entity being requested.
