@@ -178,6 +178,7 @@ class DownloadStream:
         s.mount(urlparse(self.url).scheme, a)
 
         headers = self.headers() if headers is None else headers
+        response = None
         try:
             response = s.get(
                 self.url,
@@ -193,6 +194,9 @@ class DownloadStream:
             return response
 
         except Exception as e:
+            # If error, close connection (if it exists)
+            if response is not None:
+                response.close()
             raise RuntimeError(
                 f"Unable to connect to API: ({e!s}). Is this url correct: '{self.url}'? "
                 "Is there a connection to the API? Is the server running?"
