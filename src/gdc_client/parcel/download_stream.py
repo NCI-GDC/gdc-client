@@ -6,6 +6,7 @@
 # Availability: https://github.com/LabAdvComp/parcel
 # ***************************************************************************************
 
+import contextlib
 import logging
 import os
 import threading
@@ -18,6 +19,23 @@ from intervaltree import Interval
 
 from gdc_client.parcel import const, utils
 from gdc_client.parcel.defaults import max_timeout
+
+
+class SessionCache:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._context = contextlib.ExitStack()
+
+    def close(self, *args, **kwargs) -> None:
+        self._context.close()
+
+    def get_session(self) -> requests.Session:
+        with self._lock:
+            if not hasattr(threading.local(), "session"):
+                local_thread = threading.local()
+                local_thread.session = self._context.enter_context(requests.Session())
+
+        return local_thread.session
 
 
 class DownloadStream:
@@ -35,7 +53,7 @@ class DownloadStream:
         self.token = token
         self.url = url
         self.check_file_md5sum = True
-        self._session = None
+        self._session_cache = SessionCache()
 
     def init(self):
         self.get_information()
@@ -46,6 +64,7 @@ class DownloadStream:
     def __enter__(self):
         # Using threading.local keeps each session in a single thread
         self._session_storage = threading.local()
+        self._session_storage.session = None
         return self
 
     def __exit__(
@@ -54,11 +73,7 @@ class DownloadStream:
         exc_val: BaseException | None,
         exc_tb: types.TracebackType | None,
     ) -> None:
-        # If any sessions are open in the storage, go through and close them
-        if hasattr(self, "_session_storage"):
-            for attr_name, attr_val in self._session_storage.__dict__.items():
-                if isinstance(attr_val, requests.Session):
-                    attr_val.close()
+        self._session_storage.session = None
 
     def _get_directory_name(self, directory, url):
         # get filename/id
@@ -153,7 +168,7 @@ class DownloadStream:
             header["host"] = host
         return header
 
-    def request(self, headers=None, verify=True, close=False, max_retries=16):
+    def request(self, headers, verify=True, max_retries=16):
         """Make request for file and return the response.
 
         :param str file_id: The id of the entity being requested.
@@ -167,20 +182,15 @@ class DownloadStream:
         """
         self.log.debug(f"Request to {self.url}")
 
-        if not hasattr(self._session_storage, "session"):
-            self._session_storage.session = requests.Session()
+        session = self._session_cache.get_session()
 
-        s = self._session_storage.session
+        session.mount(
+            urlparse(self.url).scheme, requests.adapters.HTTPAdapter(max_retries=max_retries)
+        )
 
-        s = self._session if self._session else requests.Session()
-
-        a = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        s.mount(urlparse(self.url).scheme, a)
-
-        headers = self.headers() if headers is None else headers
         response = None
         try:
-            response = s.get(
+            response = session.get(
                 self.url,
                 headers=headers,
                 verify=verify,
@@ -189,14 +199,9 @@ class DownloadStream:
             )
             response.raise_for_status()
 
-            if close:
-                response.close()
             return response
 
         except Exception as e:
-            # If error, close connection (if it exists)
-            if response is not None:
-                response.close()
             raise RuntimeError(
                 f"Unable to connect to API: ({e!s}). Is this url correct: '{self.url}'? "
                 "Is there a connection to the API? Is the server running?"
@@ -211,7 +216,7 @@ class DownloadStream:
         """
 
         headers = self.header()
-        with self.request(headers, close=True) as response:
+        with self.request(headers) as response:
             self.log.debug("Request responded")
 
             content_length = response.headers.get("Content-Length")
