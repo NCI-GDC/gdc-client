@@ -23,20 +23,36 @@ from gdc_client.parcel.defaults import max_timeout
 
 
 class SessionCache:
+    """A thread-safe cache for managing HTTP session objects.
+
+    This class sets up a single thread to keep a session to a single thread to avoid race
+    conditions and uses ExitStack to manage context so connections are closed as expected.
+    """
+
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._context = contextlib.ExitStack()
+        self._local = threading.local()
 
-    def close(self, *args, **kwargs) -> None:
+    def close(self) -> None:
+        """Closes all sessions registered through the class."""
         self._context.close()
 
     def get_session(self) -> requests.Session:
+        """Creates or retrieves a thread-local session.
+
+        If a session does not already exist for the current thread, a new request.Session
+        instance is created and added to the ExitStack context to manage closing out
+        connections as expected, including during error handling.
+
+        Returns:
+            requests.Session: A session object isolated to the local thread.
+        """
         with self._lock:
             if not hasattr(threading.local(), "session"):
-                local_thread = threading.local()
-                local_thread.session = self._context.enter_context(requests.Session())
+                self._local.session = self._context.enter_context(requests.Session())
 
-        return local_thread.session
+            return self._local.session
 
 
 class DownloadStream:
@@ -63,9 +79,6 @@ class DownloadStream:
         return self
 
     def __enter__(self):
-        # Using threading.local keeps each session in a single thread
-        self._session_storage = threading.local()
-        self._session_storage.session = None
         return self
 
     def __exit__(
@@ -74,7 +87,8 @@ class DownloadStream:
         exc_val: BaseException | None,
         exc_tb: types.TracebackType | None,
     ) -> None:
-        self._session_storage.session = None
+        if hasattr(self._session_cache._local, "session"):
+            self._session_cache._local.session = None
 
     def _get_directory_name(self, directory, url):
         # get filename/id
@@ -169,7 +183,10 @@ class DownloadStream:
             header["host"] = host
         return header
 
-    def request(self, headers: dict[str, Any], verify: bool = True, max_retries: int = 16):
+    @contextlib.contextmanager
+    def request(
+        self, headers: dict[str, Any], verify: bool = True, max_retries: int = 16
+    ) -> contextlib.AbstractContextManager[requests.Response]:
         """Make request for file and return the response.
 
         :param str file_id: The id of the entity being requested.
@@ -191,16 +208,16 @@ class DownloadStream:
 
         response = None
         try:
-            response = session.get(
+            with session.get(
                 self.url,
                 headers=headers,
                 verify=verify,
                 stream=True,
                 timeout=max_timeout,
-            )
-            response.raise_for_status()
+            ) as response:
+                response.raise_for_status()
 
-            return response
+                yield response
 
         except Exception as e:
             raise RuntimeError(
