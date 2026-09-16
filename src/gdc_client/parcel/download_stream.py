@@ -25,8 +25,9 @@ from gdc_client.parcel.defaults import max_timeout
 class SessionCache:
     """A thread-safe cache for managing HTTP session objects.
 
-    This class sets up a single thread to keep a session to a single thread to avoid race
-    conditions and uses ExitStack to manage context so connections are closed as expected.
+    This class sets up a single thread to keep a session to a single thread to
+    avoid race conditions and uses ExitStack to manage context so connections
+    are closed as expected.
     """
 
     def __init__(self) -> None:
@@ -41,9 +42,10 @@ class SessionCache:
     def get_session(self) -> requests.Session:
         """Creates or retrieves a thread-local session.
 
-        If a session does not already exist for the current thread, a new request.Session
-        instance is created and added to the ExitStack context to manage closing out
-        connections as expected, including during error handling.
+        If a session does not already exist for the current thread, a new
+        request.Session instance is created and added to the ExitStack context
+        to manage closing out connections as expected, including during error
+        handling.
 
         Returns:
             requests.Session: A session object isolated to the local thread.
