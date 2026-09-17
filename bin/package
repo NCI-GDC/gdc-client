@@ -57,7 +57,6 @@ uv run --with pyinstaller pyinstaller \
     --onefile \
     --copy-metadata gdc-client \
     $OSX_FLAGS \
-    --target-architecture universal2 \
     --name gdc-client \
     -c ../src/gdc_client/cli.py
 
