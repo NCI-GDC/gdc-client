@@ -51,7 +51,7 @@ class SessionCache:
             requests.Session: A session object isolated to the local thread.
         """
         with self._lock:
-            if not hasattr(threading.local(), "session"):
+            if not hasattr(self._local, "session"):
                 self._local.session = self._context.enter_context(requests.Session())
 
             return self._local.session
@@ -89,8 +89,7 @@ class DownloadStream:
         exc_val: BaseException | None,
         exc_tb: types.TracebackType | None,
     ) -> None:
-        if hasattr(self._session_cache._local, "session"):
-            self._session_cache._local.session = None
+        self._session_cache.close()
 
     def _get_directory_name(self, directory, url):
         # get filename/id
@@ -239,31 +238,31 @@ class DownloadStream:
         with self.request(headers) as response:
             self.log.debug("Request responded")
 
-            content_length = response.headers.get("Content-Length")
-            if not content_length:
-                self.log.debug("Missing content length.")
-                # it also won't come with an md5sum
-                self.check_file_md5sum = False
-            else:
-                self.size = int(content_length)
-                self.log.debug(f"{self.size} bytes")
+        content_length = response.headers.get("Content-Length")
+        if not content_length:
+            self.log.debug("Missing content length.")
+            # it also won't come with an md5sum
+            self.check_file_md5sum = False
+        else:
+            self.size = int(content_length)
+            self.log.debug(f"{self.size} bytes")
 
-            attachment = response.headers.get("content-disposition", None)
-            self.log.debug(f"Attachment:         : {attachment}")
+        attachment = response.headers.get("content-disposition", None)
+        self.log.debug(f"Attachment:         : {attachment}")
 
-            # Some of the filenames are set to be equal to an S3 key, which can
-            # contain '/' characters and it breaks saving the file
-            self.name = (
-                self._parse_filename(attachment.split("filename=")[-1])
-                if attachment
-                else "untitled"
-            )
+        # Some of the filenames are set to be equal to an S3 key, which can
+        # contain '/' characters and it breaks saving the file
+        self.name = (
+            self._parse_filename(attachment.split("filename=")[-1])
+            if attachment
+            else "untitled"
+        )
 
-            self.md5sum = None
-            if self.check_file_md5sum:
-                self.md5sum = response.headers.get("content-md5", "")
+        self.md5sum = None
+        if self.check_file_md5sum:
+            self.md5sum = response.headers.get("content-md5", "")
 
-            return self.name, self.size
+        return self.name, self.size
 
     def write_segment(self, segment, q_complete, retries=5):
         """Read data from the data server and write it to a file.
