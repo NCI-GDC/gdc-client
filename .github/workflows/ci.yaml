@@ -16,18 +16,19 @@ jobs:
       matrix:
         os:
           # macos-15 hits end-of-life in January 2028
-          #- macos-15
-          #- macos-15-intel
-          # Issue found on macos26, so this is just for fixing that issue
+          - macos-15
+          - macos-15-intel
+          # macos-26 hits end of life in September 2028
           - macos-26
-          # Ubuntu 22.04 hits end-of-life in June 2027
-          #- ubuntu-22.04
+          - macos-26-intel
+           Ubuntu 22.04 hits end-of-life in June 2027
+          - ubuntu-22.04
           # Windows 2022 mainstream support ends October 2026
           # Windows 2022 extended support ends October 2031
-          #- windows-2022
+          - windows-2022
         python:
-          # Python 3.11 hits end-of-life in October 2027
-          - "3.14"
+          # Python 3.10 hits end-of-life in October 2026
+          - "3.10"
     env:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
       UV_INDEX_URL: "https://pypi.org/simple"
