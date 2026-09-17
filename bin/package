@@ -33,7 +33,7 @@ BINARY_NAME="gdc-client"
 case "$(uname -s)" in
     *NT*) TARGET_ENVIRONMENT="Windows"; BINARY_NAME="gdc-client.exe" ;;
     *Linux*) TARGET_ENVIRONMENT="Ubuntu" ;;
-    *Darwin*) TARGET_ENVIRONMENT="OSX" ;;
+    *Darwin*) TARGET_ENVIRONMENT="OSX"; OSX_FLAGS="--codesign-identity -" ;;
     *) echo "Unsupported OS"; exit 1 ;;
 esac
 
@@ -50,18 +50,13 @@ VERSION=$(uv run python -c "
 import gdc_client.version
 print(gdc_client.version.__version__)")
 
-# The following flags are used to work with MacOS security designs.
-# --codesign-identity -
-# --osx-entitlements-allow-resign
-
 uv run --with pyinstaller pyinstaller \
     --clean \
     --additional-hooks-dir=. \
     --noconfirm \
     --onefile \
     --copy-metadata gdc-client \
-    --codesign-identity - \
-    --osx-entitlements-allow-resign \
+    $OSX_FLAGS \
     --target-architecture universal2 \
     --name gdc-client \
     -c ../src/gdc_client/cli.py
