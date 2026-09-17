@@ -29,6 +29,7 @@ done
 
 DATE=${DATE-} # if date is not passed in, default DATE variable to empty string
 BINARY_NAME="gdc-client"
+OSX_FLAGS=""
 
 case "$(uname -s)" in
     *NT*) TARGET_ENVIRONMENT="Windows"; BINARY_NAME="gdc-client.exe" ;;
