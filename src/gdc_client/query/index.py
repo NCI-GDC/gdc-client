@@ -61,10 +61,7 @@ class GDCIndexClient:
             if response.status_code == requests.codes.ok:
                 json_response = response.json()
 
-            if json_response.get("data") is None or json_response["data"].get("hits") is None:
-                return []
-
-            return json_response["data"]["hits"]
+            return json_response.get("data", {}).get("hits", [])
 
     def _get_metadata(self, uuids):
         """
