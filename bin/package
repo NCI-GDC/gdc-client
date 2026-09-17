@@ -56,6 +56,9 @@ uv run --with pyinstaller pyinstaller \
     --noconfirm \
     --onefile \
     --copy-metadata gdc-client \
+    --codesign-identity - \
+    --osx-entitlements-allow-resign \
+    --target-architecture universal2 \
     --name gdc-client \
     -c ../src/gdc_client/cli.py
 
