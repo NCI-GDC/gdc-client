@@ -50,6 +50,10 @@ VERSION=$(uv run python -c "
 import gdc_client.version
 print(gdc_client.version.__version__)")
 
+# The following flags are used to work with MacOS security designs.
+# --codesign-identity -
+# --osx-entitlements-allow-resign
+
 uv run --with pyinstaller pyinstaller \
     --clean \
     --additional-hooks-dir=. \
