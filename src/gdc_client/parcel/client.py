@@ -129,29 +129,32 @@ class Client:
             url = self.fix_uri(url)
 
             # Construct download stream
-            stream = DownloadStream(url, self.directory, self.token)
+            with DownloadStream(url, self.directory, self.token) as stream:
+                # Download file
+                try:
+                    # validate temporary file before renaming to permanent file location
+                    self.parallel_download(stream)
+                    utils.validate_file_md5sum(
+                        stream,
+                        (
+                            stream.temp_path
+                            if os.path.isfile(stream.temp_path)
+                            else stream.path
+                        ),
+                    )
+                    if os.path.isfile(stream.temp_path):
+                        utils.remove_partial_extension(stream.temp_path)
+                    downloaded.append(url)
 
-            # Download file
-            try:
-                # validate temporary file before renaming to permanent file location
-                self.parallel_download(stream)
-                utils.validate_file_md5sum(
-                    stream,
-                    (stream.temp_path if os.path.isfile(stream.temp_path) else stream.path),
-                )
-                if os.path.isfile(stream.temp_path):
-                    utils.remove_partial_extension(stream.temp_path)
-                downloaded.append(url)
+                # Handle file download error, store error to print out later
+                except Exception as e:
+                    errors[url] = str(e)
+                    if self.debug:
+                        log.exception(e)
+                        raise
 
-            # Handle file download error, store error to print out later
-            except Exception as e:
-                errors[url] = str(e)
-                if self.debug:
-                    log.exception(e)
-                    raise
-
-            finally:
-                utils.print_closing_header(url)
+                finally:
+                    utils.print_closing_header(url)
 
         # Print error messages
         for url, error in errors.items():
@@ -238,18 +241,17 @@ class Client:
         """
 
         try:
-            r = requests.get(stream.url, stream=True, verify=self.verify)
+            with requests.get(stream.url, stream=True, verify=self.verify) as response:
+                if response.status_code == 200:
+                    stream.setup_directories()
+                    with open(stream.path, "wb") as f:
+                        for chunk in response:
+                            f.write(chunk)
 
-            if r.status_code == 200:
-                stream.setup_directories()
-                with open(stream.path, "wb") as f:
-                    for chunk in r:
-                        f.write(chunk)
-
-            else:
-                raise Exception(f"[{r.status_code}] Unable to download url {stream.url}")
-
-            r.close()
+                else:
+                    raise Exception(
+                        f"[{response.status_code}] Unable to download url {stream.url}"
+                    )
 
         except Exception as e:
             log.error(e)
