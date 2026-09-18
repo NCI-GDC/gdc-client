@@ -5,7 +5,6 @@ on:
       - develop
       - release/**
       - hotfix/**
-      - feat/DEV-4281_Macos_26_work
     tags:
       - '*'
 
@@ -27,8 +26,8 @@ jobs:
           # Windows 2022 extended support ends October 2031
           - windows-2022
         python:
-          # Python 3.10 hits end-of-life in October 2026
-          - "3.10"
+          # Python 3.11 hits end-of-life in October 2027
+          - "3.11"
     env:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
       UV_INDEX_URL: "https://pypi.org/simple"
