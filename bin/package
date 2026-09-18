@@ -29,11 +29,12 @@ done
 
 DATE=${DATE-} # if date is not passed in, default DATE variable to empty string
 BINARY_NAME="gdc-client"
+OSX_FLAGS=""
 
 case "$(uname -s)" in
     *NT*) TARGET_ENVIRONMENT="Windows"; BINARY_NAME="gdc-client.exe" ;;
     *Linux*) TARGET_ENVIRONMENT="Ubuntu" ;;
-    *Darwin*) TARGET_ENVIRONMENT="OSX" ;;
+    *Darwin*) TARGET_ENVIRONMENT="OSX"; OSX_FLAGS="--codesign-identity -" ;;
     *) echo "Unsupported OS"; exit 1 ;;
 esac
 
@@ -56,6 +57,7 @@ uv run --with pyinstaller pyinstaller \
     --noconfirm \
     --onefile \
     --copy-metadata gdc-client \
+    $OSX_FLAGS \
     --name gdc-client \
     -c ../src/gdc_client/cli.py
 

@@ -17,6 +17,9 @@ jobs:
           # macos-15 hits end-of-life in January 2028
           - macos-15
           - macos-15-intel
+          # macos-26 hits end of life in September 2028
+          - macos-26
+          - macos-26-intel
           # Ubuntu 22.04 hits end-of-life in June 2027
           - ubuntu-22.04
           # Windows 2022 mainstream support ends October 2026
