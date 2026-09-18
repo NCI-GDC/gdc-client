@@ -218,8 +218,9 @@ class GDCHTTPDownloadClient(HTTPClient):
         path = build_url("data", *params)
         with self._post(path=path, headers=headers, json=ids) as response:
             if response.status_code == requests.codes.bad:
-                log.error("Unable to connect to the API")
+                log.error("Bad request sent to the API")
                 log.error(f"Is this the correct URL? {self.base_uri}")
+                return "", []
 
             elif response.status_code == requests.codes.forbidden:
                 # since the files are grouped by access control, that means

@@ -1,7 +1,7 @@
 import collections.abc
 import contextlib
 import types
-import typing
+from typing import Any
 
 import requests
 
@@ -45,7 +45,7 @@ class GDCClient:
 
     @contextlib.contextmanager
     def request(
-        self, verb: str, path: str, **kwargs: typing.Any
+        self, verb: str, path: str, **kwargs: Any
     ) -> collections.abc.Iterator[requests.Response]:
         """Make a request to the GDC API."""
         url = f"https://{self.host}:{self.port}{path}"

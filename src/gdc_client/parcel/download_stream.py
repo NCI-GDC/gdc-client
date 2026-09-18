@@ -236,6 +236,7 @@ class DownloadStream:
 
         headers = self.header()
         with self.request(headers) as response:
+            response.raise_for_status()
             self.log.debug("Request responded")
 
         content_length = response.headers.get("Content-Length")
@@ -287,6 +288,7 @@ class DownloadStream:
         try:
             # Initialize segment request
             with self.request(self.header(start, end)) as response:
+                response.raise_for_status()
                 # Iterate over the data stream
                 self.log.debug(f"Initializing segment: {start}-{end}")
                 for chunk in response.iter_content(chunk_size=self.http_chunk_size):
