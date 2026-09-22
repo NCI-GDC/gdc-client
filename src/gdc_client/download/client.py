@@ -166,45 +166,42 @@ class GDCHTTPDownloadClient(HTTPClient):
         return errors
 
     @contextlib.contextmanager
-    def _post(self, path, headers=None, json=None, stream=True):
+    def _post(self, path, headers=None, json=None, stream=True) -> requests.Response:
         # type: (str, dict[str,str], dict[str,object], bool) -> requests.models.Response
         """custom post request that will query both active and legacy api
 
         return a python requests object to be handled by the method calling self._post
         """
 
-        try:
-            # try active
-            active = urlparse.urljoin(self.base_uri, path)
-            legacy = urlparse.urljoin(self.base_uri, f"legacy/{path}")
+        # try active
+        active = urlparse.urljoin(self.base_uri, path)
+        legacy = urlparse.urljoin(self.base_uri, f"legacy/{path}")
 
-            with requests.post(
-                active,
-                stream=stream,
-                verify=self.verify,
-                json=json or {},
-                headers=headers or {},
-            ) as response:
-                if response.status_code in [200, 203]:
-                    yield response
-                    return
-            # try legacy if active doesn't return OK
-            with requests.post(
-                legacy,
-                stream=stream,
-                verify=self.verify,
-                json=json or {},
-                headers=headers or {},
-            ) as response:
+        with requests.post(
+            active,
+            stream=stream,
+            verify=self.verify,
+            json=json or {},
+            headers=headers or {},
+        ) as response:
+            if response.status_code in [200, 203]:
                 yield response
-
-        except Exception as e:
-            log.error(e)
+                return
+        # try legacy if active doesn't return OK
+        with requests.post(
+            legacy,
+            stream=stream,
+            verify=self.verify,
+            json=json or {},
+            headers=headers or {},
+        ) as response:
+            yield response
 
     def _download_tarfile(self, small_files):
         # type: (list[str]) -> tuple[str, object]
         """Make the request to the API for the tarfile downloads"""
 
+        tarfile_name = ""
         errors = []
         headers = {
             "X-Auth-Token": self.token,
@@ -216,49 +213,46 @@ class GDCHTTPDownloadClient(HTTPClient):
         # POST request avoids the MAX LEN character limit for URLs
         params = ("tarfile",)
         path = build_url("data", *params)
+        try:
+            with self._post(path=path, headers=headers, json=ids) as response:
+                if response.status_code == requests.codes.bad:
+                    log.error("Bad request sent to the API")
+                    log.error(f"Is this the correct URL? {self.base_uri}")
+                    return tarfile_name, []
 
-        # Previous code had _post() able to return None. To fix that issue
-        # Check for None before entering the context manager
-        resp = self._post(path=path, headers=headers, json=ids)
-        if resp is None:
-            log.error("Unable to connect to the API due to a network error")
-            return "", ids["ids"]
+                elif response.status_code == requests.codes.forbidden:
+                    # since the files are grouped by access control, that means
+                    # a group is entirely controlled or open access.
+                    # If it fails to download because you don't have access then
+                    # don't bother trying again
+                    log.error(response.text)
+                    return tarfile_name, []
 
-        with resp as response:
-            if response.status_code == requests.codes.bad:
-                log.error("Bad request sent to the API")
-                log.error(f"Is this the correct URL? {self.base_uri}")
-                return "", []
+                if response.status_code not in [200, 203]:
+                    log.warning(f"[{response.status_code}] Unable to download group")
+                    errors.append(ids["ids"])
+                    return tarfile_name, errors
 
-            elif response.status_code == requests.codes.forbidden:
-                # since the files are grouped by access control, that means
-                # a group is entirely controlled or open access.
-                # If it fails to download because you don't have access then
-                # don't bother trying again
-                log.error(response.text)
-                return "", []
+                # {'content-disposition': 'filename=the_actual_filename.tar'}
+                content_filename = response.headers.get(
+                    "content-disposition"
+                ) or response.headers.get("Content-Disposition")
 
-            if response.status_code not in [200, 203]:
-                log.warning(f"[{response.status_code}] Unable to download group")
-                errors.append(ids["ids"])
-                return "", errors
+                if content_filename:
+                    tarfile_name = os.path.join(
+                        self.base_directory,
+                        content_filename.split("=")[1],
+                    )
+                else:
+                    tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
-            # {'content-disposition': 'filename=the_actual_filename.tar'}
-            content_filename = response.headers.get(
-                "content-disposition"
-            ) or response.headers.get("Content-Disposition")
+                with open(tarfile_name, "wb") as f:
+                    for chunk in response:
+                        f.write(chunk)
 
-            if content_filename:
-                tarfile_name = os.path.join(
-                    self.base_directory,
-                    content_filename.split("=")[1],
-                )
-            else:
-                tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
-
-            with open(tarfile_name, "wb") as f:
-                for chunk in response:
-                    f.write(chunk)
+        except Exception as e:
+            log.error(e)
+            errors.append(ids["ids"])
 
         return tarfile_name, errors
 
