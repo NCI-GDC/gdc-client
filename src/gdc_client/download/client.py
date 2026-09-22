@@ -217,8 +217,8 @@ class GDCHTTPDownloadClient(HTTPClient):
         params = ("tarfile",)
         path = build_url("data", *params)
 
-        # the context manager will fail if resp is None
-        # and _post() will return None if there is a connection issue
+        # Previous code had _post() able to return None. To fix that issue
+        # Check for None before entering the context manager
         resp = self._post(path=path, headers=headers, json=ids)
         if resp is None:
             log.error("Unable to connect to the API due to a network error")
