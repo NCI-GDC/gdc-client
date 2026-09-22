@@ -212,32 +212,32 @@ class GDCHTTPDownloadClient(HTTPClient):
         # POST request avoids the MAX LEN character limit for URLs
         params = ("tarfile",)
         path = build_url("data", *params)
-        r = self._post(path=path, headers=headers, json=ids)
+        request = self._post(path=path, headers=headers, json=ids)
 
-        # r can be None if self._post() fails due to a connection issue
-        if r is None:
+        # request can be None if self._post() fails due to a connection issue
+        if request is None:
             log.error("Unable to connect to the API due to a network error")
             return "", ids["ids"]
 
-        if r.status_code == requests.codes.bad:
+        if request.status_code == requests.codes.bad:
             log.error("Unable to connect to the API")
             log.error(f"Is this the correct URL? {self.base_uri}")
 
-        elif r.status_code == requests.codes.forbidden:
+        elif request.status_code == requests.codes.forbidden:
             # since the files are grouped by access control, that means
             # a group is entirely controlled or open access.
             # If it fails to download because you don't have access then
             # don't bother trying again
-            log.error(r.text)
+            log.error(request.text)
             return "", []
 
-        if r.status_code not in [200, 203]:
-            log.warning(f"[{r.status_code}] Unable to download group")
+        if request.status_code not in [200, 203]:
+            log.warning(f"[{request.status_code}] Unable to download group")
             errors.append(ids["ids"])
             return "", errors
 
         # {'content-disposition': 'filename=the_actual_filename.tar'}
-        content_filename = r.headers.get("content-disposition") or r.headers.get(
+        content_filename = request.headers.get("content-disposition") or request.headers.get(
             "Content-Disposition"
         )
 
@@ -250,10 +250,10 @@ class GDCHTTPDownloadClient(HTTPClient):
             tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
         with open(tarfile_name, "wb") as f:
-            for chunk in r:
+            for chunk in request:
                 f.write(chunk)
 
-        r.close()
+        request.close()
 
         return tarfile_name, errors
 
