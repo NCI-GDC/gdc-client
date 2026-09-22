@@ -4,6 +4,7 @@ import os
 import re
 import tarfile
 import time
+from collections.abc import Iterator
 from io import BytesIO
 from urllib import parse as urlparse
 
@@ -166,7 +167,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         return errors
 
     @contextlib.contextmanager
-    def _post(self, path, headers=None, json=None, stream=True) -> requests.Response:
+    def _post(self, path, headers=None, json=None, stream=True) -> Iterator[requests.Response]:
         # type: (str, dict[str,str], dict[str,object], bool) -> requests.models.Response
         """custom post request that will query both active and legacy api
 
