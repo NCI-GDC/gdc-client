@@ -216,7 +216,15 @@ class GDCHTTPDownloadClient(HTTPClient):
         # POST request avoids the MAX LEN character limit for URLs
         params = ("tarfile",)
         path = build_url("data", *params)
-        with self._post(path=path, headers=headers, json=ids) as response:
+
+        # the context manager will fail if resp is None
+        # and _post() will return None if there is a connection issue
+        resp = self._post(path=path, headers=headers, json=ids)
+        if resp is None:
+            log.error("Unable to connect to the API due to a network error")
+            return "", ids["ids"]
+
+        with resp as response:
             if response.status_code == requests.codes.bad:
                 log.error("Bad request sent to the API")
                 log.error(f"Is this the correct URL? {self.base_uri}")
