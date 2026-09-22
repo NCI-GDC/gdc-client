@@ -214,6 +214,11 @@ class GDCHTTPDownloadClient(HTTPClient):
         path = build_url("data", *params)
         r = self._post(path=path, headers=headers, json=ids)
 
+        # r can be None if self._post() fails due to a connection issue
+        if r is None:
+            log.error("Unable to connect to the API due to a network error")
+            return "", ids["ids"]
+
         if r.status_code == requests.codes.bad:
             log.error("Unable to connect to the API")
             log.error(f"Is this the correct URL? {self.base_uri}")

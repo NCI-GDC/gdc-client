@@ -3,7 +3,7 @@ import os
 import tarfile
 from multiprocessing import cpu_count
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -130,6 +130,18 @@ class TestDownloadClient:
             for member in t.getmembers():
                 contents = t.extractfile(member).read().decode()
                 assert contents == uuids[member.name]["contents"]
+
+    def test_download_tarfile_handles_none_response(self) -> None:
+        """Verify _download_tarfile safely handles an API connection crash
+        (None response) without throwing an AttributeError.
+        """
+        # Simulate a bug where _post returns None after a connection drop
+        self.client._post = MagicMock(return_value=None)
+        small_files = ["small_no_friends"]
+        tarfile_name, errors = self.client._download_tarfile(small_files)
+
+        assert tarfile_name == ""
+        assert errors == small_files
 
     def test_download_annotations(self) -> None:
         # uuid of file that has an annotation
