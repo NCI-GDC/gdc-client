@@ -30,26 +30,26 @@ def get_latest_versions(url, uuids, verify=True):
 
     # Make multiple queries in an attempt to balance the load on the server.
     for chunk in _chunk_list(uuids):
-        resp = requests.post(versions_url, json={"ids": chunk}, verify=verify)
+        with requests.post(versions_url, json={"ids": chunk}, verify=verify) as response:
+            if not response.ok:
+                raise HTTPError(
+                    (
+                        f"The following request {versions_url} for ids {chunk} returned with "
+                        f"status code: {response.status_code} and "
+                        f"response content: {response.content}"
+                    ),
+                    response=response,
+                )
 
-        if not resp.ok:
-            raise HTTPError(
-                (
-                    f"The following request {versions_url} for ids {chunk} returned with "
-                    f"status code: {resp.status_code} and response content: {resp.content}"
-                ),
-                response=resp,
-            )
-
-        # Parse the results of the chunked query.
-        for result in resp.json():
-            file_id = result.get("id")
-            uuid = result.get("latest_id")
-            if uuid:
-                latest_versions[file_id] = uuid
-            else:
-                # Might happen for legacy files
-                latest_versions[file_id] = file_id
+            # Parse the results of the chunked query.
+            for result in response.json():
+                file_id = result.get("id")
+                uuid = result.get("latest_id")
+                if uuid:
+                    latest_versions[file_id] = uuid
+                else:
+                    # Might happen for legacy files
+                    latest_versions[file_id] = file_id
 
     return latest_versions
 
