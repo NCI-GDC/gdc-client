@@ -212,48 +212,47 @@ class GDCHTTPDownloadClient(HTTPClient):
         # POST request avoids the MAX LEN character limit for URLs
         params = ("tarfile",)
         path = build_url("data", *params)
-        request = self._post(path=path, headers=headers, json=ids)
+        with self._post(path=path, headers=headers, json=ids) as request:
+            # request can be None if self._post() fails due to a connection issue
+            if request is None:
+                log.error("Unable to connect to the API due to a network error")
+                return "", ids["ids"]
 
-        # request can be None if self._post() fails due to a connection issue
-        if request is None:
-            log.error("Unable to connect to the API due to a network error")
-            return "", ids["ids"]
+            if request.status_code == requests.codes.bad:
+                log.error("Unable to connect to the API")
+                log.error(f"Is this the correct URL? {self.base_uri}")
 
-        if request.status_code == requests.codes.bad:
-            log.error("Unable to connect to the API")
-            log.error(f"Is this the correct URL? {self.base_uri}")
+            elif request.status_code == requests.codes.forbidden:
+                # since the files are grouped by access control, that means
+                # a group is entirely controlled or open access.
+                # If it fails to download because you don't have access then
+                # don't bother trying again
+                log.error(request.text)
+                return "", []
 
-        elif request.status_code == requests.codes.forbidden:
-            # since the files are grouped by access control, that means
-            # a group is entirely controlled or open access.
-            # If it fails to download because you don't have access then
-            # don't bother trying again
-            log.error(request.text)
-            return "", []
+            if request.status_code not in [200, 203]:
+                log.warning(f"[{request.status_code}] Unable to download group")
+                errors.append(ids["ids"])
+                return "", errors
 
-        if request.status_code not in [200, 203]:
-            log.warning(f"[{request.status_code}] Unable to download group")
-            errors.append(ids["ids"])
-            return "", errors
+            # {'content-disposition': 'filename=the_actual_filename.tar'}
+            content_filename = request.headers.get(
+                "content-disposition"
+            ) or request.headers.get("Content-Disposition")
 
-        # {'content-disposition': 'filename=the_actual_filename.tar'}
-        content_filename = request.headers.get("content-disposition") or request.headers.get(
-            "Content-Disposition"
-        )
+            if content_filename:
+                tarfile_name = os.path.join(
+                    self.base_directory,
+                    content_filename.split("=")[1],
+                )
+            else:
+                tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
 
-        if content_filename:
-            tarfile_name = os.path.join(
-                self.base_directory,
-                content_filename.split("=")[1],
-            )
-        else:
-            tarfile_name = time.strftime("gdc-client-%Y%m%d-%H%M%S.tar")
+            with open(tarfile_name, "wb") as f:
+                for chunk in request:
+                    f.write(chunk)
 
-        with open(tarfile_name, "wb") as f:
-            for chunk in request:
-                f.write(chunk)
-
-        request.close()
+            request.close()
 
         return tarfile_name, errors
 
