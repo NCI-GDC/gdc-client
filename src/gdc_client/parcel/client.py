@@ -205,12 +205,12 @@ class Client:
 
         def download_worker():
             while True:
-                segment = producer.q_work.get()
-                if segment is None:
-                    log.debug("Producer returned with no more work")
-                    return
-
                 try:
+                    segment = producer.q_work.get()
+                    if segment is None:
+                        log.debug("Producer returned with no more work")
+                        return
+
                     if worker_errors.empty():
                         stream.write_segment(segment, producer.q_complete)
                 except (exceptions.ClientError, requests.exceptions.HTTPError) as e:
