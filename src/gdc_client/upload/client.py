@@ -709,15 +709,17 @@ class XMLResponse:
         self.root = etree.fromstring(xml_string)
         self.namespace = self.root.nsmap[None]
 
-    def get_key(self, key):
-        element = self.root.find(f"{{{self.namespace}}}{key}")
-        if element is not None:
-            return element.text
+    def get_key(self, key: str) -> str | None:
+        tag = f"{{{self.namespace}}}{key}"
+        for element in self.root:
+            if element.tag == tag:
+                return element.text
         return None
 
-    def parse(self, key):
-        elements = self.root.findall(f"{{{self.namespace}}}{key}")
+    def parse(self, key: str) -> list[dict[str, str | None]]:
+        tag = f"{{{self.namespace}}}{key}"
         keys = []
-        for element in elements:
-            keys.append({ele.tag.split("}")[-1]: ele.text for ele in element})
+        for element in self.root:
+            if element.tag == tag:
+                keys.append({ele.tag.split("}")[-1]: ele.text for ele in element})
         return keys
