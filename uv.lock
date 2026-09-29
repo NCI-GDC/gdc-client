@@ -478,6 +478,7 @@ dependencies = [
     { name = "progressbar2" },
     { name = "pyyaml" },
     { name = "requests" },
+    { name = "tenacity" },
     { name = "termcolor" },
 ]
 
@@ -509,6 +510,7 @@ requires-dist = [
     { name = "requests" },
     { name = "requests-mock", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'" },
+    { name = "tenacity" },
     { name = "termcolor", specifier = "~=1.1.0" },
 ]
 provides-extras = ["dev"]
@@ -1359,6 +1361,15 @@ source = { registry = "https://nexus.osdc.io/repository/pypi-all/simple" }
 sdist = { url = "https://nexus.osdc.io/repository/pypi-all/packages/sortedcontainers/2.4.0/sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88" }
 wheels = [
     { url = "https://nexus.osdc.io/repository/pypi-all/packages/sortedcontainers/2.4.0/sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0" },
+]
+
+[[package]]
+name = "tenacity"
+version = "9.1.4"
+source = { registry = "https://nexus.osdc.io/repository/pypi-all/simple" }
+sdist = { url = "https://nexus.osdc.io/repository/pypi-all/packages/tenacity/9.1.4/tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a" }
+wheels = [
+    { url = "https://nexus.osdc.io/repository/pypi-all/packages/tenacity/9.1.4/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55" },
 ]
 
 [[package]]

@@ -18,13 +18,14 @@ classifiers = [
   "Programming Language :: Python :: 3.14"
 ]
 dependencies = [
+  "intervaltree~=3.0.2",
   "jsonschema",
   "lxml",
-  "PyYAML>=6.0.1",
-  "intervaltree~=3.0.2",
-  "termcolor~=1.1.0",
-  "requests",
   "progressbar2",
+  "PyYAML>=6.0.1",
+  "requests",
+  "tenacity",
+  "termcolor~=1.1.0",
 ]
 description = "Queue Client Facade: A generalized API that allows for connection to multiple queue implementations."
 dynamic = ["version"]
