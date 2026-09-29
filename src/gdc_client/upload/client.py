@@ -4,24 +4,27 @@ import logging
 import math
 import os
 import platform
-import random
 import time
 from collections import deque
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from mmap import PAGESIZE, mmap
 from urllib import parse as urlparse
 
 import requests
+import tenacity
 import yaml
 from lxml import etree
 
+from gdc_client import exceptions
+from gdc_client.common import config
 from gdc_client.parcel.utils import get_file_transfer_pbar, get_percentage_pbar
 from gdc_client.upload import manifest
 
 log = logging.getLogger("upload")
 
-MAX_RETRIES = 10
-MAX_TIMEOUT = 60
+MAX_RETRIES = config.REQUEST_RETRY_ATTEMPTS
+MAX_TIMEOUT = config.REQUEST_RETRY_MAX_WAIT
 MIN_PARTSIZE = 5242880
 DEFAULT_METADATA = ("project_id", "file_name")
 
@@ -98,6 +101,10 @@ def upload_multipart(
                     headers=headers,
                     data=chunk_file,
                     verify=verify,
+                    timeout=(
+                        config.REQUEST_CONNECT_TIMEOUT,
+                        config.REQUEST_READ_TIMEOUT,
+                    ),
                 ) as response:
                     log.debug(f"Done making http request for part {part_number}")
                     chunk_file.close()
@@ -111,6 +118,10 @@ def upload_multipart(
             tries -= 1
             log.debug(f"Retry upload part {part_number}, {response.content}")
 
+        except (exceptions.ClientError, requests.exceptions.HTTPError):
+            if debug:
+                log.exception("Part upload failed; this error will not be retried")
+            return False
         except Exception as e:
             if debug:
                 log.exception(f"Part upload failed: {e}. Retrying")
@@ -121,8 +132,7 @@ def upload_multipart(
 
 
 def get_sleep_time(tries):
-    timeout = min(MAX_TIMEOUT, 2 ** (MAX_RETRIES - tries))
-    return timeout * (0.5 + random.random() / 2)
+    return min(MAX_TIMEOUT, 2 ** (MAX_RETRIES - tries))
 
 
 def create_resume_path(file_path):
@@ -172,9 +182,20 @@ class GDCUploadClient:
         self.resume_path = f"resume_{self.manifest_name}"
         self.graphql_url = urlparse.urljoin(self.server, "v0/submission/graphql")
 
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
     def _get_node_metadata_via_graphql(
-        self, node_id, node_type="node", fields=("project_id", "file_name")
-    ):
+        self,
+        node_id: str,
+        node_type: str = "node",
+        fields: Sequence[str] = ("project_id", "file_name"),
+    ) -> requests.Response:
         query_template = 'query Files { %s (id: "%s") { %s } }'
         query = {
             "query": query_template % (node_type, node_id, " ".join(fields)),
@@ -185,6 +206,7 @@ class GDCUploadClient:
             json=query,
             headers=self.headers,
             verify=self.verify,
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
         ) as response:
             return response
 
@@ -360,15 +382,29 @@ class GDCUploadClient:
                     self.multipart_upload()
             self.incompleted.popleft()
 
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
+    def _delete_request(self, url: str) -> requests.Response:
+        return requests.delete(
+            url,
+            headers=self.headers,
+            verify=self.verify,
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+        )
+
     def abort(self):
         """Abort multipart upload"""
         self.get_files()
         for f in self.file_entities:
             self.load_file(f)
-            with requests.delete(
+            with self._delete_request(
                 self.url + f"?uploadId={self.upload_id}",
-                headers=self.headers,
-                verify=self.verify,
             ) as response:
                 if response.status_code not in [204, 404]:
                     raise Exception(f"Fail to abort multipart upload: \n{response.content}")
@@ -380,22 +416,53 @@ class GDCUploadClient:
         self.get_files(action="delete")
         for f in self.file_entities:
             self.load_file(f)
-            with requests.delete(
-                self.url, headers=self.headers, verify=self.verify
-            ) as response:
+            with self._delete_request(self.url) as response:
                 if response.status_code == 204:
                     log.info(f"Delete file {self.node_id}")
                 else:
                     log.warning(f"Fail to delete file {self.node_id}: {response.content}")
+
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
+    def _check_upload(self) -> requests.Response:
+        return requests.put(
+            self.url + "/_dry_run",
+            headers=self.headers,
+            verify=self.verify,
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+        )
+
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
+    def _send_simple_upload(self, stream: Stream) -> requests.Response:
+        stream.seek(0)
+        stream.pbar.update(0)
+        return requests.put(
+            self.url,
+            data=stream,
+            headers=self.headers,
+            verify=self.verify,
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+        )
 
     def _upload(self):
         """Simple S3 PUT"""
 
         with open(self.file_path, "rb") as f:
             try:
-                with requests.put(
-                    self.url + "/_dry_run", headers=self.headers, verify=self.verify
-                ) as response:
+                with self._check_upload() as response:
                     if response.status_code != 200:
                         log.error(f"Can't upload: {response.content}")
                         return
@@ -404,9 +471,7 @@ class GDCUploadClient:
 
                 stream = Stream(f, pbar, self.file_size)
 
-                with requests.put(
-                    self.url, data=stream, headers=self.headers, verify=self.verify
-                ) as response:
+                with self._send_simple_upload(stream) as response:
                     if response.status_code != 200:
                         log.error(f"Upload failed {response.content}")
                         return
@@ -472,7 +537,13 @@ class GDCUploadClient:
     def initiate(self):
         if not self.upload_id:
             with requests.post(
-                self.url + "?uploads", headers=self.headers, verify=self.verify
+                self.url + "?uploads",
+                headers=self.headers,
+                verify=self.verify,
+                timeout=(
+                    config.REQUEST_CONNECT_TIMEOUT,
+                    config.REQUEST_READ_TIMEOUT,
+                ),
             ) as response:
                 if response.status_code == 200:
                     xml = XMLResponse(response.content)
@@ -540,17 +611,26 @@ class GDCUploadClient:
                     log.warning(f"Part: {part_number} failed")
         pbar.finish()
 
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
     def list_parts(self):
         with requests.get(
             self.url + f"?uploadId={self.upload_id}",
             headers=self.headers,
             verify=self.verify,
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
         ) as response:
             if response.status_code == 200:
                 self.multiparts = Multiparts(response.content)
                 return self.multiparts
             elif response.status_code in [403, 400]:
-                raise Exception(response.content)
+                response.raise_for_status()
             return None
 
     def complete(self):
@@ -570,6 +650,10 @@ class GDCUploadClient:
                 data=self.multiparts.to_xml(),
                 headers=self.headers,
                 verify=self.verify,
+                timeout=(
+                    config.REQUEST_CONNECT_TIMEOUT,
+                    config.REQUEST_READ_TIMEOUT,
+                ),
             ) as response:
                 if response.status_code != 200:
                     tries -= 1

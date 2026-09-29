@@ -12,14 +12,17 @@ import os
 import threading
 import time
 import types
+from collections.abc import Iterator
 from typing import Any
 from urllib.parse import urlparse
 
 import requests
+import tenacity
 from intervaltree import Interval
 
+from gdc_client import exceptions
+from gdc_client.common import config
 from gdc_client.parcel import const, utils
-from gdc_client.parcel.defaults import max_timeout
 
 
 class SessionCache:
@@ -184,10 +187,32 @@ class DownloadStream:
             header["host"] = host
         return header
 
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
+    def _open_request(
+        self,
+        session: requests.Session,
+        headers: dict[str, Any],
+        verify: bool,
+    ) -> requests.Response:
+        return session.get(
+            self.url,
+            headers=headers,
+            verify=verify,
+            stream=True,
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+        )
+
     @contextlib.contextmanager
     def request(
-        self, headers: dict[str, Any], verify: bool = True, max_retries: int = 16
-    ) -> contextlib.AbstractContextManager[requests.Response]:
+        self, headers: dict[str, Any], verify: bool = True
+    ) -> Iterator[requests.Response]:
         """Make request for file and return the response.
 
         :param str file_id: The id of the entity being requested.
@@ -203,22 +228,15 @@ class DownloadStream:
 
         session = self._session_cache.get_session()
 
-        session.mount(
-            urlparse(self.url).scheme, requests.adapters.HTTPAdapter(max_retries=max_retries)
-        )
-
         response = None
         try:
-            with session.get(
-                self.url,
-                headers=headers,
-                verify=verify,
-                stream=True,
-                timeout=max_timeout,
-            ) as response:
+            with self._open_request(session, headers, verify) as response:
                 response.raise_for_status()
-
                 yield response
+
+        # don't convert these errors into RuntimeErrors
+        except (exceptions.ClientError, requests.exceptions.HTTPError):
+            raise
 
         except Exception as e:
             raise RuntimeError(
@@ -285,9 +303,13 @@ class DownloadStream:
         start, end = segment.begin, segment.end - 1
         assert end >= start, "Invalid segment range."
 
+        # prevent going through both retry loops in the exceptions
+        response_opened = False
+
         try:
             # Initialize segment request
             with self.request(self.header(start, end)) as response:
+                response_opened = True
                 response.raise_for_status()
                 # Iterate over the data stream
                 self.log.debug(f"Initializing segment: {start}-{end}")
@@ -312,18 +334,22 @@ class DownloadStream:
         except KeyboardInterrupt:
             return self.log.error("Process stopped by user.")
 
-        # Retry on exception if we haven't exceeded max retries
-        except Exception as e:
-            # TODO FIXME HACK create new segment to avoid duplicate downloads
-            segment = Interval(segment.begin + written, segment.end, None)
+        except (exceptions.ClientError, requests.exceptions.HTTPError):
+            raise
 
-            self.log.debug(f"Unable to download part of file: {e!s}\n.")
+        except Exception as e:
+            if not response_opened:
+                raise
+
+            segment = Interval(segment.begin + written, segment.end, None)
+            self.log.debug(f"Unable to download part of file: {e!s}")
+
             if retries > 0:
                 self.log.debug("Retrying download of this segment")
                 return self.write_segment(segment, q_complete, retries - 1)
-            else:
-                self.log.error("Max retries exceeded.")
-                return 0
+
+            self.log.error("Max retries exceeded.")
+            return
 
         # Check that the data is not truncated or elongated
         if written != segment.end - segment.begin:
