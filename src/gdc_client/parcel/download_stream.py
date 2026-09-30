@@ -7,6 +7,7 @@
 # ***************************************************************************************
 
 import contextlib
+import enum
 import logging
 import os
 import threading
@@ -58,6 +59,11 @@ class SessionCache:
                 self._local.session = self._context.enter_context(requests.Session())
 
             return self._local.session
+
+
+class ResponseState(enum.Enum):
+    NOT_OPENED = enum.auto()
+    OPEN = enum.auto()
 
 
 class DownloadStream:
@@ -234,7 +240,7 @@ class DownloadStream:
                 response.raise_for_status()
                 yield response
 
-        # don't convert these errors into RuntimeErrors
+        # raise to allow retry for these exceptions
         except (exceptions.ClientError, requests.exceptions.HTTPError):
             raise
 
@@ -304,13 +310,13 @@ class DownloadStream:
         assert end >= start, "Invalid segment range."
 
         # prevent going through both retry loops in the exceptions
-        response_opened = False
+        response_state = ResponseState.NOT_OPENED
 
         try:
             # Initialize segment request
             with self.request(self.header(start, end)) as response:
-                response_opened = True
                 response.raise_for_status()
+                response_state = ResponseState.OPEN
                 # Iterate over the data stream
                 self.log.debug(f"Initializing segment: {start}-{end}")
                 for chunk in response.iter_content(chunk_size=self.http_chunk_size):
@@ -338,7 +344,7 @@ class DownloadStream:
             raise
 
         except Exception as e:
-            if not response_opened:
+            if response_state is not ResponseState.NOT_OPENED:
                 raise
 
             segment = Interval(segment.begin + written, segment.end, None)
