@@ -17,6 +17,10 @@ log = logging.getLogger("gdc-client")
 # This will display the default configs in a INI-type format, so that users
 # will be able to copy and modify as needed
 DISPLAY_TEMPLATE = "[{}]\n{}\n"
+REQUEST_CONNECT_TIMEOUT = 2.05
+REQUEST_READ_TIMEOUT = 60
+REQUEST_RETRY_ATTEMPTS = 5
+REQUEST_RETRY_MAX_WAIT = 32
 
 
 class GDCClientArgumentParser(argparse.ArgumentParser):

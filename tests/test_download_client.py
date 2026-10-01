@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import requests
 
 from conftest import make_tarfile, uuids
 from gdc_client.common.config import GDCClientArgumentParser
@@ -84,8 +85,10 @@ class TestDownloadClient:
     def test_download_files_with_fake_uuid_throw_exception_to_developer(self) -> None:
         url_with_fake_uuid = BASE_URL + "/data/fake-uuid"
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(requests.exceptions.HTTPError) as caught:
             self.client.download_files([url_with_fake_uuid])
+
+        assert caught.value.response.status_code == 404
 
     def test_download_files_with_fake_uuid_not_throw_exception_to_user(self) -> None:
         url_with_fake_uuid = BASE_URL + "/data/fake-uuid"
@@ -160,7 +163,7 @@ class TestDownloadClient:
 
         assert DownloadStream.check_segment_md5sums is check_segments
 
-    @patch("gdc_client.parcel.download_stream.max_timeout", 1)
+    @patch("gdc_client.common.config.REQUEST_READ_TIMEOUT", 1)
     def test_retry_entire_download(self) -> None:
         file_ids = ["big_no_friends"]
         self.argparse_args.file_ids = file_ids

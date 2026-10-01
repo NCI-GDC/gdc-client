@@ -9,7 +9,10 @@ from io import BytesIO
 from urllib import parse as urlparse
 
 import requests
+import tenacity
 
+from gdc_client import exceptions
+from gdc_client.common import config
 from gdc_client.defaults import SUPERSEDED_INFO_FILENAME_TEMPLATE
 from gdc_client.parcel import HTTPClient, utils
 from gdc_client.parcel.download_stream import DownloadStream
@@ -166,37 +169,44 @@ class GDCHTTPDownloadClient(HTTPClient):
 
         return errors
 
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
+    def _post_request(
+        self,
+        url: str,
+        headers: dict[str, str] | None,
+        payload: dict[str, object] | None,
+        stream: bool,
+    ) -> requests.Response:
+        return requests.post(
+            url,
+            stream=stream,
+            verify=self.verify,
+            json=payload or {},
+            headers=headers or {},
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+        )
+
     @contextlib.contextmanager
     def _post(self, path, headers=None, json=None, stream=True) -> Iterator[requests.Response]:
         # type: (str, dict[str,str], dict[str,object], bool) -> requests.models.Response
-        """custom post request that will query both active and legacy api
+        """custom post request that will query the active api
 
         return a python requests object to be handled by the method calling self._post
         """
 
         # try active
         active = urlparse.urljoin(self.base_uri, path)
-        legacy = urlparse.urljoin(self.base_uri, f"legacy/{path}")
 
-        with requests.post(
-            active,
-            stream=stream,
-            verify=self.verify,
-            json=json or {},
-            headers=headers or {},
-        ) as response:
+        with self._post_request(active, headers, json, stream) as response:
             if response.status_code in [200, 203]:
                 yield response
-                return
-        # try legacy if active doesn't return OK
-        with requests.post(
-            legacy,
-            stream=stream,
-            verify=self.verify,
-            json=json or {},
-            headers=headers or {},
-        ) as response:
-            yield response
 
     def _download_tarfile(self, small_files):
         # type: (list[str]) -> tuple[str, object]

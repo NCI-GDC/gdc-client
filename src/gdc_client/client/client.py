@@ -4,8 +4,10 @@ import types
 from typing import Any
 
 import requests
+import tenacity
 
-from gdc_client import auth, version
+from gdc_client import auth, exceptions, version
+from gdc_client.common import config
 
 GDC_API_HOST = "api.gdc.cancer.gov"
 GDC_API_PORT = 443
@@ -43,6 +45,23 @@ class GDCClient:
     ) -> None:
         self.session.close()
 
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
+    def _send_request(
+        self,
+        verb: str,
+        url: str,
+        auth_handler: requests.auth.AuthBase,
+        request_options: dict[str, Any],
+    ) -> requests.Response:
+        return self.session.request(verb, url, auth=auth_handler, **request_options)
+
     @contextlib.contextmanager
     def request(
         self, verb: str, path: str, **kwargs: Any
@@ -51,7 +70,15 @@ class GDCClient:
         url = f"https://{self.host}:{self.port}{path}"
         auth_handler = auth.GDCTokenAuth(self.token)
 
-        with self.session.request(verb, url, auth=auth_handler, **kwargs) as response:
+        request_options = {
+            "timeout": (
+                config.REQUEST_CONNECT_TIMEOUT,
+                config.REQUEST_READ_TIMEOUT,
+            )
+        }
+        request_options.update(kwargs)
+
+        with self._send_request(verb, url, auth_handler, request_options) as response:
             yield response
 
     def get(self, path, **kwargs):
