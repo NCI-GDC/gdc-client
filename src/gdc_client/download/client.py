@@ -196,22 +196,17 @@ class GDCHTTPDownloadClient(HTTPClient):
     @contextlib.contextmanager
     def _post(self, path, headers=None, json=None, stream=True) -> Iterator[requests.Response]:
         # type: (str, dict[str,str], dict[str,object], bool) -> requests.models.Response
-        """custom post request that will query both active and legacy api
+        """custom post request that will query the active api
 
         return a python requests object to be handled by the method calling self._post
         """
 
         # try active
         active = urlparse.urljoin(self.base_uri, path)
-        legacy = urlparse.urljoin(self.base_uri, f"legacy/{path}")
 
         with self._post_request(active, headers, json, stream) as response:
             if response.status_code in [200, 203]:
                 yield response
-                return
-        # try legacy if active doesn't return OK
-        with self._post_request(legacy, headers, json, stream) as response:
-            yield response
 
     def _download_tarfile(self, small_files):
         # type: (list[str]) -> tuple[str, object]

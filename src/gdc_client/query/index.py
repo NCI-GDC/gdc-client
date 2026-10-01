@@ -15,7 +15,6 @@ class GDCIndexClient:
     def __init__(self, uri, verify=True):
         self.uri = uri
         self.active_meta_endpoint = "/v0/files"
-        self.legacy_meta_endpoint = "/v0/legacy/files"
         self.metadata = dict()
         self.verify = verify
 
@@ -125,19 +124,17 @@ class GDCIndexClient:
         }
 
         active_meta_url = urlparse.urljoin(self.uri, self.active_meta_endpoint)
-        legacy_meta_url = urlparse.urljoin(self.uri, self.legacy_meta_endpoint)
 
         active_hits = self._get_hits(active_meta_url, metadata_query)
-        legacy_hits = self._get_hits(legacy_meta_url, metadata_query)
 
-        if not active_hits and not legacy_hits:
+        if not active_hits:
             log.debug(
                 "Unable to retrieve file metadata information. "
                 "continuing downloading as if they were large files"
             )
             return self.metadata
 
-        for h in active_hits + legacy_hits:
+        for h in active_hits:
             related_returns = h.get("index_files", []) + h.get("metadata_files", [])
             related_files = [r["file_id"] for r in related_returns]
 
