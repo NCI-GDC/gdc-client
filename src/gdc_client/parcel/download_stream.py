@@ -344,7 +344,7 @@ class DownloadStream:
             raise
 
         except Exception as e:
-            if response_state is not ResponseState.NOT_OPENED:
+            if response_state is ResponseState.OPEN:
                 raise
 
             segment = Interval(segment.begin + written, segment.end, None)
