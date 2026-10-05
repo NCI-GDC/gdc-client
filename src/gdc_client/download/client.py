@@ -205,8 +205,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         active = urlparse.urljoin(self.base_uri, path)
 
         with self._post_request(active, headers, json, stream) as response:
-            if response.status_code in [200, 203]:
-                yield response
+            yield response
 
     def _download_tarfile(self, small_files):
         # type: (list[str]) -> tuple[str, object]
