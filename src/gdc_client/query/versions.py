@@ -6,9 +6,29 @@ Functionality related to versioning.
 import logging
 
 import requests
-from requests.exceptions import HTTPError
+import tenacity
+
+from gdc_client import exceptions
+from gdc_client.common import config
 
 logger = logging.getLogger(__name__)
+
+
+@tenacity.retry(
+    retry=tenacity.retry_if_not_exception_type(
+        (exceptions.ClientError, requests.exceptions.HTTPError)
+    ),
+    wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+    stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+    reraise=True,
+)
+def _post_versions(url: str, ids: list[str], verify: bool) -> requests.Response:
+    return requests.post(
+        url,
+        json={"ids": ids},
+        verify=verify,
+        timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+    )
 
 
 def get_latest_versions(url, uuids, verify=True):
@@ -30,9 +50,9 @@ def get_latest_versions(url, uuids, verify=True):
 
     # Make multiple queries in an attempt to balance the load on the server.
     for chunk in _chunk_list(uuids):
-        with requests.post(versions_url, json={"ids": chunk}, verify=verify) as response:
+        with _post_versions(versions_url, chunk, verify) as response:
             if not response.ok:
-                raise HTTPError(
+                raise requests.exceptions.HTTPError(
                     (
                         f"The following request {versions_url} for ids {chunk} returned with "
                         f"status code: {response.status_code} and "

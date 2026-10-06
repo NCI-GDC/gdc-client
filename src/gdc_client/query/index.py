@@ -3,6 +3,10 @@ from json import dumps
 from urllib import parse as urlparse
 
 import requests
+import tenacity
+
+from gdc_client import exceptions
+from gdc_client.common import config
 
 log = logging.getLogger("query")
 
@@ -11,7 +15,6 @@ class GDCIndexClient:
     def __init__(self, uri, verify=True):
         self.uri = uri
         self.active_meta_endpoint = "/v0/files"
-        self.legacy_meta_endpoint = "/v0/legacy/files"
         self.metadata = dict()
         self.verify = verify
 
@@ -41,6 +44,14 @@ class GDCIndexClient:
         if uuid in self.metadata.keys():
             return self.metadata[uuid]["access"]
 
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
     def _get_hits(self, url, metadata_query):
         """
         Get hits metadata from a given API endpoint
@@ -54,7 +65,12 @@ class GDCIndexClient:
         """
         json_response = {}
         # using a POST request lets us avoid the MAX URL character length limit
-        with requests.post(url, json=metadata_query, verify=self.verify) as response:
+        with requests.post(
+            url,
+            json=metadata_query,
+            verify=self.verify,
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+        ) as response:
             if response is None:
                 return []
 
@@ -108,19 +124,17 @@ class GDCIndexClient:
         }
 
         active_meta_url = urlparse.urljoin(self.uri, self.active_meta_endpoint)
-        legacy_meta_url = urlparse.urljoin(self.uri, self.legacy_meta_endpoint)
 
         active_hits = self._get_hits(active_meta_url, metadata_query)
-        legacy_hits = self._get_hits(legacy_meta_url, metadata_query)
 
-        if not active_hits and not legacy_hits:
+        if not active_hits:
             log.debug(
                 "Unable to retrieve file metadata information. "
                 "continuing downloading as if they were large files"
             )
             return self.metadata
 
-        for h in active_hits + legacy_hits:
+        for h in active_hits:
             related_returns = h.get("index_files", []) + h.get("metadata_files", [])
             related_files = [r["file_id"] for r in related_returns]
 

@@ -8,11 +8,15 @@
 
 import logging
 import os
+import queue
 import tempfile
 import time
 
 import requests
+import tenacity
 
+from gdc_client import exceptions
+from gdc_client.common import config
 from gdc_client.parcel import const, utils
 from gdc_client.parcel.download_stream import DownloadStream
 from gdc_client.parcel.segment import SegmentProducer
@@ -197,6 +201,8 @@ class Client:
         if producer.done:
             return
 
+        worker_errors: queue.SimpleQueue[Exception] = queue.SimpleQueue()
+
         def download_worker():
             while True:
                 try:
@@ -204,21 +210,19 @@ class Client:
                     if segment is None:
                         log.debug("Producer returned with no more work")
                         return
-                    stream.write_segment(segment, producer.q_complete)
-                    # write_segment completed successfully, send sentinel value
-                    # to master process to indicate a task was completed
-                    producer.q_complete.put(None)
+
+                    if worker_errors.empty():
+                        stream.write_segment(segment, producer.q_complete)
+                except (exceptions.ClientError, requests.exceptions.HTTPError) as e:
+                    # Pass errors back to the main thread
+                    worker_errors.put(e)
                 except Exception as e:
-                    # send sentinel value to master process even though
-                    # write_segment failed to indicate a task is "finished"
-                    producer.q_complete.put(None)
                     if self.debug:
-                        raise
+                        worker_errors.put(e)
                     else:
                         log.error(f"Download aborted: {e!s}")
-                        # worker needs to stay alive until final sentinel value
-                        # from master process is received
-                        continue
+                finally:
+                    producer.q_complete.put(None)
 
         self.start_timer()
 
@@ -231,7 +235,26 @@ class Client:
             # Wait for file to finish download
             producer.wait_for_completion()
 
+        if not worker_errors.empty():
+            raise worker_errors.get()
+
         self.stop_timer(stream.size)
+
+    @tenacity.retry(
+        retry=tenacity.retry_if_not_exception_type(
+            (exceptions.ClientError, requests.exceptions.HTTPError)
+        ),
+        wait=tenacity.wait_exponential(max=config.REQUEST_RETRY_MAX_WAIT),
+        stop=tenacity.stop_after_attempt(config.REQUEST_RETRY_ATTEMPTS),
+        reraise=True,
+    )
+    def _open_download(self, url: str) -> requests.Response:
+        return requests.get(
+            url,
+            stream=True,
+            verify=self.verify,
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+        )
 
     def _standard_tcp_download(self, stream):
         """Backup download method for when you can't
@@ -241,7 +264,7 @@ class Client:
         """
 
         try:
-            with requests.get(stream.url, stream=True, verify=self.verify) as response:
+            with self._open_download(stream.url) as response:
                 if response.status_code == 200:
                     stream.setup_directories()
                     with open(stream.path, "wb") as f:
@@ -252,6 +275,9 @@ class Client:
                     raise Exception(
                         f"[{response.status_code}] Unable to download url {stream.url}"
                     )
+
+        except (exceptions.ClientError, requests.exceptions.HTTPError):
+            raise
 
         except Exception as e:
             log.error(e)

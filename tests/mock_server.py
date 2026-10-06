@@ -51,8 +51,6 @@ def files_versions():
 
 @app.route("/v0/files", methods=["POST"])
 @app.route("/files", methods=["POST"])
-@app.route("/legacy/files", methods=["POST"])
-@app.route("/v0/legacy/files", methods=["POST"])
 def files():
     result = {
         "data": {
@@ -137,12 +135,8 @@ def files():
 
 @app.route("/data", methods=["POST"])
 @app.route("/v0/data", methods=["POST"])
-@app.route("/legacy/data", methods=["POST"])
-@app.route("/v0/legacy/data", methods=["POST"])
 @app.route("/data/<ids>", methods=["GET"])
 @app.route("/v0/data/<ids>", methods=["GET"])
-@app.route("/legacy/data/<ids>", methods=["GET"])
-@app.route("/v0/legacy/data/<ids>", methods=["GET"])
 def download(ids=""):
     data = ""
     filename = "test_file.txt"
