@@ -5,6 +5,7 @@ on:
       - develop
       - release/**
       - hotfix/**
+      - feat/DEV-4424**
     tags:
       - '*'
 
