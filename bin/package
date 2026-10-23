@@ -34,7 +34,7 @@ OSX_FLAGS=""
 case "$(uname -s)" in
     *NT*) TARGET_ENVIRONMENT="Windows"; BINARY_NAME="gdc-client.exe" ;;
     *Linux*) TARGET_ENVIRONMENT="Ubuntu" ;;
-    *Darwin*) TARGET_ENVIRONMENT="OSX"; OSX_FLAGS="--codesign-identity -" ;;
+    *Darwin*) TARGET_ENVIRONMENT="OSX";;
     *) echo "Unsupported OS"; exit 1 ;;
 esac
 
