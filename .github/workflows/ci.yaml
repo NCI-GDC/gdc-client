@@ -31,6 +31,7 @@ jobs:
     env:
       GDC_CLIENT_ZIP: 'gdc-client.zip'
       UV_INDEX_URL: "https://pypi.org/simple"
+      UV_PYTHON: ${{ matrix.python }}
     steps:
       - uses: actions/checkout@v4
         with:
