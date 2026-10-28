@@ -183,6 +183,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         headers: dict[str, str] | None,
         payload: dict[str, object] | None,
         stream: bool,
+        read_timeout: float | None,
     ) -> requests.Response:
         return requests.post(
             url,
@@ -190,11 +191,18 @@ class GDCHTTPDownloadClient(HTTPClient):
             verify=self.verify,
             json=payload or {},
             headers=headers or {},
-            timeout=(config.REQUEST_CONNECT_TIMEOUT, config.REQUEST_READ_TIMEOUT),
+            timeout=(config.REQUEST_CONNECT_TIMEOUT, read_timeout),
         )
 
     @contextlib.contextmanager
-    def _post(self, path, headers=None, json=None, stream=True) -> Iterator[requests.Response]:
+    def _post(
+        self,
+        path,
+        headers=None,
+        json=None,
+        stream=True,
+        read_timeout=config.REQUEST_READ_TIMEOUT,
+    ) -> Iterator[requests.Response]:
         # type: (str, dict[str,str], dict[str,object], bool) -> requests.models.Response
         """custom post request that will query the active api
 
@@ -204,7 +212,13 @@ class GDCHTTPDownloadClient(HTTPClient):
         # try active
         active = urlparse.urljoin(self.base_uri, path)
 
-        with self._post_request(active, headers, json, stream) as response:
+        with self._post_request(
+            active,
+            headers,
+            json,
+            stream,
+            read_timeout,
+        ) as response:
             yield response
 
     def _download_tarfile(self, small_files):
@@ -224,7 +238,12 @@ class GDCHTTPDownloadClient(HTTPClient):
         params = ("tarfile",)
         path = build_url("data", *params)
         try:
-            with self._post(path=path, headers=headers, json=ids) as response:
+            with self._post(
+                path=path,
+                headers=headers,
+                json=ids,
+                read_timeout=None,
+            ) as response:
                 if response.status_code == requests.codes.bad:
                     log.error("Bad request sent to the API")
                     log.error(f"Is this the correct URL? {self.base_uri}")
