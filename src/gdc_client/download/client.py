@@ -183,6 +183,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         headers: dict[str, str] | None,
         payload: dict[str, object] | None,
         stream: bool,
+        connect_timeout: float,
         read_timeout: float | None,
     ) -> requests.Response:
         return requests.post(
@@ -191,7 +192,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             verify=self.verify,
             json=payload or {},
             headers=headers or {},
-            timeout=(config.REQUEST_CONNECT_TIMEOUT, read_timeout),
+            timeout=(connect_timeout, read_timeout),
         )
 
     @contextlib.contextmanager
@@ -201,6 +202,7 @@ class GDCHTTPDownloadClient(HTTPClient):
         headers=None,
         json=None,
         stream=True,
+        connect_timeout=config.REQUEST_CONNECT_TIMEOUT,
         read_timeout=config.REQUEST_READ_TIMEOUT,
     ) -> Iterator[requests.Response]:
         # type: (str, dict[str,str], dict[str,object], bool) -> requests.models.Response
@@ -217,6 +219,7 @@ class GDCHTTPDownloadClient(HTTPClient):
             headers,
             json,
             stream,
+            connect_timeout,
             read_timeout,
         ) as response:
             yield response
@@ -242,7 +245,8 @@ class GDCHTTPDownloadClient(HTTPClient):
                 path=path,
                 headers=headers,
                 json=ids,
-                read_timeout=None,
+                connect_timeout=config.REQUEST_CONNECT_TIMEOUT,
+                read_timeout=config.TARFILE_TIMEOUT,
             ) as response:
                 if response.status_code == requests.codes.bad:
                     log.error("Bad request sent to the API")
