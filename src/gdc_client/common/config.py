@@ -21,6 +21,8 @@ REQUEST_CONNECT_TIMEOUT = 10
 REQUEST_READ_TIMEOUT = 60
 REQUEST_RETRY_ATTEMPTS = 5
 REQUEST_RETRY_MAX_WAIT = 32
+# Tarfiles take extra time to be created.
+TARFILE_TIMEOUT = None
 
 
 class GDCClientArgumentParser(argparse.ArgumentParser):
